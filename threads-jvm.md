@@ -549,11 +549,17 @@ key."**
 
 - **synchronized vs Lock (ReentrantLock)?** *(X-vs-Y staple)*
 
-  **Lead with what's the *same*:** same mutual exclusion, same
-  reentrancy, same happens-before/visibility guarantee (the `Lock`
-  contract requires it). So the difference isn't about memory —
-  it's entirely about **the wait**. `synchronized` can only wait
-  forever. `ReentrantLock` lets you not.
+  **Lead with what's the *same*:** both provide mutual exclusion,
+  both are reentrant, and both establish the same happens-before
+  relationship on release/acquire (the `Lock` contract requires it).
+  The difference is not memory visibility — it is **how you acquire
+  the lock and how you wait on it**.
+
+  `synchronized` has exactly one way to acquire a monitor: wait
+  until it becomes available. You cannot time out, cannot interrupt
+  the acquisition, cannot choose not to wait. `ReentrantLock` is
+  not "stronger synchronization" — it is the *same* synchronization
+  with control over acquisition policy and condition management.
 
   **The mental picture:** one door, two doorknobs. `synchronized`
   has no handle on your side — you push, and the JVM opens and
@@ -583,23 +589,33 @@ key."**
   ```
 
   **What you buy for it — four verbs:** *give up · be interrupted ·
-  take turns · wake precisely.* If you can't name which one you
-  need, you don't need the lock.
+  take turns · wake precisely.* If none of those four is what you
+  need, `synchronized` is the simpler choice.
 
   *One term first — **interrupt is a cooperative cancel request,
-  not a kill**:* `t.interrupt()` sets a flag on the target, and any
-  method parked in a blocking call (`wait`, `sleep`, `await`,
-  `lockInterruptibly`) throws `InterruptedException` and **clears**
-  that flag. Re-calling `interrupt()` inside the catch restores it,
-  so code above you still sees the cancel.
+  not a kill**:* `t.interrupt()` sets a flag on the target. Many
+  blocking methods are *interruptible* — `sleep`, `wait`, `join`,
+  `await`, `lockInterruptibly`, `BlockingQueue.take` — and those
+  throw `InterruptedException` and **clear** that flag. (Not every
+  blocking API is: entering a `synchronized` block isn't, and
+  neither is classic socket I/O.) Re-calling `interrupt()` inside
+  the catch restores the flag, so code above you still sees the
+  cancel.
 
   | | `synchronized` | `ReentrantLock` |
   |---|---|---|
   | **give up** waiting | ❌ push and pray | `tryLock()`, `tryLock(t, unit)` |
   | be **interrupted** waiting | ❌ | `lockInterruptibly()` |
-  | **take turns** (FIFO) | ❌ barging | `new ReentrantLock(true)` |
+  | **take turns** (FIFO) | ❌ non-fair (barging allowed) | `new ReentrantLock(true)` |
   | **wake precisely** | ❌ one wait-set | *n* × `lock.newCondition()` |
+  | *(minor fifth)* ask who owns it | ❌ opaque | `isLocked()`, `isHeldByCurrentThread()`, `getHoldCount()`, `hasQueuedThreads()` |
   | *(the price)* | JVM always unlocks | **you** unlock, in `finally` |
+
+  That fifth row is worth a sentence in an interview: a monitor is
+  invisible from Java code, while a `ReentrantLock` can be
+  *interrogated* — useful for assertions (`assert
+  lock.isHeldByCurrentThread()`) and for monitoring, though never
+  as a substitute for actually locking.
 
   **Verbs 1–2 — the ways to knock.** Both are escape routes out of
   a wait that `synchronized` simply doesn't have — which is why the
@@ -657,15 +673,23 @@ key."**
   ([§7](#7-liveness-failures)): a thread that can't get the *second*
   lock backs off and retries instead of hanging on it forever.
 
-  **Verb 3 — take turns.** Default is *barging*: on release, any
-  thread can grab the lock, including one that just arrived, so a
-  long waiter can starve. `new ReentrantLock(true)` hands it to
-  the longest waiter instead — fairer, measurably slower.
+  **Verb 3 — take turns.** The default lock is *non-fair*: on
+  release, any thread may grab it, including one that just arrived
+  and never queued (*barging*), so a long waiter can starve.
+  `new ReentrantLock(true)` hands it to the longest waiter instead.
 
   ```java
-  new ReentrantLock();       // default — barging, faster
+  new ReentrantLock();       // default — non-fair, faster
   new ReentrantLock(true);   // fair — longest waiter wins
   ```
+
+  Fair means first-in-first-out *as much as practical* — it bounds
+  starvation, it does not promise a strict global order. And the
+  interview follow-up, "does fairness improve performance?":
+  **usually no.** Handing the lock to a specific queued thread
+  means parking and unparking on nearly every handoff, where a
+  non-fair lock lets an already-running thread take it immediately.
+  Fairness buys latency predictability and pays throughput for it.
 
   *(MCQ trap: even on a fair lock, the untimed `tryLock()` barges
   anyway; the timed `tryLock(t, unit)` respects fairness.)*
@@ -715,8 +739,16 @@ key."**
   }
   ```
 
-  - `await()` releases the lock while parked and re-acquires on
-    wake — exactly like `wait()` does with a monitor
+  - `await()` **atomically** releases the lock, parks, and
+    re-acquires the lock before returning — exactly like `wait()`
+    does with a monitor. Atomically is the load-bearing word: no
+    window exists between "released" and "parked" for a signal to
+    slip through and be missed.
+  - `signal()` does **not** hand over execution. It moves one
+    waiting thread from that condition's queue to the lock's entry
+    queue; that thread still has to re-acquire the lock — held by
+    the signaller until it leaves the `finally` — before it resumes
+    from `await()`.
   - `while`, never `if`: a woken thread must re-check, because it
     still has to re-acquire the lock and the state may have
     changed again (and *spurious wakeups* are legal — `wait`/
@@ -731,8 +763,10 @@ key."**
   (Lab station S7 runs the `BlockingQueue` version:
   [→ S7](s5-threads-lab.md).)
 
-  - rule of thumb: `synchronized` by default — shorter, and it
-    can't leak. Upgrade only when you can name the verb.
+  - rule of thumb: **default to `synchronized`** — shorter, and it
+    can't leak. **Upgrade to `ReentrantLock` only for timed
+    acquisition, interruptible acquisition, fairness, or multiple
+    conditions.**
   - Memory hook: *`synchronized` is a door that closes itself;
     `ReentrantLock` is a door with a keypad — more ways in, and
     yours to close.*

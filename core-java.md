@@ -943,13 +943,19 @@ up generationally, young and often.
 
 ## §7 Enterprise — Spring / JDBC / REST / integration
 
-*(flow: Spring core → web layer → data layer → integration
-architecture → tooling → patterns)*
+*(flow: Spring core → request path → beans and transactions → REST →
+data layer → integration architecture → tooling → patterns)*
 
-- **IoC?** — the container creates and wires objects; you declare,
-  it injects. DI is the mechanism (constructor/setter/field).
-- **@Autowired?** — inject by type (then by name/`@Qualifier`).
-  Constructor injection preferred: immutable, test-friendly.
+- **IoC?** — *inversion of control*: normally your code controls its
+  dependencies (`new` them, hard-code them); inverted, the container
+  — Spring's runtime registry of objects — constructs and wires them
+  and hands them to you. You declare, it injects. DI (*dependency
+  injection*) is the mechanism (constructor/setter/field). A **bean** is just
+  an object the container owns: it builds it, injects into it, hands
+  it out.
+- **@Autowired?** — inject by type; two beans of one type is
+  ambiguous, so then by name/`@Qualifier`. Constructor injection
+  preferred: immutable, test-friendly.
 - **Spring Boot vs Spring?** — opinionated Spring, four gifts:
   - starters — curated dependency bundles
   - auto-configuration — sensible defaults from the classpath
@@ -959,30 +965,10 @@ architecture → tooling → patterns)*
   ⚓ IMPS receivers are Spring Boot 2.7 services.
 - **@SpringBootApplication?** *(MCQ staple)* — `@Configuration` +
   `@EnableAutoConfiguration` + `@ComponentScan`.
-- **Bean scopes?** — singleton (default), prototype, plus
-  request/session on the web. Follow-up trap: *is a singleton bean
-  thread-safe?* No — one instance serves all requests; it's safe
-  only if stateless (no mutable fields).
-- **Bean lifecycle?** *(MCQ staple)* — container instantiates →
-  injects dependencies → `@PostConstruct` init → in service →
-  `@PreDestroy` on shutdown.
-- **Stereotypes?**
-  - `@Component` — generic managed bean
-  - `@Service` — business layer
-  - `@Repository` — persistence (+ exception translation)
-  - `@Controller` / `@RestController` — web; `@RestController` =
-    `@Controller` + `@ResponseBody` (JSON bodies)
-- **@Transactional?** — proxy wraps the method in a DB transaction;
-  rolls back on unchecked exceptions by default. Follow-up trap:
-  *what about checked exceptions?* → they don't trigger rollback
-  unless you set `rollbackFor = Exception.class`. (Bank-panel
-  favorite behind it: **ACID** — atomicity, consistency,
-  isolation, durability.)
-- **Actuator?** — production endpoints: /health, /metrics — the
-  monitoring surface. (Support-role JD language — use it.)
-- **Servlet lifecycle?** — init → service (doGet/doPost) → destroy;
-  Spring MVC's DispatcherServlet is a front controller on top
-  (MVC = model-view-controller).
+- **Servlet lifecycle?** — a servlet is the object the web container
+  hands each HTTP request to, one thread per request: init → service
+  (doGet/doPost) → destroy. Spring MVC's DispatcherServlet is a front
+  controller on top (MVC = model-view-controller).
 
   ```text
   request ─▶ DispatcherServlet ─▶ @Controller method ─▶ model
@@ -990,9 +976,37 @@ architecture → tooling → patterns)*
   response ◀─ JSON (@ResponseBody) or view template ◀─────┘
   ```
 
+- **Bean scopes?** — singleton (default — one per container, not the
+  GoF pattern), prototype, plus request/session on the web.
+  Follow-up trap: *is a singleton bean thread-safe?* No — one
+  instance serves every request and each request runs on its own
+  thread; it's safe only if stateless (no mutable fields).
+- **Bean lifecycle?** *(MCQ staple)* — container instantiates →
+  injects dependencies → `@PostConstruct` init → in service →
+  `@PreDestroy` on shutdown.
+- **Stereotypes?**
+  - `@Component` — generic managed bean
+  - `@Service` — business layer
+  - `@Repository` — persistence (+ exception translation: JDBC's
+    checked `SQLException` → Spring's unchecked `DataAccessException`)
+  - `@Controller` / `@RestController` — web; `@RestController` =
+    `@Controller` + `@ResponseBody` (JSON bodies)
+- **@Transactional?** — callers get a **proxy**: a generated stand-in
+  for your bean that opens a DB transaction, calls your method, then
+  commits or rolls back (so a call from *inside* the same class
+  bypasses it entirely). Rolls back on unchecked exceptions by
+  default. Follow-up trap: *what about checked exceptions?* → they
+  don't trigger rollback unless you set `rollbackFor =
+  Exception.class` — the convention being unchecked = a bug, unwind;
+  checked = an outcome you declared, so Spring assumes you handled
+  it. (Bank-panel favorite behind it: **ACID** — atomicity,
+  consistency, isolation, durability.)
+- **Actuator?** — production endpoints: /health, /metrics — the
+  monitoring surface. (Support-role JD language — use it.)
 - **REST?** — resources + HTTP verbs, stateless. GET read, POST
-  create, PUT replace, PATCH partial, DELETE remove. Idempotent:
-  GET/PUT/DELETE; POST is not.
+  create, PUT replace, PATCH partial, DELETE remove. Idempotent =
+  repeating the request leaves the server in the same state (not:
+  returns the same response) — GET/PUT/DELETE; POST is not.
 - **GET vs POST?** *(the famous one)*
   - GET — data in the URL, cacheable, idempotent, for reads
   - POST — data in the body, not cached, not idempotent, for
@@ -1002,14 +1016,16 @@ architecture → tooling → patterns)*
   conflict · 500 server error · 502/503 upstream/unavailable.
   Memory hook for the pair: *401 = "who are you?", 403 = "I know
   you — no."*
-- **REST vs SOAP?**
+- **REST vs SOAP?** — both send a request over HTTP to a remote
+  service; they differ in what the contract is made of.
   - REST — lightweight, JSON, HTTP verbs
-  - SOAP — XML envelope + WSDL contract, WS-Security
+  - SOAP — XML envelope + WSDL contract file, WS-Security
   - Memory hook: *REST speaks JSON verbs, SOAP speaks XML
     contracts.*
   - ⚓ NPCI speaks signed XML over HTTPS — I've lived the XML+PKI
     world
-- **JDBC flow?** — DataSource → Connection → PreparedStatement →
+- **JDBC flow?** — DataSource (where connections come from — a pool,
+  not a fresh socket per call) → Connection → PreparedStatement →
   ResultSet; close in reverse (try-with-resources snippet: §3).
   (Older-panel keyword: driver *types 1–4*; type 4 = pure-Java
   thin driver — what ojdbc8 is.)
@@ -1017,8 +1033,10 @@ architecture → tooling → patterns)*
   - `executeQuery` → ResultSet (SELECT)
   - `executeUpdate` → int rows affected (INSERT/UPDATE/DELETE)
   - `execute` → boolean, handles either
-- **Statement vs PreparedStatement?** — precompiled + parameterized
-  → SQL-injection-proof and faster. Parameters are **1-indexed** —
+- **Statement vs PreparedStatement?** — precompiled + parameterized:
+  the SQL is parsed before the values arrive, so a parameter can
+  never become SQL syntax → injection-proof and faster. Parameters
+  are **1-indexed** —
   ⚓ I once shipped `setString(0, …)` in IMPS's duplicate check;
   it got erased days later when the check moved to the receiver.
   Honest bug story if "a bug you shipped?" comes.
@@ -1050,7 +1068,9 @@ architecture → tooling → patterns)*
   DSL, faster, flexible). ⚓ IMPS is a **Gradle** multi-project.
 - **Design patterns you know?**
   - singleton — private constructor + static instance; enum is
-    the safe form; double-checked locking needs volatile
+    the safe form; double-checked locking needs `volatile` or
+    another thread can see the reference assigned before the
+    constructor has finished ([threads-jvm.md](threads-jvm.md) §7)
   - factory, observer — one-liners on demand
   - **and one I shipped at scale: compensating transaction
     (saga)** — IMPS's reversion flow undoes the CBS leg when the
