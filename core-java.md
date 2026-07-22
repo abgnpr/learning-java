@@ -992,10 +992,26 @@ dive. Drill here, study there.*
   - one-way doors: NEW and TERMINATED are visited once — a
     terminated thread can't `start()` again *(MCQ trap)*
 
-- **synchronized?**
-  - mutual exclusion on an object's monitor
-  - method or block form
-  - a static synchronized method locks the Class object *(MCQ)*
+- **synchronized?** — mutual exclusion: only one thread at a time
+  can hold a given monitor, so the guarded code can't interleave.
+  - **instance method** `synchronized void m()` — locks `this`.
+    Two threads calling `m()` on the *same* instance serialize; on
+    different instances they don't (different monitors).
+  - **block** `synchronized(obj) { ... }` — locks whatever `obj` you
+    pick, not necessarily `this`. Narrows the critical section and
+    lets you choose the lock object explicitly.
+  - **static method** `synchronized static void m()` — locks the
+    `Class` object (`Foo.class`), not any instance. So a static
+    synchronized method and an instance synchronized method on the
+    *same* object do **not** exclude each other — two different
+    monitors *(MCQ trap)*.
+  - reentrant: a thread already holding the monitor can re-enter
+    another synchronized method/block guarded by it without
+    deadlocking itself.
+  - also gives visibility: exiting a synchronized block flushes
+    writes, entering re-reads from main memory (happens-before,
+    same family as `volatile`).
+
 - **synchronized vs Lock (ReentrantLock)?** *(X-vs-Y staple)*
   - `synchronized`: implicit, JVM releases it automatically even on
     exception — simpler, less error-prone
