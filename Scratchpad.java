@@ -1,7 +1,7 @@
 
 import java.util.Arrays;
 
-public class Main {
+public class Scratchpad {
     public static void main(String[] args) {
         var a = Arrays.asList(1, 2, 3);
         a.add(4);
