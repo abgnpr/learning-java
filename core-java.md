@@ -1,37 +1,36 @@
-# CBOI — Core Java Rapid-fire Kit
+# Core Java Rapid-fire Kit
 
 - Core Java Rapid-fire Kit
   - [§1 Bedrock — Java identity + OOP](#1-bedrock--java-identity--oop)
   - [§2 Collections](#2-collections)
   - [§3 Exceptions](#3-exceptions)
-  - [§4 Java 8+ (paper had this — know it cold)](#4-java-8-paper-had-this--know-it-cold)
+  - [§4 Java 8+ (know it cold)](#4-java-8-know-it-cold)
   - [§5 Threads + JVM](#5-threads--jvm)
   - [§6 Trap wall (the code-output classics, spoken)](#6-trap-wall-the-code-output-classics-spoken)
   - [§7 Enterprise — Spring / JDBC / REST / integration](#7-enterprise--spring--jdbc--rest--integration)
   - [§8 Kafka — every answer anchored in IMPS ⚓](#8-kafka--every-answer-anchored-in-imps-)
-  - [§9 SDLC + testing (the paper's second flavor)](#9-sdlc--testing-the-papers-second-flavor)
+  - [§9 SDLC + testing](#9-sdlc--testing)
   - [§10 Honesty guardrails (truth law)](#10-honesty-guardrails-truth-law)
   - [Rep scorecard — 🟢 only after a blind aloud rep](#rep-scorecard---only-after-a-blind-aloud-rep)
 
-**Why this exists (intel 15/07):** the written stream section was
-majorly core Java — theory MCQs, code-output, Java 8+, threads/JVM/
-enterprise — plus SDLC/testing. Same bank sets both gates: assume
-the panel opens technicals with Java. **The flagship Java answer is
-the IMPS switch** (solo, NPCI-certified) — abstract answers get
-stronger with "…and in my IMPS switch, …". Anchors marked ⚓.
+**Why this exists:** core Java is where a technical round opens —
+theory, code-output, Java 8+, threads/JVM, enterprise, plus
+SDLC/testing. **The flagship Java answer is the IMPS switch** (solo,
+NPCI-certified) — abstract answers get stronger with "…and in my
+IMPS switch, …". Anchors marked ⚓.
 
 **How to drill:** aloud, blind, one section per sitting (`/drill`
 rapid-fire). Answers are sized for SPEAKING — say the 1–3 lines,
-then stop talking. PSU depth = explain-level; if pressed deeper,
-anchor to IMPS code; never bluff. 🟢 per section only after a blind
-aloud rep — reading is not loading.
+then stop talking. Explain-level depth; if pressed deeper, anchor to
+IMPS code; never bluff. 🟢 per section only after a blind aloud rep
+— reading is not loading.
 
-**⚓ The verified IMPS stack (from build files, 15/07):** Spring
-Boot **2.7.10** receivers · Kafka clients **3.x** · Oracle via
+**⚓ The verified IMPS stack (from build files):** Spring Boot
+**2.7.10** receivers · Kafka clients **3.x** · Oracle via
 **ojdbc8** · Redis via **Jedis 3.7** · **Gradle** multi-project
 build (NOT Maven) · JAXB + XML digital signatures for NPCI · RMI to
 CBS-interface and RRN-server. ⚠️ JDK version is NOT pinned in
-Gradle — check the deployment JDK before the day ("which Java
+Gradle — check the deployment JDK before an interview ("which Java
 version?" is a certainty).
 
 ---
@@ -735,7 +734,7 @@ version?" is a certainty).
   `throws` declares, finally always runs, try-with-resources
   closes for you.
 
-## §4 Java 8+ (paper had this — know it cold)
+## §4 Java 8+ (know it cold)
 
 *Two-layer ammo. This section = the spoken rapid-fire; the
 learn-from-zero layer + full version timeline live in
@@ -1461,7 +1460,7 @@ architecture → tooling → patterns)*
   and let the CBS leg run at its own pace, with the DB journal —
   not Kafka — as the truth for dedupe and recovery.
 
-## §9 SDLC + testing (the paper's second flavor)
+## §9 SDLC + testing
 
 - **SDLC phases?** — requirements → design → build → test → deploy
   → maintain.
@@ -1774,8 +1773,8 @@ architecture → tooling → patterns)*
   inbound XML-signature verification (outbound signing only),
   P2P/MMID support (P2A via netbanking only), NSQ (design doc
   predates the Kafka migration — the shipped system is Kafka).
-- ⚠️ Before the day: confirm deployment **JDK version** (not pinned
-  in Gradle) so "which Java version?" gets a one-word answer.
+- ⚠️ Before any interview: confirm deployment **JDK version** (not
+  pinned in Gradle) so "which Java version?" gets a one-word answer.
 
 ## Rep scorecard — 🟢 only after a blind aloud rep
 

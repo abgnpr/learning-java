@@ -4,7 +4,7 @@
 are panel certainties. This is the chronological spine — say the
 version, the headline feature, one line of code — plus the Tier-1
 study block (Java 8 from zero). The spoken rapid-fire layer is
-[core-java.md §4](core-java.md#4-java-8-paper-had-this--know-it-cold);
+[core-java.md §4](core-java.md#4-java-8-know-it-cold);
 it links back into the sections here. LTS line = **8, 11, 17, 21,
 25** — memorize those five.
 
@@ -211,7 +211,7 @@ String msg = switch (shape) {                        // type patterns
 ## The two answers to have cold
 
 **"Which Java version did IMPS run?"** — ⚠️ NOT pinned in Gradle;
-confirm the deployment JDK before the day (see [core-java.md](core-java.md)
+confirm the deployment JDK before an interview (see [core-java.md](core-java.md)
 ⚓ header). Spring Boot 2.7.10 → runs on 8/11/17.
 
 **"What's new since Java 8?"** — modules (9), `var` (10), `HttpClient`
@@ -445,7 +445,7 @@ answer, code with aligned `// comments`. Deep companion to
   |⭐ `limit`|`long n`|first n only|short-circuits — tames infinite|
   |`skip`|`long n`|drops first n|stateful|
   |`takeWhile` / `dropWhile`|`Predicate`|take/drop until first fail|Java 9|
-  |`parallel` / `sequential`|—|switch execution mode|care — [core-java.md §4](core-java.md#4-java-8-paper-had-this--know-it-cold) parallelStream|
+  |`parallel` / `sequential`|—|switch execution mode|care — [core-java.md §4](core-java.md#4-java-8-know-it-cold) parallelStream|
 
   **Terminals (fire the belt — return anything BUT a Stream):**
 
