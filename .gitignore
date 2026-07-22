@@ -1,10 +1,32 @@
-# Java build output
+# ── Java build output ────────────────────────────────────────────
 *.class
+*.jar
+*.war
+*.ear
+bin/
 build/
 out/
-.gradle/
 target/
+hs_err_pid*.log
+replay_pid*.log
 
-# editor / OS
+# ── Build tools ──────────────────────────────────────────────────
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+.mvn/timing.properties
+
+# ── IDEs ─────────────────────────────────────────────────────────
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.classpath
+.project
+.settings/
+
+# ── Editor / OS ──────────────────────────────────────────────────
 .DS_Store
+Thumbs.db
 *.swp
+*~
