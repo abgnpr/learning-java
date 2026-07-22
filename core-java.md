@@ -893,54 +893,85 @@ dive. Drill here, study there.*
   - submit any of them to an `ExecutorService` pool (production)
 
   ```java
-  // 1. extend Thread — burns the one superclass slot
+  // 1. Extend Thread (least flexible)
   class Worker extends Thread {
-      public void run() { System.out.println("running"); }
+      @Override
+      public void run() {
+          System.out.println("running");
+      }
   }
   new Worker().start();
 
-  // 2. implement Runnable — preferred, frees inheritance
+
+  // 2. Implement Runnable (preferred over extending Thread)
   class Task implements Runnable {
-      public void run() { System.out.println("running"); }
+      @Override
+      public void run() {
+          System.out.println("running");
+      }
   }
   new Thread(new Task()).start();
-  new Thread(() -> System.out.println("running")).start();  // lambda, same interface
 
-  // 3. Callable + Future — returns a value, can throw checked
+  // Lambda (Runnable is a functional interface)
+  new Thread(() -> System.out.println("running")).start();
+
+
+  // 3. Callable + Future (returns a value and can throw checked exceptions)
   Callable<Integer> job = () -> 42;
+
   FutureTask<Integer> future = new FutureTask<>(job);
   new Thread(future).start();
-  int result = future.get();          // blocks until done
 
-  // 4. submit to an ExecutorService pool — production shape
+  int result = future.get();      // waits for completion
+
+
+  // 4. ExecutorService (recommended for real applications)
   ExecutorService pool = Executors.newFixedThreadPool(4);
-  pool.submit(new Task());            // Runnable in
-  Future<Integer> f = pool.submit(job); // Callable in
-  int r = f.get();
+
+  pool.execute(new Task());           // fire-and-forget Runnable
+
+  Future<Integer> future = pool.submit(job); // Callable -> Future
+  int result = future.get();
+
   pool.shutdown();
   ```
+
+  | Approach                  | Creates Thread?        | Returns Value?      | Recommended?            |
+  | ------------------------- | ---------------------- | ------------------- | ----------------------- |
+  | Extend `Thread`           | Yes                    | No                  | Rarely                  |
+  | Implement `Runnable`      | Yes (via `new Thread`) | No                  | Yes                     |
+  | `Callable` + `FutureTask` | Yes (via `new Thread`) | Yes                 | Occasionally            |
+  | `ExecutorService`         | No (uses thread pool)  | Optional (`Future`) | ✅ Yes (production code) |
+
 
 - **run() vs start()?** *(trap)* — `start()` spawns a new thread
   that calls `run()`; calling `run()` directly is just a method
   call on the current thread.
 
+- **monitor?** — every Java object carries one implicitly: a lock +
+  a wait-set. `synchronized` acquires the lock half;
+  `wait`/`notify`/`notifyAll` operate on the wait-set half. All the
+  "monitor" mentions below (BLOCKED state, `synchronized`,
+  `wait`/`notify`) are this same one thing, not a dashboard/ops
+  sense.
+
 - **Thread states?** *(MCQ staple)*
 
-```mermaid
-  stateDiagram-v2
-      direction LR
-      [*] --> NEW
-      NEW --> RUNNABLE : start()
-      RUNNABLE --> TERMINATED : run() ends
-      TERMINATED --> [*]
+  ```mermaid
+    stateDiagram-v2
+        direction LR
+        [*] --> NEW
+        NEW --> RUNNABLE : start()
+        RUNNABLE --> TERMINATED : run() ends
+        TERMINATED --> [*]
 
-      RUNNABLE --> BLOCKED : lock busy
-      BLOCKED --> RUNNABLE : acquired
-      RUNNABLE --> WAITING : wait()/join()
-      WAITING --> RUNNABLE : notify()
-      RUNNABLE --> TIMED_WAITING : sleep(t)/wait(t)
-      TIMED_WAITING --> RUNNABLE : timeout
-```
+        RUNNABLE --> BLOCKED : lock busy
+        BLOCKED --> RUNNABLE : acquired
+        RUNNABLE --> WAITING : wait()/join()
+        WAITING --> RUNNABLE : notify()
+        RUNNABLE --> TIMED_WAITING : sleep(t)/wait(t)
+        TIMED_WAITING --> RUNNABLE : timeout
+  ```
 
   | State | Entered by | Leaves via |
   | --- | --- | --- |
