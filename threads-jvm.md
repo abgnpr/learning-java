@@ -8,15 +8,14 @@ on one below it.
 - [The map — read in this order](#the-map--read-in-this-order)
 - [§1 Ground floor — what a thread is, how you get one](#1-ground-floor--what-a-thread-is-how-you-get-one)
 - [§2 The two problems](#2-the-two-problems)
-- [§3 The monitor and `synchronized`](#3-the-monitor-and-synchronized)
+- [§3 The monitor, `synchronized`, and thread state](#3-the-monitor-synchronized-and-thread-state)
 - [§4 Waiting *inside* a lock](#4-waiting-inside-a-lock)
-- [§5 Thread states](#5-thread-states)
-- [§6 Upgrading the lock — ReentrantLock](#6-upgrading-the-lock--reentrantlock)
-- [§7 Without a lock — volatile and atomics](#7-without-a-lock--volatile-and-atomics)
-- [§8 Liveness failures](#8-liveness-failures)
-- [§9 Running the work — executors and virtual threads](#9-running-the-work--executors-and-virtual-threads)
-- [§10 Don't hand-roll it](#10-dont-hand-roll-it)
-- [§11 JVM — memory, GC, loading](#11-jvm--memory-gc-loading)
+- [§5 Upgrading the lock — ReentrantLock](#5-upgrading-the-lock--reentrantlock)
+- [§6 Without a lock — volatile and atomics](#6-without-a-lock--volatile-and-atomics)
+- [§7 Liveness failures](#7-liveness-failures)
+- [§8 Running the work — executors and virtual threads](#8-running-the-work--executors-and-virtual-threads)
+- [§9 Don't hand-roll it](#9-dont-hand-roll-it)
+- [§10 JVM — memory, GC, loading](#10-jvm--memory-gc-loading)
 - [Rep scorecard](#rep-scorecard)
 
 **How to drill:** aloud, blind. Answers are sized for SPEAKING — say
@@ -48,14 +47,13 @@ flowchart TD
 
     R --> CS["§2 · critical section<br/>(the region to protect)"]
     VP --> CS
-    CS --> MON["§3 · monitor → synchronized<br/>(mutex AND visibility)"]
+    CS --> MON["§3 · monitor → synchronized<br/>(mutex AND visibility)<br/>→ the six thread states"]
     MON --> WN["§4 · wait / notify<br/>→ producer-consumer"]
-    WN --> ST["§5 · thread states<br/>(BLOCKED vs WAITING)"]
-    ST --> RL["§6 · ReentrantLock → Condition"]
-    RL --> VO["§7 · volatile / atomics<br/>(visibility half only)"]
-    VO --> DL["§8 · deadlock & friends"]
-    DL --> EX["§9 · executors → virtual threads"]
-    EX --> CC["§10 · concurrent collections<br/>(don't hand-roll it)"]
+    WN --> RL["§5 · ReentrantLock → Condition"]
+    RL --> VO["§6 · volatile / atomics<br/>(visibility half only)"]
+    VO --> DL["§7 · deadlock & friends"]
+    DL --> EX["§8 · executors → virtual threads"]
+    EX --> CC["§9 · concurrent collections<br/>(don't hand-roll it)"]
 ```
 
 ---
@@ -79,7 +77,7 @@ flowchart TD
   - submit any of them to an `ExecutorService` pool (production) —
     a fixed crew of *reused* threads pulling tasks off a shared
     queue, so you stop paying for a new OS thread per task (full
-    answer in [§9](#9-running-the-work--executors-and-virtual-threads))
+    answer in [§8](#8-running-the-work--executors-and-virtual-threads))
 
   ```java
   // 1. Extend Thread (least flexible)
@@ -220,7 +218,7 @@ exists for one of these two.
 
   - **mutex** ("mutual exclusion") = the mechanism that admits one
     thread at a time. In Java that's the monitor behind
-    `synchronized` (next), or a `Lock` ([§6](#6-upgrading-the-lock--reentrantlock)).
+    `synchronized` (next), or a `Lock` ([§5](#5-upgrading-the-lock--reentrantlock)).
   - too wide and threads queue for nothing (throughput dies); too
     narrow and the race survives. Get it correct first, then narrow.
   - never do slow work — I/O, network calls, `sleep` — inside one:
@@ -228,17 +226,107 @@ exists for one of these two.
 
 ---
 
-## §3 The monitor and `synchronized`
+## §3 The monitor, `synchronized`, and thread state
 
-- **monitor?** — every Java object carries one implicitly: a lock +
-  a wait-set. The **lock** half is the mutex you already know —
-  `synchronized` acquires it. The **wait-set** is a *second,
-  separate* queue holding threads that already got in and then
-  handed the lock back to wait for state they need
-  (`wait`/`notify`/`notifyAll`, [§4](#4-waiting-inside-a-lock)) —
-  blocked *outside* vs waiting *inside*, which is BLOCKED vs
-  WAITING in [§5](#5-thread-states). All the "monitor" mentions
-  below are this same one thing, not a dashboard/ops sense.
+- **monitor?** — Every Java object implicitly owns a monitor consisting of two parts: a lock and a wait-set. The lock is the mutex you already know: synchronized acquires and releases it. The wait-set is a separate queue for threads that already acquired the monitor but then called wait(), releasing ownership while waiting for some condition to become true. Threads that have not yet acquired the monitor wait separately to enter it (BLOCKED); threads that did acquire it and then called wait() are in the wait-set (WAITING). notify()/notifyAll() move waiting threads back to compete for the monitor—they do not immediately make them the owner.
+
+  **The picture to hold:** a room with a capacity of one, a line at
+  its door, and a bench in a side alcove. The room is the guarded
+  code. The line is threads that want in. The bench is reachable
+  only from *inside* the room, and stepping onto it costs the key —
+  so the way back into the room is the door, via the line, like
+  everyone else.
+
+  **Anatomy — three regions, one of them capacity 1**
+
+  ```mermaid
+  flowchart
+      subgraph MON ["THE MONITOR — every Java object has exactly one, implicitly"]
+          direction LR
+
+          subgraph LOCKHALF ["the lock half — the mutex synchronized acquires"]
+              EQ["ENTRY QUEUE<br/>the line at the door<br/><br/>0 .. N threads<br/>none of them holds the lock"]
+              OW(["OWNER<br/>the room, capacity 1<br/><br/>0 or 1 thread — never 2<br/>holds the lock<br/>runs the guarded code"])
+          end
+
+          subgraph WSHALF ["the wait-set half — reached only from the room"]
+              WS["WAIT-SET<br/>the side bench<br/><br/>0 .. N threads<br/>each one held the lock<br/>and gave it back on purpose"]
+          end
+      end
+
+      classDef q fill:#e7eefb,stroke:#4a6fa5,stroke-width:1px,color:#12243d
+      classDef owner fill:#dcf2e0,stroke:#3f8f4f,stroke-width:3px,color:#0f2e17
+      classDef bench fill:#fbeed3,stroke:#a8760c,stroke-width:1px,color:#3a2c00
+      class EQ q
+      class OW owner
+      class WS bench
+  ```
+
+  Membership in the entry queue is 0..N and membership in the
+  wait-set is 0..N, but the owner slot holds one thread or none.
+  That single-slot fact *is* mutual exclusion — everything else in
+  the section exists to serve it.
+
+  **Ownership transfer — the four operations that move threads**
+
+  ```mermaid
+  flowchart
+      IN["a thread reaches<br/>synchronized (obj)"]
+      EQ["ENTRY QUEUE"]
+      OW(["OWNER<br/>capacity 1"])
+      DONE["past the guarded code,<br/>done with this object"]
+      WS["WAIT-SET"]
+
+      IN --> EQ
+      EQ -- "ACQUIRE<br/>only while the slot is empty;<br/>exactly one winner, the rest<br/>keep queueing" --> OW
+      OW -- "UNLOCK — leaves the guarded<br/>code, slot empties, one queued<br/>thread wins it" --> DONE
+      OW -- "wait() — hands the lock back<br/>and vacates the slot" --> WS
+      WS -- "notify() / notifyAll()<br/>re-queues the thread;<br/>does not resume it" --> EQ
+      WS -. "never — no path from<br/>bench to room" .-> OW
+
+      classDef q fill:#e7eefb,stroke:#4a6fa5,stroke-width:1px,color:#12243d
+      classDef owner fill:#dcf2e0,stroke:#3f8f4f,stroke-width:3px,color:#0f2e17
+      classDef bench fill:#fbeed3,stroke:#a8760c,stroke-width:1px,color:#3a2c00
+      classDef edge fill:#f2f2f3,stroke:#8d8d92,stroke-width:1px,color:#1a1a1a
+      class EQ q
+      class OW owner
+      class WS bench
+      class IN,DONE edge
+  ```
+
+  Only the entry queue can produce the next owner. Acquiring the monitor is the only way into the owner slot. notify() doesn't grant ownership—it merely moves a waiting thread from the wait-set back to the entry queue. From there it competes for the monitor like every other thread, can lose to a thread that never waited at all, and resumes from wait() only after re-acquiring the monitor ([§4](#4-waiting-inside-a-lock)). That's why the guard is always a while, not an if.
+
+  ![Java Monitor Illustration](/assets/java-monitor.png)
+
+  **Where a thread sits vs what state it is in** — the three regions
+  are parts of the *object's monitor*; BLOCKED, WAITING and
+  TIMED_WAITING are values of `Thread.getState()`, properties of the
+  *thread*. One is furniture, the other is a label on the person.
+
+  | Region      | Thread state            | Next destination                                   |
+  | ----------- | ----------------------- | -------------------------------------------------- |
+  | Outside     | RUNNABLE                | Entry queue                                        |
+  | Entry queue | BLOCKED                 | Owner                                              |
+  | Owner       | RUNNABLE                | Outside *(unlock)* or Wait-set *(`wait()`)*        |
+  | Wait-set    | WAITING / TIMED_WAITING | **Entry queue** *(`notify()`, timeout, interrupt)* |
+  
+  All three mean "not executing". The split says *why*, and the
+  third value adds *for how long*:
+
+  - **BLOCKED** — stuck in the entry queue, wanting a lock another
+    thread holds. It never chose to stop.
+  - **WAITING** — called `wait()` (or `join()`, or `park()`), gave
+    the lock up on purpose, parked *indefinitely* until something
+    wakes it.
+  - **TIMED_WAITING** — the same parking with a deadline:
+    `wait(t)`, `join(t)`, `sleep(t)`. `sleep(t)` is the odd one in
+    the list — it parks a thread that never touched the monitor at
+    all, which is why it keeps whatever locks it holds
+    ([§4](#4-waiting-inside-a-lock)).
+
+  Whichever way a thread left, the wait-set returns it to the entry
+  queue, never straight to the owner slot — so a woken thread is
+  BLOCKED again before it is RUNNABLE again.
 
 - **synchronized?** — mutual exclusion: only one thread at a time
   can hold a given monitor, so the guarded code can't interleave.
@@ -334,38 +422,87 @@ exists for one of these two.
   - contrast to keep: `volatile` gives *only* the visibility half,
     no mutual exclusion — which is exactly why `count++` stays
     broken on a volatile field
-    ([§7](#7-without-a-lock--volatile-and-atomics))
+    ([§6](#6-without-a-lock--volatile-and-atomics))
+
+- **the six thread states?** *(MCQ staple)* — the monitor supplies
+  three of them; the other three are the thread's own lifecycle,
+  from `new Thread(...)` to a dead thread. `Thread.getState()`
+  returns exactly one at any moment.
+
+  ```mermaid
+    stateDiagram-v2
+        direction LR
+        [*] --> NEW
+        NEW --> RUNNABLE : start()
+        RUNNABLE --> TERMINATED : run() ends
+        TERMINATED --> [*]
+
+        RUNNABLE --> BLOCKED : lock busy
+        BLOCKED --> RUNNABLE : acquired
+        RUNNABLE --> WAITING : wait()/join()
+        WAITING --> RUNNABLE : notify()
+        RUNNABLE --> TIMED_WAITING : sleep(t)/wait(t)
+        TIMED_WAITING --> RUNNABLE : timeout
+  ```
+
+  | State | Entered by | Leaves via |
+  | --- | --- | --- |
+  | NEW | constructed | `start()` |
+  | RUNNABLE | `start()`, re-scheduled | runs / blocks / waits |
+  | BLOCKED | contended `synchronized` | monitor acquired |
+  | WAITING | `wait()`, `join()`, `park()` *(the low-level primitive `Lock`/`Condition` are built on)* | `notify()`, target ends, unpark |
+  | TIMED_WAITING | `sleep(t)`, `wait(t)`, `join(t)` | timeout **or** `notify()` |
+  | TERMINATED | `run()` returns | — *(one-way door)* |
+
+  - `join()` = caller waits until that thread terminates
+  - one-way doors: NEW and TERMINATED are visited once — a
+    terminated thread can't `start()` again *(MCQ trap)*
 
 ---
 
 ## §4 Waiting *inside* a lock
 
-*Why a thread waits at all:* it's already inside the lock, but the
-state it needs isn't there yet — buffer empty, queue full. It has
-to hand the lock back, or nobody can get in to change that state
-and it waits forever on itself. That forced hand-back is the whole
-`wait` vs `sleep` difference.
+A mutex answers only one question: **who may enter?** Sometimes the
+thread *does* get in, but the state it needs isn't there yet — buffer
+empty, queue full. Holding the monitor while waiting would deadlock
+progress: the thread that could change that state is locked outside.
+So the thread temporarily **gives up ownership** of the monitor, lets
+someone else enter, and resumes only after the state may have changed.
+That is what `wait()` is for.
+
+Memory hook: **`wait()` says "I'll step aside until the state
+changes." `sleep()` says "I'm taking a nap, but I'm keeping the
+key."**
 
 - **wait vs sleep?** *(the famous one)*
-  - `wait` — Object method; *releases* the monitor; must be inside
-    synchronized (else IllegalMonitorStateException); woken by
-    `notify`/`notifyAll`
-  - `sleep` — Thread static method; *holds* any locks; wakes
-    itself after the timeout
-  - Memory hook: *wait lets go of the lock; sleep clutches it.*
+
+  | `wait()` | `sleep()` |
+  |---|---|
+  | `Object` method | static `Thread` method |
+  | releases the monitor | keeps any monitor it already holds |
+  | must be inside `synchronized` (else `IllegalMonitorStateException`) | may be called anywhere |
+  | resumes after `notify()`, `notifyAll()`, interrupt, or timeout | resumes after timeout (or interrupt) |
+
+  One-liner: **`wait()` coordinates threads; `sleep()` merely delays
+  one thread.**
   - the lab station that shows the difference under contention:
     [→ S4](s5-threads-lab.md)
 
-- **notify vs notifyAll?** — `notify` wakes one arbitrary waiter
-  (risky — one wait-set holds every waiting role, so the woken
-  thread may be one that still can't proceed while the one that
-  could stays asleep); `notifyAll` wakes all to recompete for the
-  lock — the safe default. (Object-method table:
-  [core-java.md §1](core-java.md#1-bedrock--java-identity--oop).)
+- **notify vs notifyAll?** — `notify()` wakes **one arbitrary
+  waiter**. It does **not** hand over the monitor — it simply moves
+  that thread from the wait-set back to the entry queue, where it must
+  compete for the lock again.
 
-- **Producer-consumer, the classic shape?** — one or more producer
-  threads add work, one or more consumer threads take it, a shared
-  buffer between them. This is what `wait`/`notify` is *for*.
+  `notifyAll()` wakes **every waiter** to compete again. It is the
+  safe default because a monitor has **one wait-set shared by every
+  waiting role**: the one thread `notify()` wakes may still be unable
+  to proceed while the one that could remains asleep. (Object-method
+  table: [core-java.md §1](core-java.md#1-bedrock--java-identity--oop).)
+
+- **Producer–consumer, the classic shape?** — one or more producer
+  threads add work, one or more consumer threads take it, with a
+  shared buffer between them. This is exactly what
+  `wait()`/`notify()` coordinate.
 
   ```java
   private final Queue<String> q = new ArrayDeque<>();
@@ -384,62 +521,31 @@ and it waits forever on itself. That forced hand-back is the whole
   }
   ```
 
-  - `while`, NOT `if` — a woken thread must re-check the guard: it
-    still has to re-acquire the monitor first, and the state may
-    have changed again by then
-  - one wait-set means every wake is a broadcast to everybody —
-    the limitation `Condition` removes in
-    [§6](#6-upgrading-the-lock--reentrantlock)
-  - real code: `BlockingQueue` (`put`/`take`) does this internally
-    — nobody hand-rolls wait/notify in production
-  - ⚓ this *is* IMPS's Kafka shape: producers (NPCI/CBS callers)
-    append to a topic, consumer processors `poll()` at their own
-    pace — the broker's partition log is the shared buffer.
-  - [→ S7](s5-threads-lab.md) runs the `BlockingQueue` version
+  **`while`, never `if`.** A notified thread resumes only after
+  re-acquiring the monitor, and by then another thread may already
+  have changed the shared state again. Every wake must re-check the
+  guard.
+
+  One monitor means **one wait-set**. Every `notifyAll()` is
+  effectively a broadcast, waking producers and consumers alike even
+  though usually only one role can make progress. That limitation is
+  exactly what `Condition` removes in
+  [§5](#5-upgrading-the-lock--reentrantlock) by giving each role its
+  own waiting queue.
+
+  Real code: `BlockingQueue` (`put()`/`take()`) already implements
+  this coordination correctly — production code rarely hand-rolls
+  `wait()`/`notify()`.
+
+  ⚓ IMPS analogy: producers (NPCI/CBS callers) append to a Kafka
+  topic, consumer processors `poll()` at their own pace — the
+  broker's partition log is the shared buffer.
+
+  [→ S7](s5-threads-lab.md) runs the `BlockingQueue` version.
 
 ---
 
-## §5 Thread states
-
-*(MCQ staple — every row is vocabulary from §3–§4: BLOCKED is the
-monitor's lock half, WAITING is its wait-set half.)*
-
-```mermaid
-  stateDiagram-v2
-      direction LR
-      [*] --> NEW
-      NEW --> RUNNABLE : start()
-      RUNNABLE --> TERMINATED : run() ends
-      TERMINATED --> [*]
-
-      RUNNABLE --> BLOCKED : lock busy
-      BLOCKED --> RUNNABLE : acquired
-      RUNNABLE --> WAITING : wait()/join()
-      WAITING --> RUNNABLE : notify()
-      RUNNABLE --> TIMED_WAITING : sleep(t)/wait(t)
-      TIMED_WAITING --> RUNNABLE : timeout
-```
-
-| State | Entered by | Leaves via |
-| --- | --- | --- |
-| NEW | constructed | `start()` |
-| RUNNABLE | `start()`, re-scheduled | runs / blocks / waits |
-| BLOCKED | contended `synchronized` | monitor acquired |
-| WAITING | `wait()`, `join()`, `park()` *(the low-level primitive `Lock`/`Condition` are built on)* | `notify()`, target ends, unpark |
-| TIMED_WAITING | `sleep(t)`, `wait(t)`, `join(t)` | timeout **or** `notify()` |
-| TERMINATED | `run()` returns | — *(one-way door)* |
-
-- the confusable trio: BLOCKED = stuck *entering* synchronized
-  (wants the monitor's lock); WAITING = parked *indefinitely* in
-  the wait-set (`wait()`/`join()`); TIMED_WAITING = parked *with a
-  deadline* (`sleep(t)`, `wait(t)`)
-- `join()` = caller waits until that thread terminates
-- one-way doors: NEW and TERMINATED are visited once — a
-  terminated thread can't `start()` again *(MCQ trap)*
-
----
-
-## §6 Upgrading the lock — ReentrantLock
+## §5 Upgrading the lock — ReentrantLock
 
 - **synchronized vs Lock (ReentrantLock)?** *(X-vs-Y staple)*
 
@@ -548,7 +654,7 @@ monitor's lock half, WAITING is its wait-set half.)*
   outside too, as in the first code block.)
 
   This is the `tryLock` escape hatch named in the deadlock answer
-  ([§8](#8-liveness-failures)): a thread that can't get the *second*
+  ([§7](#7-liveness-failures)): a thread that can't get the *second*
   lock backs off and retries instead of hanging on it forever.
 
   **Verb 3 — take turns.** Default is *barging*: on release, any
@@ -633,7 +739,7 @@ monitor's lock half, WAITING is its wait-set half.)*
 
 ---
 
-## §7 Without a lock — volatile and atomics
+## §6 Without a lock — volatile and atomics
 
 - **volatile?** — visibility + ordering guarantee, NOT atomicity:
   `i++` on a volatile is still a race. Flags: volatile; counters:
@@ -655,11 +761,11 @@ monitor's lock half, WAITING is its wait-set half.)*
 
 ---
 
-## §8 Liveness failures
+## §7 Liveness failures
 
 - **Deadlock?** — two threads each holding a lock the other wants.
   Avoid: consistent lock ordering, or `tryLock` with timeout
-  ([§6](#6-upgrading-the-lock--reentrantlock)).
+  ([§5](#5-upgrading-the-lock--reentrantlock)).
   Starvation: a thread that never gets the lock (the barging
   problem, verb 3). Livelock: threads that keep responding to each
   other and never progress.
@@ -668,7 +774,7 @@ monitor's lock half, WAITING is its wait-set half.)*
 
 ---
 
-## §9 Running the work — executors and virtual threads
+## §8 Running the work — executors and virtual threads
 
 - **Runnable vs Callable?**
   - Runnable — `void run()`, no checked throws
@@ -685,7 +791,7 @@ monitor's lock half, WAITING is its wait-set half.)*
     `newScheduledThreadPool(n)` (delayed/periodic tasks)
   - `shutdown()` — stop accepting new tasks, finish the queue, then
     exit; `shutdownNow()` — interrupt running tasks (the flag from
-    [§6](#6-upgrading-the-lock--reentrantlock)), drop the queue,
+    [§5](#5-upgrading-the-lock--reentrantlock)), drop the queue,
     return what never ran
 
   **The mental picture:** a pool is a small crew of workers plus one
@@ -748,7 +854,7 @@ monitor's lock half, WAITING is its wait-set half.)*
 
 ---
 
-## §10 Don't hand-roll it
+## §9 Don't hand-roll it
 
 - **Concurrent collections?** *(reach for these before you write a
   lock)* — `java.util.concurrent` already ships the thread-safe
@@ -782,7 +888,7 @@ monitor's lock half, WAITING is its wait-set half.)*
 
 ---
 
-## §11 JVM — memory, GC, loading
+## §10 JVM — memory, GC, loading
 
 - **JVM memory areas?** — heap (young: eden + survivors; old gen),
   one stack per thread, Metaspace (class metadata), code cache.
@@ -837,12 +943,11 @@ up generationally, young and often.
 |---|---|---|---|
 | §1 Ground floor | ☐ | ☐ | ☐ |
 | §2 The two problems | ☐ | ☐ | ☐ |
-| §3 monitor + synchronized | ☐ | ☐ | ☐ |
+| §3 monitor + synchronized + thread states | ☐ | ☐ | ☐ |
 | §4 wait / notify | ☐ | ☐ | ☐ |
-| §5 Thread states | ☐ | ☐ | ☐ |
-| §6 ReentrantLock | ☐ | ☐ | ☐ |
-| §7 volatile + atomics | ☐ | ☐ | ☐ |
-| §8 Liveness | ☐ | ☐ | ☐ |
-| §9 Executors + virtual threads | ☐ | ☐ | ☐ |
-| §10 Don't hand-roll it | ☐ | ☐ | ☐ |
-| §11 JVM | ☐ | ☐ | ☐ |
+| §5 ReentrantLock | ☐ | ☐ | ☐ |
+| §6 volatile + atomics | ☐ | ☐ | ☐ |
+| §7 Liveness | ☐ | ☐ | ☐ |
+| §8 Executors + virtual threads | ☐ | ☐ | ☐ |
+| §9 Don't hand-roll it | ☐ | ☐ | ☐ |
+| §10 JVM | ☐ | ☐ | ☐ |
