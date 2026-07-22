@@ -10,7 +10,7 @@ the output first**, then run, then read *why*. That's the loading rep.
 Java 21, single-file launcher — no build, no `javac`. From this folder:
 
 ```bash
-cd lab-threads
+cd lab/threads
 java StartVsRun.java        # station 1 — swap in each filename
 ```
 
