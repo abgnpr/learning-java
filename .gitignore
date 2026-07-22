@@ -1,0 +1,10 @@
+# Java build output
+*.class
+build/
+out/
+.gradle/
+target/
+
+# editor / OS
+.DS_Store
+*.swp
