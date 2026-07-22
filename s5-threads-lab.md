@@ -1,6 +1,6 @@
 # §5 Threads + JVM — the hands-on lab 🐧🔬
 
-Companion to [core-java.md §5](core-java.md). Section 5 is the abstract
+Companion to [threads-jvm.md](threads-jvm.md). That kit is the abstract
 theatre — races, visibility, deadlock — that only *clicks* once you watch
 it misbehave in front of you. Eight tiny runnable stations. You **predict
 the output first**, then run, then read *why*. That's the loading rep.
@@ -78,7 +78,7 @@ it depends on interleaving. That non-determinism *is* the race.
 ⚓ **This is your IMPS story.** The Redis debit-limit check
 (`hget` → compare → `hset`) is the exact same non-atomic read-modify-write
 across two concurrent outward payments — both can pass. Fix: MULTI/WATCH
-or a Lua script. (core-java.md §5, "Race condition".)
+or a Lua script. (threads-jvm.md §2, "Race condition".)
 
 **Say it:** *"i++ is read-modify-write, so two threads interleave and lose
 updates. Flags → volatile; counters → AtomicInteger; compound state → a lock."*
@@ -240,7 +240,7 @@ the producer is throttled automatically. That's backpressure, for free.
 
 ⚓ **This is IMPS's Kafka shape.** Producers (NPCI/CBS callers) append to a
 topic; the consumer `poll()`s at its own pace; the partition log is the
-shared buffer. (core-java.md §5 "Producer-consumer" + §8 Kafka.)
+shared buffer. (threads-jvm.md §4 "Producer-consumer" + core-java.md §8 Kafka.)
 
 **Say it:** *"Producer-consumer is a shared buffer between them. In real code
 it's a BlockingQueue — put/take handle the waiting — nobody hand-rolls

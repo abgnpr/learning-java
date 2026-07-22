@@ -11,8 +11,9 @@ charter lives in [CLAUDE.md](CLAUDE.md); HQ is
 
 | File | What it is |
 |---|---|
-| [core-java.md](core-java.md) | Rapid-fire Q&A across OOP, collections, exceptions, Java 8+, threads/JVM, traps, Spring/JDBC/REST, Kafka and SDLC/testing. Answers sized for **speaking**, not writing. |
+| [core-java.md](core-java.md) | Rapid-fire Q&A across OOP, collections, exceptions, Java 8+, traps, Spring/JDBC/REST, Kafka and SDLC/testing. Answers sized for **speaking**, not writing. |
 | [java-versions.md](java-versions.md) | Java 7 → 25 timeline: version, year, headline feature, one snippet. Plus a Tier-1 "Java 8 from zero" study block (§A–§I). |
+| [threads-jvm.md](threads-jvm.md) | Threads, locks, the memory model, executors and JVM internals — ordered so that no answer depends on one below it. |
 | [s5-threads-lab.md](s5-threads-lab.md) | Eight runnable stations for the concurrency section — races, visibility, deadlock, pools, virtual threads. Code in [lab/threads/](lab/threads/). |
 | [spring-boot-basics.md](spring-boot-basics.md) | DI/IoC, beans and scopes, auto-config, web MVC, validation, data/JPA, transactions and proxies, testing, actuator. |
 | [kafka-basics.md](kafka-basics.md) | Log and partitions, ordering, producers, consumer groups, offsets and commit semantics, delivery guarantees, rebalancing, ISR, retention, DLQ. |
