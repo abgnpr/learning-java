@@ -79,6 +79,26 @@ the repo root, no `notes/` folder. Runnable code is quarantined under
 `lab/`: `lab/threads/` holds the eight stations, `lab/Scratchpad.java`
 is the try-things-out file (Skipper's, 2026-07-22).
 
+## Working practice
+
+**Mermaid diagrams: write them, don't render them.** Emit the
+mermaid block and ask Skipper to eyeball it. Do NOT shell out to
+`mmdc`/npx to render an SVG and then read the SVG back — it burns
+tokens for nothing. Visual verification is Skipper's job; syntax
+is cheap to fix on report.
+
+**No edit narration in the kits.** A kit teaches Java — it never
+talks about its own revision history. Banned: "provenance" /
+"what changed" / move-log appendices, and sentences that describe
+the document instead of the topic ("this is *now* defined",
+"reordered so that…", "same answers as before", "every row is
+vocabulary you *already have*"). The tell is a word doing
+document-deixis — *now*, *later*, *still*, *no longer*, "the
+section below" — where the topic word belongs. Cross-references
+are fine as plain section links (`[§4](#4-…)`), not as prose about
+where the reader is in the file. Changelogs go in the commit
+message or the chat reply; the drill sheet stays clean.
+
 ## Laws (inherited)
 
 Readiness is earned · truth only (never claim beyond the recon
