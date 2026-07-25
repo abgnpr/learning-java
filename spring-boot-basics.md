@@ -616,7 +616,8 @@ H2 + Validation + Actuator) and run snippets in it, or use a single
 - [ ] **6.3** 🛠 Centralize error handling with `@RestControllerAdvice`
   + `@ExceptionHandler` — map a `NotFoundException` → 404 and a
   validation failure → 400 with field details.
-- [ ] **6.4** 💭 `@ControllerAdvice` vs a per-controller
+- [ ] **6.4** 💭 `@ControllerAdvice` vs `@RestControllerAdvice` — what
+  does the `Rest` prefix add? Then: advice vs a per-controller
   `@ExceptionHandler` vs throwing `ResponseStatusException` inline —
   when each?
 - [ ] **6.5** 💭 **`Boot 3`** `ProblemDetail` (RFC 7807): what problem
@@ -654,13 +655,28 @@ H2 + Validation + Actuator) and run snippets in it, or use a single
       }
   }
   ```
-- 6.4 *(ref: Web — Exception Handling)* **`@ControllerAdvice`**:
-  cross-cutting, applies to all controllers — the default home for API
-  error mapping. **Per-controller `@ExceptionHandler`**: handling
-  specific to one controller. **`ResponseStatusException`**: a quick
-  inline throw (`throw new ResponseStatusException(NOT_FOUND, "no
-  user")`) when you don't want a custom exception type. Advice for the
-  policy, inline for one-offs.
+- 6.4 *(ref: Web — Exception Handling)* **`@RestControllerAdvice` =
+  `@ControllerAdvice` + `@ResponseBody`** — the same pairing as
+  `@RestController` and `@Controller`
+  ([§5.1](#5-web-layer-spring-mvc----core-path)),
+  for the same reason. On plain `@ControllerAdvice`, a handler
+  returning `String` gives back a **view name**; on
+  `@RestControllerAdvice` the returned object is **serialized into
+  the error body** as JSON. A JSON API wants the `Rest` variant —
+  a handler returning `new ErrorBody(...)` without it resolves as a
+  view and blows up looking for a template.
+
+  Which of the three:
+  - **Advice** — cross-cutting, applies to all controllers; the
+    default home for API error mapping.
+  - **Per-controller `@ExceptionHandler`** — handling specific to
+    one controller. A handler here wins over the advice for the
+    same exception type.
+  - **`ResponseStatusException`** — a quick inline throw (`throw new
+    ResponseStatusException(NOT_FOUND, "no user")`) when a custom
+    exception type isn't worth it.
+
+  Advice for the policy, inline for one-offs.
 - 6.5 *(ref: Web — Error Responses; `Boot 3`)* `ProblemDetail` is a
   **standardized JSON error shape** (`type`, `title`, `status`,
   `detail`, `instance`) so clients parse errors uniformly instead of
