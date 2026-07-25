@@ -652,26 +652,94 @@ key."**
   API.)*
 
   ```java
-  try {
-      lock.lockInterruptibly();      // ← the wait is cancellable
-      try {
-          work();
-      } finally {
-          lock.unlock();
+  import java.util.concurrent.locks.ReentrantLock;
+
+  public class LockInterruptiblyExample {
+
+      private static ReentrantLock lock = new ReentrantLock();
+
+      public static void main(String[] args) throws InterruptedException {
+
+          Thread t1 = new Thread(() -> {
+              lock.lock();
+              try {
+                  System.out.println("T1 acquired lock.");
+
+                  // Hold the lock for 5 seconds
+                  Thread.sleep(5000);
+
+              } catch (InterruptedException e) {
+                  e.printStackTrace();
+              } finally {
+                  lock.unlock();
+                  System.out.println("T1 released lock.");
+              }
+          });
+
+          Thread t2 = new Thread(() -> {
+              try {
+                  System.out.println("T2 trying to acquire lock...");
+                  lock.lockInterruptibly();
+
+                  try {
+                      System.out.println("T2 acquired lock.");
+                  } finally {
+                      lock.unlock();
+                  }
+
+              } catch (InterruptedException e) {
+                  System.out.println("T2 was interrupted while waiting!");
+              }
+          });
+
+          t1.start();
+
+          Thread.sleep(500); // Ensure T1 acquires lock first
+
+          t2.start();
+
+          Thread.sleep(2000); // Let T2 wait
+
+          System.out.println("Main thread interrupts T2");
+          t2.interrupt();
       }
-  } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();   // restore flag, bail
   }
   ```
+  ```
+  T1 acquired lock.
+  T2 trying to acquire lock...
+  Main thread interrupts T2
+  T2 was interrupted while waiting!
+  T1 released lock.
+  ```
 
-  Note the shape both share: the *acquire* sits **outside** the
-  `try` that unlocks. Same reason as above — never unlock what you
-  might not hold. (Plain `lock()` can't fail, so its acquire sits
-  outside too, as in the first code block.)
+  **One shape under all three acquires:** the acquire is the last
+  statement *before* the `try`, never the first statement inside
+  it. The `try` block means "I hold the lock" and nothing else:
 
-  This is the `tryLock` escape hatch named in the deadlock answer
-  ([§7](#7-liveness-failures)): a thread that can't get the *second*
-  lock backs off and retries instead of hanging on it forever.
+  ```text
+  lock.lock();                  │  if (lock.tryLock()) {
+  try { work(); }               │      try { work(); }
+  finally { lock.unlock(); }    │      finally { lock.unlock(); }
+                                │  } else { ...give up... }
+  ```
+
+  Put the acquire *inside* the `try` and a failed acquire still
+  runs the `finally`, where `unlock()` throws
+  `IllegalMonitorStateException` — the wrong exception, thrown
+  over the top of the real one. `tryLock` fails by returning
+  `false` and `lockInterruptibly` fails by throwing, so both need
+  their result settled before the `try` opens: hence the `if`
+  around one and the outer `try`/`catch` around the other. Plain
+  `lock()` cannot fail at all, but it keeps the same shape, so
+  there is one habit to remember rather than three.
+
+  `tryLock` is also the escape hatch behind the deadlock fix in
+  [§7](#7-liveness-failures). A thread needing two locks takes the
+  first, then *asks* for the second; refused, it releases the first
+  and starts over. A deadlock cycle needs every thread in it to
+  hold on while waiting — a thread that can walk away never
+  completes the cycle.
 
   **Verb 3 — take turns.** The default lock is *non-fair*: on
   release, any thread may grab it, including one that just arrived
@@ -800,11 +868,71 @@ key."**
 - **Deadlock?** — two threads each holding a lock the other wants.
   Avoid: consistent lock ordering, or `tryLock` with timeout
   ([§5](#5-upgrading-the-lock--reentrantlock)).
-  Starvation: a thread that never gets the lock (the barging
-  problem, verb 3). Livelock: threads that keep responding to each
-  other and never progress.
   - the lab station that deadlocks on cue *(hangs on purpose —
     guard with `timeout 6`)*: [→ S5](s5-threads-lab.md)
+- **Starvation?** — a thread that never gets the lock. The default
+  lock is non-fair, so a just-arrived thread can barge ahead of a
+  long waiter; a fair lock (`new ReentrantLock(true)`,
+  [§5 Verb 3](#5-upgrading-the-lock--reentrantlock)) hands it to the
+  longest waiter instead.
+- **Livelock?** — threads that keep responding to each other and
+  never progress. Each is busy, not blocked, which is what makes it
+  worse than deadlock to spot: nothing hangs, nothing shows up
+  waiting, the app just never finishes.
+
+  ```
+  A moves left.
+  B moves left.
+
+  A: "Oops!"
+  B: "Oops!"
+
+  A moves right.
+  B moves right.
+
+  A moves left.
+  B moves left.
+  ```
+
+  ```java
+  // two diners, one spoon, both too polite to just eat
+  import java.util.concurrent.locks.ReentrantLock;
+
+  public class LivelockDemo {
+
+      static ReentrantLock lock1 = new ReentrantLock();
+      static ReentrantLock lock2 = new ReentrantLock();
+
+      static void work(ReentrantLock first, ReentrantLock second, String name) {
+          while (true) {
+              first.lock();
+              System.out.println(name + " got first lock");
+
+              if (second.tryLock()) {
+                  System.out.println(name + " got both locks");
+                  second.unlock();
+                  first.unlock();
+                  return;
+              }
+
+              System.out.println(name + " retrying...");
+              first.unlock();
+
+              try {
+                  Thread.sleep(100); // "Be polite"
+              } catch (InterruptedException ignored) {}
+          }
+      }
+
+      public static void main(String[] args) {
+          new Thread(() -> work(lock1, lock2, "T1")).start();
+          new Thread(() -> work(lock2, lock1, "T2")).start();
+      }
+  }
+  // both sides run this — the spoon bounces back and forth forever;
+  // each thread keeps *acting*, so a thread dump shows RUNNABLE, not
+  // BLOCKED — that's the tell that distinguishes it from deadlock
+  ```
 
 ---
 

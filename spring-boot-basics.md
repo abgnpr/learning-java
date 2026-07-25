@@ -42,6 +42,22 @@ H2 + Validation + Actuator) and run snippets in it, or use a single
 > official reference docs by area (*Spring Framework — Core*, *Spring
 > Boot — Features*, *Spring Data JPA*) — stable section names, not
 > page numbers.
+>
+> **📅 Where the version line sits (July 2026).** **Spring Boot 4.1**
+> on **Spring Framework 7** is the current release for new work; Boot
+> 4.0 / Framework 7.0 landed **Nov 2025**. The whole **3.x line is
+> past open-source EOL** — Boot 3.5 took its last free patch (3.5.16)
+> in **June 2026**, and Framework 6.2 and Spring Security 6.x lost
+> community patches on the same date. Commercial support continues;
+> Maven Central keeps serving the artifacts.
+>
+> The `Boot 3` flags throughout this doc still earn their place: the
+> **`javax.*` → `jakarta.*`** rename is the migration line most
+> production estates are still crossing, and plenty of shipped systems
+> sit on **Boot 2.7**. Two answers worth having ready: *"what's
+> current?"* → Boot 4.1 / Framework 7. *"what have you run?"* → name
+> the version honestly and say what the upgrade would cost. Claiming
+> the newest number you've never run is the trap.
 
 ---
 
@@ -91,8 +107,29 @@ H2 + Validation + Actuator) and run snippets in it, or use a single
   `@SpringBootApplication`) scans the main class's package **and all
   sub-packages**. Put the main class at the **root** package so
   everything is discovered; a bean in a sibling/parent package is
-  invisible unless you widen the scan. Layered packages keep
-  responsibilities separated and testable in slices (§9).
+  invisible unless you widen the scan.
+
+  Why the layers exist — **each one knows exactly one thing**:
+
+  | Layer | Knows | Must not know |
+  |---|---|---|
+  | Controller | HTTP — paths, verbs, status codes, JSON | SQL, business rules |
+  | Service | business rules — "can this order be cancelled?" | HTTP, JSON, SQL dialect |
+  | Repository | persistence — how a row becomes an object | HTTP, business rules |
+
+  The payoff is testability: a service with no HTTP in it is testable
+  with plain `new` and no container, and each layer gets its own test
+  slice (§9). The failure mode is the controller method that opens a
+  transaction, runs the business rule, and builds the JSON — it can
+  only be tested by booting the whole app.
+
+  Two honest caveats. The split is **not free**: a genuine CRUD
+  passthrough gets three files and two interfaces to move a field from
+  DB to JSON, which is why small services often collapse
+  service-into-controller deliberately. And the layer count is not the
+  point — **the direction of dependencies is**. Controller → service →
+  repository, never backwards; a repository that imports a controller's
+  DTO has broken the design regardless of how many packages exist.
 </details>
 
 ---
@@ -156,6 +193,14 @@ H2 + Validation + Actuator) and run snippets in it, or use a single
   is the *mechanism* of IoC: dependencies are *injected* (constructor/
   setter/field) rather than looked up or constructed. The container
   inverts the **"who creates and wires whom"** relationship.
+
+  The picture: in plain Java, something has to `new` up all these
+  objects in the right order and hand them to each other. That place —
+  usually `App.java`'s `main` — is your **composition root**, wired by
+  hand. **Spring Boot is nothing but an automated composition root plus
+  an HTTP front door**: it reads your constructors, works out the wiring
+  order itself, and exposes some of those objects over HTTP. That's the
+  whole trick.
 - 1.2 *(ref: Core — Classpath Scanning; Data Access — Exception
   Translation)* All four are `@Component` specializations — same
   scanning, different **intent labels**. The one that does *extra*:

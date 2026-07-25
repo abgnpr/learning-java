@@ -963,6 +963,13 @@ data layer → integration architecture → tooling → patterns)*
   - Actuator — production endpoints out of the box
 
   ⚓ IMPS receivers are Spring Boot 2.7 services.
+- **Is Spring a web framework?** — no: it's a **container** — DI, bean
+  lifecycle, transactions, configuration — and the web module is one
+  branch off it, alongside data access, security, scheduling,
+  messaging and batch. A Spring app with no HTTP endpoint at all is
+  ordinary: batch jobs and queue consumers are Spring's home turf as
+  much as REST is. ⚓ IMPS is exactly that shape — the receivers speak
+  HTTP, the 7 consumers just read Kafka and never serve a request.
 - **@SpringBootApplication?** *(MCQ staple)* — `@Configuration` +
   `@EnableAutoConfiguration` + `@ComponentScan`.
 - **Servlet lifecycle?** — a servlet is the object the web container
