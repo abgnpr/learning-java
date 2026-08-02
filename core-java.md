@@ -70,13 +70,27 @@ version?" is a certainty).
 - **Access modifiers, narrow → wide?** — `private` → default
   (package) → `protected` (package + subclasses) → `public`.
 
-  |Modifier|Class|Package|Subclass (diff pkg)|World|
+  Two independent axes decide access: **same package or not**, and
+  **subclass or not**. Four cells:
+
+  |Modifier|Same class|Same pkg|Other pkg, subclass|Other pkg, rest|
   |---|---|---|---|---|
   |`private`|✅|❌|❌|❌|
   |default (none)|✅|✅|❌|❌|
   |`protected`|✅|✅|✅|❌|
   |`public`|✅|✅|✅|✅|
 
+  - "same pkg" is any class in the package — subclass or not, so a
+    subclass sitting in the same package rides that column, not the
+    `protected` one
+  - "other pkg, rest" is a class outside the package that does *not*
+    extend yours — the ordinary caller, and the only audience
+    `public` adds over `protected`
+  - each row widens the one above it: once a ❌ appears, everything
+    to its right is ❌ too
+  - `protected` across packages has a catch: the subclass may touch
+    the member on itself (`this.x`, or a reference typed as its own
+    class), not on an arbitrary instance of the parent
   - applies to: fields, methods, constructors, nested classes
   - top-level classes/interfaces: only `public` or default (no
     `private`/`protected` — nothing outside a package could reach
@@ -103,6 +117,39 @@ version?" is a certainty).
   - abstract class — partial implementation: fields +
     constructors, single inheritance
   - since Java 8 interfaces may carry `default`/`static` methods
+- **Why were `default` methods introduced?** — **interface evolution**.
+  Pre-8, adding a method to a published interface broke every
+  implementor at compile time. Java 8 needed `stream()` on
+  `Collection` and `forEach()` on `Iterable` to make lambdas useful —
+  impossible without breaking the world, so a `default` body lets an
+  interface grow while old implementors keep compiling untouched.
+  - `static` interface methods came along to keep factories/helpers on
+    the contract itself (`List.of`, `Comparator.comparing`) instead of
+    a separate `Collections`-style utility class
+  - the cost: interfaces carry behavior, so the diamond can bite again
+    — which is what the default-method tie-break rules exist for
+  - not a licence for state — still no instance fields, so an abstract
+    class remains the answer when you need data
+- **Can a class extend two classes?** — no. `extends` takes exactly
+  one class, `implements` takes any number.
+
+  |Shape|Legal?|
+  |---|---|
+  |`class D extends A`|✅ one superclass|
+  |`class D extends A, B`|❌ won't compile|
+  |`class D implements X, Y, Z`|✅ any number of interfaces|
+  |`class D extends A implements X, Y`|✅ one class + many interfaces|
+  |`interface Z extends X, Y`|✅ interfaces DO multiply-extend|
+
+  - every class has exactly one direct superclass — `Object` when you
+    name none — so the hierarchy is a tree, not a graph
+  - *multilevel* ≠ *multiple*: `C extends B`, `B extends A` is fine at
+    any depth; only two parents on one `extends` is banned
+  - need capability from two places → **composition**: hold both as
+    fields and delegate. No ambiguity, and the parts are swappable at
+    runtime
+  - C++ permits it (virtual inheritance); Java traded that power for a
+    simpler object model
 - **Why no multiple class inheritance?** — the diamond problem:
   `B` and `C` both extend `A`; `D` extends both. `D` now inherits
   `A`'s *state* through two paths — one copy of the fields or two?
@@ -123,6 +170,14 @@ version?" is a certainty).
       public String hi() { return B.super.hi(); } // must pick one
   }
   ```
+
+  Three tie-break rules when a `default` clashes:
+  - **class wins** — any concrete method inherited from a superclass
+    beats an interface default of the same signature
+  - **most specific interface wins** — a sub-interface's default beats
+    the one it overrides
+  - **neither applies → compile error**, until the class overrides;
+    `Iface.super.method()` reaches a chosen parent's version
 
 - **Overloading vs overriding?**
   - overload: same name, different parameters, compile-time
@@ -503,45 +558,70 @@ version?" is a certainty).
 
   *One-liner:* Comparable = the class sorts itself, one way.
   Comparator = you hand in a sort rule, as many ways as needed.
-- **Queue/Deque quick hits?** — `offer`/`poll`/`peek`; ArrayDeque
-  beats Stack/LinkedList for stacks and queues; PriorityQueue =
-  binary heap, ordered by priority not insertion.
 
-  **Queue — two method families** (same action, different failure):
-  - throwing: `add` / `remove` / `element` — exception when
-    full/empty
-  - special-value: `offer` / `poll` / `peek` — return
-    `false`/`null` instead; prefer these
+- **Queue vs Deque?** — Queue: one end in, other end out, FIFO.
+  Deque extends it with both ends open, so the same object serves
+  as a queue or a stack.
 
-  **Deque** (double-ended queue, `java.util.Deque`):
-  - insert/remove at *both* ends: `addFirst`/`addLast`,
-    `pollFirst`/`pollLast`
-  - one structure, two roles — FIFO queue (add last, poll first)
-    or LIFO stack (`push`/`pop` at the head)
+  **The shape:**
+  - `Queue` extends Collection — insert at the tail, remove from
+    the head
+  - `Deque` (double-ended queue) extends Queue — insert and
+    remove at *either* end, covering FIFO *and* LIFO
+  - `ArrayDeque` and `LinkedList` implement Deque; `PriorityQueue`
+    implements Queue only
 
-  **Why ArrayDeque wins** (their flaw → its counter):
-  - vs `Stack`: legacy, extends Vector — every call pays
-    synchronization even single-threaded; ArrayDeque carries no
-    locks, no such tax
-  - vs `LinkedList`: a Node object (value + 2 pointers) per
-    element — scattered memory, GC load; ArrayDeque is one
-    resizable circular array — contiguous, cache-friendly,
+  **Methods — every operation ships in two flavours**, same
+  action, different failure:
+
+    | Operation | Throws | Returns `null`/`false` |
+    | --- | --- | --- |
+    | insert | `add(e)` | `offer(e)` |
+    | remove head | `remove()` | `poll()` |
+    | inspect head | `element()` | `peek()` |
+
+  - prefer the special-value column — a full/empty queue is
+    normal traffic, not an exception
+  - Deque doubles each one with a `First`/`Last` suffix:
+    `offerFirst`/`offerLast`, `pollFirst`/`pollLast`,
+    `peekFirst`/`peekLast`
+  - stack aliases sit on the head: `push` = `addFirst`,
+    `pop` = `removeFirst`
+
+  **Picking an implementation:**
+  - default to `ArrayDeque` for both stack and queue — one
+    resizable circular array, contiguous and cache-friendly,
     nothing extra to collect
-  - rule of thumb: need a stack or queue → `ArrayDeque`,
-    unless nulls required (it forbids them)
+  - over `Stack`: legacy, extends Vector — every call pays
+    synchronization even single-threaded
+  - over `LinkedList`: a Node object (value + 2 pointers) per
+    element — scattered memory, GC load
+  - the one disqualifier: `ArrayDeque` forbids nulls (they'd be
+    ambiguous with `poll`'s empty signal) — need them, take
+    `LinkedList`
 
-  **PriorityQueue:**
-  - binary heap in an array; `poll` always gives the *smallest*
-    element (min-heap by default)
-  - needs `Comparable` elements or a `Comparator` at construction;
-    flip to max-heap via `Comparator.reverseOrder()`
+  *One-liner:* Queue = FIFO with polite (`offer`/`poll`) and rude
+  (`add`/`remove`) methods. Deque = both ends, so it replaces
+  Stack. `ArrayDeque` for both, unless you need nulls.
+
+- **PriorityQueue?** — a Queue that ignores arrival order: a
+  binary heap where `poll` always hands back the smallest element
+  by the comparator, not the oldest.
+
+  - binary heap in an array — no ends to speak of, which is why
+    it implements Queue but not Deque
+  - min-heap by default: needs `Comparable` elements or a
+    `Comparator` at construction; flip to max-heap via
+    `Comparator.reverseOrder()`
   - `offer`/`poll` O(log n), `peek` O(1)
   - trap: iteration order is *not* sorted — only the head is
     guaranteed; no nulls
+  - reach for it on "top K", scheduling, Dijkstra — anywhere
+    "who's next" is a priority, not a position
 
-  *One-liner:* Queue = FIFO with polite (`offer`/`poll`) and rude
-  (`add`/`remove`) methods. Deque = both ends, replaces Stack.
-  PriorityQueue = heap, head is always the min.
+  *One-liner:* PriorityQueue = heap in an array, head is always
+  the min, iteration order means nothing.
+
 - **Generics?** — compile-time type safety; erased at runtime
   (type erasure) — hence no `new T[]`, no `instanceof List<String>`.
   - bounds: `<T extends Number>` — restrict what T can be
