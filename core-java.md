@@ -8,7 +8,7 @@
   - [§5 Threads + JVM](#5-threads--jvm)
   - [§6 Trap wall (the code-output classics, spoken)](#6-trap-wall-the-code-output-classics-spoken)
   - [§7 Enterprise — Spring / JDBC / REST / integration](#7-enterprise--spring--jdbc--rest--integration)
-  - [§8 Kafka — every answer anchored in IMPS ⚓](#8-kafka--every-answer-anchored-in-imps-)
+  - [§8 Kafka ⚓ → kafka-answers.md](#8-kafka-)
   - [§9 SDLC + testing](#9-sdlc--testing)
   - [§10 Honesty guardrails (truth law)](#10-honesty-guardrails-truth-law)
   - [Rep scorecard — 🟢 only after a blind aloud rep](#rep-scorecard---only-after-a-blind-aloud-rep)
@@ -552,8 +552,10 @@ version?" is a certainty).
             return Integer.compare(id, o.id);
         }
     }
-    emps.sort(Comparator.comparing(Emp::getSalary)
-                        .reversed());          // external: by salary
+    ```
+
+    ```java
+    emps.sort(Comparator.comparing(Emp::getSalary).reversed());          // external: by salary
     ```
 
   *One-liner:* Comparable = the class sorts itself, one way.
@@ -1033,16 +1035,40 @@ data layer → integration architecture → tooling → patterns)*
   injection*) is the mechanism (constructor/setter/field). A **bean** is just
   an object the container owns: it builds it, injects into it, hands
   it out.
-- **@Autowired?** — inject by type; two beans of one type is
-  ambiguous, so then by name/`@Qualifier`. Constructor injection
-  preferred: immutable, test-friendly.
-- **Spring Boot vs Spring?** — opinionated Spring, four gifts:
-  - starters — curated dependency bundles
-  - auto-configuration — sensible defaults from the classpath
-  - embedded Tomcat — runnable jar, no server setup
-  - Actuator — production endpoints out of the box
+
+- **@Autowired?** — marks a constructor/field/setter the container
+  should fill. Resolution is **by type**: exactly one bean of that
+  type → injected; none → startup failure (unless `required = false`
+  or `Optional<T>`); two or more → `NoUniqueBeanDefinitionException`,
+  broken by `@Primary` on the default one or `@Qualifier("beanName")`
+  at the injection point, else by matching the field/parameter name
+  against the bean name.
+  Constructor injection preferred: the dependency can be `final` (no
+  half-built bean, safe to publish across threads), a missing one
+  fails at startup instead of NPE-ing on first call, and the class is
+  constructible in a test with plain `new` — no reflection, no
+  container. Single-constructor classes don't need the annotation
+  (Spring 4.3+).
+
+- **Spring Boot vs Spring?** — not a rival framework: Boot *is*
+  Spring plus opinions. Plain Spring gives you the container but
+  makes you assemble everything around it — pick compatible library
+  versions yourself, declare every `DataSource`/`EntityManager`/
+  `DispatcherServlet` bean by hand in XML or `@Configuration`, and
+  build a WAR to deploy into a Tomcat someone else installed. Boot
+  removes each of those:
+  - starters — one dependency pulls a curated, version-aligned bundle
+  - auto-configuration — beans you didn't declare, inferred from
+    what's on the classpath, backing off the moment you declare
+    your own
+  - embedded Tomcat — `java -jar`, no external server
+  - Actuator — health, metrics, env endpoints out of the box
+
+  Same container, same beans, same annotations underneath — you can
+  still override any of it.
 
   ⚓ IMPS receivers are Spring Boot 2.7 services.
+
 - **Is Spring a web framework?** — no: it's a **container** — DI, bean
   lifecycle, transactions, configuration — and the web module is one
   branch off it, alongside data access, security, scheduling,
@@ -1050,8 +1076,10 @@ data layer → integration architecture → tooling → patterns)*
   ordinary: batch jobs and queue consumers are Spring's home turf as
   much as REST is. ⚓ IMPS is exactly that shape — the receivers speak
   HTTP, the 7 consumers just read Kafka and never serve a request.
+
 - **@SpringBootApplication?** *(MCQ staple)* — `@Configuration` +
   `@EnableAutoConfiguration` + `@ComponentScan`.
+
 - **Servlet lifecycle?** — a servlet is the object the web container
   hands each HTTP request to, one thread per request: init → service
   (doGet/doPost) → destroy. Spring MVC's DispatcherServlet is a front
@@ -1068,9 +1096,11 @@ data layer → integration architecture → tooling → patterns)*
   Follow-up trap: *is a singleton bean thread-safe?* No — one
   instance serves every request and each request runs on its own
   thread; it's safe only if stateless (no mutable fields).
+
 - **Bean lifecycle?** *(MCQ staple)* — container instantiates →
   injects dependencies → `@PostConstruct` init → in service →
   `@PreDestroy` on shutdown.
+
 - **Stereotypes?**
   - `@Component` — generic managed bean
   - `@Service` — business layer
@@ -1078,48 +1108,182 @@ data layer → integration architecture → tooling → patterns)*
     checked `SQLException` → Spring's unchecked `DataAccessException`)
   - `@Controller` / `@RestController` — web; `@RestController` =
     `@Controller` + `@ResponseBody` (JSON bodies)
-- **@Transactional?** — callers get a **proxy**: a generated stand-in
-  for your bean that opens a DB transaction, calls your method, then
-  commits or rolls back (so a call from *inside* the same class
-  bypasses it entirely). Rolls back on unchecked exceptions by
-  default. Follow-up trap: *what about checked exceptions?* → they
-  don't trigger rollback unless you set `rollbackFor =
-  Exception.class` — the convention being unchecked = a bug, unwind;
-  checked = an outcome you declared, so Spring assumes you handled
-  it. (Bank-panel favorite behind it: **ACID** — atomicity,
-  consistency, isolation, durability.)
+
+- **@Transactional?** — nobody ever holds your bean. Spring hands
+  the caller a **proxy** — a generated stand-in with the same
+  interface — and the proxy is what opens the transaction, calls
+  your method, then commits or rolls back. You write zero
+  `commit()` / `rollback()`.
+
+  ```text
+  caller ──▶ proxy ─── begin ──▶ your method
+                       commit (returned normally)   ◀┐
+                       rollback (threw unchecked)   ◀┘
+  ```
+
+  Everything a panel asks about it follows from *the proxy is on
+  the outside*:
+
+  - **self-invocation trap** — the proxy only sees calls that
+    arrive **through** it. One method of the class calling
+    `this.otherMethod()` goes straight to the object, so
+    `@Transactional` on `otherMethod` does nothing. Same reason
+    it must be `public` — a private method has no door to wrap.
+    Fix: put the annotated method on another bean and inject it.
+    *Hook: the annotation is on the door; an inside call never
+    uses the door.*
+
+    ```java
+    @Service
+    class TransferService {
+
+      public void transfer(Txn t) {
+        doTransfer(t);              // ✗ plain this.doTransfer —
+      }                             //   no proxy, no transaction
+
+      @Transactional
+      public void doTransfer(Txn t) { ... }
+    }
+
+    // fix: cross a bean boundary so the call goes through a proxy
+    @Service
+    class TransferService {
+      private final LedgerService ledger;   // injected bean
+
+      public void transfer(Txn t) {
+        ledger.doTransfer(t);       // ✓ proxied call
+      }
+    }
+    ```
+
+  - **swallowed-exception trap** — catch the exception inside the
+    method and the proxy sees a normal return, so it **commits**.
+    Rethrow, or mark the transaction rollback-only.
+
+    ```java
+    @Transactional
+    public void pay(Txn t) {
+      ledger.debit(t);
+      try {
+        npci.send(t);
+      } catch (SendException e) {
+        log.error("send failed", e);   // ✗ swallowed → the debit
+      }                                //   above COMMITS
+    }
+
+    @Transactional
+    public void pay(Txn t) {
+      ledger.debit(t);
+      try {
+        npci.send(t);
+      } catch (SendException e) {
+        log.error("send failed", e);
+        throw new PaymentFailedException(e);   // ✓ proxy sees it
+        // or: TransactionAspectSupport
+        //       .currentTransactionStatus().setRollbackOnly();
+      }
+    }
+    ```
+
+  - **rollback rules** — rolls back on **unchecked**
+    (`RuntimeException`, `Error`); a **checked** exception commits
+    unless you say `rollbackFor = Exception.class`. The reasoning:
+    unchecked = a bug, unwind; checked = an outcome you declared,
+    so Spring assumes you handled it. *Hook: Spring only panics
+    about what you didn't declare.*
+
+    ```java
+    @Transactional
+    void a() throws IOException { save(); throw new IOException(); }
+    // checked → COMMITS. The save() is persisted.
+
+    @Transactional(rollbackFor = Exception.class)
+    void b() throws IOException { save(); throw new IOException(); }
+    // → rolls back
+
+    @Transactional
+    void c() { save(); throw new IllegalStateException(); }
+    // unchecked → rolls back, no configuration needed
+    ```
+
+  - **propagation** — `REQUIRED` (default) joins the caller's
+    transaction if one is running, else starts one; `REQUIRES_NEW`
+    suspends the caller's and runs in its own, so it survives the
+    caller rolling back. Bank-panel example: the audit row must
+    stay even when the payment unwinds → `REQUIRES_NEW`.
+
+    ```java
+    @Transactional                                  // TX-1
+    public void pay(Txn t) {
+      audit.record(t);        // TX-2: commits on its own
+      ledger.debit(t);        // joins TX-1
+      throw new PaymentFailedException();
+    }                         // TX-1 rolls back the debit;
+                              // the audit row stays.
+
+    @Service
+    class AuditService {
+      @Transactional(propagation = Propagation.REQUIRES_NEW)
+      public void record(Txn t) { ... }
+    }
+    ```
+  - **ACID**, the property set the annotation is buying you —
+    **atomicity** (all the statements land or none do),
+    **consistency** (valid state to valid state, constraints
+    intact), **isolation** (concurrent transactions don't read
+    each other's half-done work — the level comes from the DB,
+    usually read-committed), **durability** (once committed it
+    survives a crash).
+  - Scope note: this is one database's transaction. Across
+    services there is nothing to roll back — that is where the
+    saga in this section's pattern list takes over.
+
 - **Actuator?** — production endpoints: /health, /metrics — the
   monitoring surface. (Support-role JD language — use it.)
+
 - **REST?** — resources + HTTP verbs, stateless. GET read, POST
   create, PUT replace, PATCH partial, DELETE remove. Idempotent =
   repeating the request leaves the server in the same state (not:
   returns the same response) — GET/PUT/DELETE; POST is not.
+
 - **GET vs POST?** *(the famous one)*
   - GET — data in the URL, cacheable, idempotent, for reads
   - POST — data in the body, not cached, not idempotent, for
     writes
+
 - **Status codes?** — 200 OK · 201 Created · 204 No Content · 400
-  bad request · 401 unauthenticated vs 403 unauthorized · 404 · 409
-  conflict · 500 server error · 502/503 upstream/unavailable.
-  Memory hook for the pair: *401 = "who are you?", 403 = "I know
-  you — no."*
+  Bad Request · 401 Unauthorized · 403 Forbidden · 404 Not Found ·
+  409 Conflict · 500 Internal Server Error · 502/503
+  upstream/unavailable.
+  The 401/403 pair is the trap: 401 is *named* Unauthorized but
+  *means* unauthenticated — no or bad credentials; 403 means
+  authenticated and still refused. Memory hook: *401 = "who are
+  you?", 403 = "I know you — no."*
+
 - **REST vs SOAP?** — both send a request over HTTP to a remote
   service; they differ in what the contract is made of.
-  - REST — lightweight, JSON, HTTP verbs
-  - SOAP — XML envelope + WSDL contract file, WS-Security
+  - **REST** — *representational state transfer*: lightweight,
+    JSON, HTTP verbs. An architectural style, not a protocol.
+  - **SOAP** — *simple object access protocol*: XML envelope +
+    **WSDL** (web services description language) contract file,
+    WS-Security. An actual protocol, with a schema to validate
+    against.
   - Memory hook: *REST speaks JSON verbs, SOAP speaks XML
     contracts.*
   - ⚓ NPCI speaks signed XML over HTTPS — I've lived the XML+PKI
     world
+
 - **JDBC flow?** — DataSource (where connections come from — a pool,
   not a fresh socket per call) → Connection → PreparedStatement →
   ResultSet; close in reverse (try-with-resources snippet: §3).
   (Older-panel keyword: driver *types 1–4*; type 4 = pure-Java
   thin driver — what ojdbc8 is.)
+
 - **executeQuery vs executeUpdate vs execute?** *(MCQ staple)*
   - `executeQuery` → ResultSet (SELECT)
   - `executeUpdate` → int rows affected (INSERT/UPDATE/DELETE)
   - `execute` → boolean, handles either
+
 - **Statement vs PreparedStatement?** — precompiled + parameterized:
   the SQL is parsed before the values arrive, so a parameter can
   never become SQL syntax → injection-proof and faster. Parameters
@@ -1127,12 +1291,15 @@ data layer → integration architecture → tooling → patterns)*
   ⚓ I once shipped `setString(0, …)` in IMPS's duplicate check;
   it got erased days later when the check moved to the receiver.
   Honest bug story if "a bug you shipped?" comes.
+
 - **Connection pooling?** — connections are expensive; pools reuse
   them (HikariCP is Boot's default). ⚓ IMPS's CBS-interface runs a
   hand-rolled pool over the CBS proprietary socket.
+
 - **ORM?** — Hibernate maps entities ↔ tables; JPA is the spec
   Hibernate implements. (IMPS used raw JDBC deliberately — full SQL
   control.)
+
 - **ESB vs API gateway?** — enterprise service bus: central
   integration layer doing routing, transformation, protocol
   bridging between core systems (CBS ↔ channels). API gateway = the
@@ -1146,22 +1313,94 @@ data layer → integration architecture → tooling → patterns)*
               auth, limits)    protocol bridging)
   ```
 
-- **SOA vs microservices?** — same service idea; SOA integrates via
-  a smart bus (ESB), microservices keep the pipes dumb and the
-  services small, independently deployable. Memory hook: *SOA
-  routes through one smart bus, microservices talk over many dumb
-  pipes.*
+- **SOA vs microservices?** — both are **service-oriented
+  architecture**: split the system into services that talk over the
+  network. They differ in where the smarts and the boundaries sit.
+  - SOA (the 2000s enterprise style) — a few coarse services wired
+    through an **ESB** (enterprise service bus) that routes,
+    transforms and bridges protocols; a canonical schema and
+    central governance; services often share one database and ship
+    on the same release train.
+  - microservices — many small services, each owning its own data
+    and deployable on its own; the smarts live in the service, the
+    network stays plain HTTP or a broker; teams release
+    independently.
+  - Memory hook: *SOA puts the logic in one smart bus,
+    microservices put it in the endpoints and keep the pipes
+    dumb.*
+
 - **Build tools?** — Maven (pom.xml, convention) / Gradle (Groovy
   DSL, faster, flexible). ⚓ IMPS is a **Gradle** multi-project.
+
 - **Design patterns you know?**
   - singleton — private constructor + static instance; enum is
     the safe form; double-checked locking needs `volatile` or
     another thread can see the reference assigned before the
     constructor has finished ([threads-jvm.md](threads-jvm.md) §7)
-  - factory, observer — one-liners on demand
+  - factory — a method decides which concrete class to hand back,
+    so the caller codes to the interface and never says `new`.
+    `Executors.newFixedThreadPool(4)` returns an
+    `ExecutorService`; the caller never learns the class name.
+    *Hook: you order by what you want, not by who makes it.*
+  - strategy — pull the varying algorithm out into an interface
+    and pass the one you want in; swap behaviour without touching
+    the caller. `list.sort(comparator)` — the comparator **is**
+    the strategy. *Hook: same engine, pluggable gearbox.*
+  - observer — subject keeps a list of listeners and publishes an
+    event; listeners register and unregister without the subject
+    knowing them. Spring's `ApplicationEventPublisher` +
+    `@EventListener`. *Hook: don't call us, we'll call you.*
+  - template method — an abstract base fixes the **order** of
+    steps in a `final` method and leaves the varying steps to
+    subclasses. Spring's `JdbcTemplate` owns the skeleton (get
+    connection, execute, translate exceptions, close) and you
+    supply only the `RowMapper`. *Hook: the base owns the recipe,
+    the subclass fills in the ingredients.*
+  - strategy vs template method, if they push: strategy varies
+    behaviour by **composition** at runtime (hand in another
+    object), template method varies it by **inheritance** at
+    compile time (override a hook). Same goal, different lever.
   - **and one I shipped at scale: compensating transaction
-    (saga)** — IMPS's reversion flow undoes the CBS leg when the
-    NPCI leg dies. ⚓ Flagship answer.
+    (saga)** — a **saga** is one business transaction split across
+    services into a chain of local commits, each paired with a
+    compensating action that semantically undoes it; there is no
+    two-phase commit to roll back with, so you *unwind* instead.
+    ⚓ IMPS (Immediate Payment Service) — the reversion flow fires
+    the compensating leg against **CBS** (core banking system)
+    when the **NPCI** (National Payments Corporation of India) leg
+    dies. Flagship answer. *Hook: no rollback across services —
+    you pay it back, you don't take it back.*
+
+    **The same answer for a functional banker** — banking first,
+    tech second. ⚓ Every IMPS leg parks the money in the bank's
+    **IMPS pool account**, so no leg is ever left half-booked on
+    a customer.
+
+    - *Outward* (our customer is the remitter) — debit the
+      customer, credit the pool, narration
+      `IMPS/<RRN>/<beneficiary>/<bank>/XXX<last4>/<note>`; then
+      the ReqPay goes to NPCI. If NPCI won't take it, or the
+      RespPay / RespChkTxn comes back FAILURE, the reversion leg
+      pays the customer back **out of the pool**, narration
+      `IMPSREV/48/<RRN>/…`, and the customer's daily debit
+      counter is given the amount back.
+    - *Inward* (our customer is the beneficiary) — credit the
+      beneficiary out of the pool, narration `IMPS/48/<RRN>/…`.
+      If the transaction is later declared failed, the reversion
+      leg pulls that credit **off the beneficiary back into the
+      pool** with the same `IMPSREV` narration.
+    - Either direction: a **reversion** record moves `marked` →
+      `reverted`, the CBS approval number of the undo posting is
+      stamped on it, and the transaction's settlement amount is
+      zeroed so nothing is left to settle for it. Both postings
+      stay on the statement — the reversal is a fresh entry, not
+      an erased one, which is what makes it *compensating* and
+      not a rollback.
+    - Tech second: the failure only **publishes** — a Kafka
+      `reversion` message keyed by transaction id. A separate
+      consumer does the money leg, so a CBS outage delays a
+      reversion but never loses it, and the direction is read off
+      the ReqPay message id (our own bank-code prefix = outward).
 
   *One-liner for the section:* Spring's container wires the beans,
   `@Transactional` guards the DB work, the servlet front controller
@@ -1169,154 +1408,19 @@ data layer → integration architecture → tooling → patterns)*
   Oracle through pooled prepared statements — and the gateway
   guards that edge while the ESB integrates the inside.
 
-## §8 Kafka — every answer anchored in IMPS ⚓
+## §8 Kafka ⚓
 
-- **What is Kafka?** — distributed, durable pub-sub event log:
-  producers append to topics, consumers read at their own pace by
-  offset. Decouples producers from consumers.
-- **Topic / partition / offset?** — topic = named stream, split
-  into partitions; each partition is an ordered log; offset = a
-  consumer's bookmark. Ordering is guaranteed per partition only;
-  keyed messages always land on the same partition.
+→ **[kafka-answers.md](kafka-answers.md)** — the log model ·
+partitions and ordering · producers · consumer groups and offsets ·
+delivery guarantees · rebalancing · retention and DLQ · Spring
+Kafka · the IMPS anchor. Self-contained, answers sized for speaking.
 
-  **The mental picture:** a topic is a set of parallel logs, each
-  one strictly append-only, each with its own counter.
-
-  ```text
-  Topic: outward-reqpay
-   ├─ Partition 0: [msg0][msg1][msg2][msg3] offset→ 4
-   ├─ Partition 1: [msg0][msg1]            offset→ 2
-   └─ Partition 2: [msg0][msg1][msg2]      offset→ 3
-
-  key = txn-ref → hash(key) % numPartitions → always same partition
-  ```
-
-  Why keyed: two events for the same transaction ref must land in
-  the same partition to preserve their order relative to each
-  other — Kafka only orders *within* a partition, never across.
-
-- **Consumer group?** — consumers sharing a group id split the
-  partitions between them; kill one and Kafka **rebalances** — the
-  survivors take over from the last committed offset.
-
-  ```text
-  Group "reqpay-processors" (3 partitions, 2 consumers)
-   Partition 0 ─┐
-   Partition 1 ─┼─ Consumer A
-   Partition 2 ───  Consumer B
-
-   Consumer A dies → rebalance →
-   Partition 0 ─┐
-   Partition 1 ─┼─ Consumer B  (picks up from last committed offset)
-   Partition 2 ─┘
-  ```
-
-  Magic number: partitions ≥ consumers in a group, or extra
-  consumers sit idle — one partition can't be split between two.
-
-  Follow-up classic — *queue or pub-sub?* Both, via group ids:
-  same group = partitions load-shared (queue); different groups =
-  each group reads its own full copy (broadcast).
-- **Broker / replication?** — brokers host partitions; each
-  partition has one leader + follower replicas for failover.
-  Followers fully caught up = the **ISR** (in-sync replicas); a
-  new leader is elected from the ISR when the old one dies.
-- **Why Kafka in IMPS?** *(THE anchor — say this fluently)* — NPCI
-  gives a **20-second SLA**: the receiver must validate, persist,
-  and ACK fast, so receipt is decoupled from processing. One topic
-  per message type — inward/outward × ReqPay/ReqChkTxn/ReqValAdd,
-  plus reversion — so each flow scales and fails independently,
-  each with its own consumer processor.
-
-  ```text
-  NPCI ──signed XML──▶ Receiver ── INSERT journal ──▶ ACK (fast)
-                          │
-                          └─▶ topic per msg type ──▶ Processor
-                              (inward-reqpay, …)        │
-                                                 CBS leg via RMI
-  ```
-
-  Walkthrough, one inward ReqPay: receiver verifies the message,
-  INSERTs it into the Oracle journal, produces to the inward-reqpay
-  topic, ACKs NPCI — seconds, well inside 20. The processor polls
-  the topic at its own pace, runs the CBS credit over RMI, sends
-  the RespPay. A slow CBS never breaks the NPCI-facing SLA.
-
-  *One-liner:* Kafka sits between receipt and processing, so the
-  ACK never waits on the bank's core.
-- **Kafka vs a traditional MQ (ActiveMQ/RabbitMQ)?**
-  - consumers *pull* at their own pace; MQ *pushes*
-  - Kafka retains the log after consume → replay possible; MQ
-    deletes on ack
-  - scales horizontally by adding partitions
-  - consumers track their own offsets; MQ broker tracks delivery
-- **Delivery semantics?** *(the trio — say all three)*
-  - at-most-once: commit *before* processing — never duplicates,
-    may lose
-  - at-least-once: commit *after* processing — never loses, may
-    duplicate
-  - exactly-once: transactional producer + consumer — neither, at
-    a throughput cost
-  - Memory hook: *the commit's position decides — early commit
-    loses, late commit repeats. Banks pick repeats + dedupe.*
-  - ⚓ IMPS is **at-least-once with DB-level idempotency**: the
-    receiver INSERTs every message into the txn journal, and
-    processors skip anything whose row is already marked
-    processed — NPCI genuinely replays ReqPay, so dedupe is by
-    database state, not by Kafka.
-- **"What if the processor crashes mid-message?"** *(honesty
-  gold)* — normally the group rebalances and the message is
-  redelivered. In IMPS offsets were committed at receipt —
-  auto-commit was ON (500ms) plus a manual `commitAsync` at
-  dequeue — so Kafka considers it done; the DB insert at the
-  receiver is the real recovery anchor. **First thing I'd
-  redesign: commit after processing, not before.**
-- **commitSync vs commitAsync?** — sync blocks until the offset is
-  stored (safe, slower); async fires and moves on (fast, may lose
-  the commit on crash). Memory hook: *sync stops to confirm; async
-  sends and hopes.*
-
-  ```java
-  records = consumer.poll(Duration.ofMillis(500));
-  process(records);            // IMPS bug: this should come first
-  consumer.commitAsync();      // offset marked done either way
-  ```
-
-  The order above is the trap — commit *after* processing is the
-  safe pattern; IMPS's auto-commit fired on a timer regardless of
-  where processing had reached.
-- **`acks` config?** *(MCQ staple)* — producer durability knob:
-
-    | `acks` | waits for | can lose when |
-    | --- | --- | --- |
-    | `0` | nobody | any hiccup |
-    | `1` | leader's write | leader dies before replicating |
-    | `all` | every in-sync replica (ISR) | — (slowest) |
-
-  A payments system runs `acks=all`.
-- **Retention?** — time/size-based; Kafka keeps messages whether or
-  not consumed. ⚓ IMPS's duplicate window was reasoned against the
-  topic's ~1-hour retention.
-- **Consumer lag?** — how far a consumer's offset trails the log
-  head; the first Kafka metric to graph in production support.
-- **Poison message / DLQ?** — a message that fails processing every
-  retry and blocks the partition behind it; standard fix is a
-  dead-letter topic to shunt it aside so the queue keeps moving.
-  ⚓ IMPS doesn't have one today — retry-then-stuck is the honest
-  answer, and it's a natural "what I'd add."
-- **Why is Kafka fast?** *(classic)* — three tricks:
-  - sequential append-only disk writes (no random seeks)
-  - batching: producers and consumers move messages in blocks
-  - zero-copy: broker streams file bytes to the socket without
-    copying through application memory
-- **ZooKeeper?** *(depth reserve)* — older clusters kept metadata in
-  ZooKeeper; modern Kafka replaces it with KRaft (built-in Raft
-  quorum).
-
-  *One-liner for the section:* Kafka is a replayable append-only
-  log split into ordered partitions; IMPS uses it to ACK NPCI fast
-  and let the CBS leg run at its own pace, with the DB journal —
-  not Kafka — as the truth for dedupe and recovery.
+*One-liner for the section:* Kafka is a replayable append-only log
+split into ordered partitions, where the partition is both the unit
+of ordering and the unit of parallelism, and **commit timing** is the
+knob that sets your delivery guarantee — IMPS uses it to ACK NPCI
+fast and let the CBS leg run at its own pace, with the DB journal,
+not Kafka, as the truth for dedupe and recovery.
 
 ## §9 SDLC + testing
 
