@@ -1453,46 +1453,47 @@ not Kafka, as the truth for dedupe and recovery.
       increment
 
     **Events:**
-      - Sprint — the container itself, timeboxed 2–4 wks, one goal
-      - Sprint Planning — team decides what + how, sets the Sprint
-        Goal
-      - Daily Scrum — 15 min, syncs the next 24h against the Sprint
-        Goal
-      - Sprint Review — demo the increment, gather stakeholder
-        feedback
-      - Sprint Retrospective — team inspects itself, agrees process
-        improvements
+    - Sprint — the container itself, timeboxed 2–4 wks, one goal
+    - Sprint Planning — team decides what + how, sets the Sprint
+      Goal
+    - Daily Scrum — 15 min, syncs the next 24h against the Sprint
+      Goal
+    - Sprint Review — demo the increment, gather stakeholder
+      feedback
+    - Sprint Retrospective — team inspects itself, agrees process
+      improvements
 
     **Artifacts:**
-      - Product Backlog — ordered, ever-evolving list of everything the product might need
-      - Sprint Backlog — this sprint's slice of the backlog + the
-        plan to deliver it
-      - Increment — everything completed this sprint, must meet
-        Definition of Done
+    - Product Backlog — ordered, ever-evolving list of everything
+      the product might need
+    - Sprint Backlog — this sprint's slice of the backlog + the
+      plan to deliver it
+    - Increment — everything completed this sprint, must meet
+      Definition of Done
 
     **Commitments** (one per artifact above):
-      - Product Goal — long-term objective the Product Backlog
-        serves
-      - Sprint Goal — single objective that gives the sprint
-        coherence
-      - Definition of Done — shared checklist for what "complete"
-        means
+    - Product Goal — long-term objective the Product Backlog
+      serves
+    - Sprint Goal — single objective that gives the sprint
+      coherence
+    - Definition of Done — shared checklist for what "complete"
+      means
 
     **Pillars** (empirical process control):
-      - Transparency — process and work visible to everyone who
-        needs it
-      - Inspection — check artifacts and progress often, not just
-        at the end
-      - Adaptation — adjust promptly when inspection finds a
-        deviation
+    - Transparency — process and work visible to everyone who
+      needs it
+    - Inspection — check artifacts and progress often, not just
+      at the end
+    - Adaptation — adjust promptly when inspection finds a
+      deviation
 
     **Values:**
-      - Commitment — team commits to its goals
-      - Focus — attention stays on this sprint's work
-      - Openness — open about the work and its obstacles
-      - Respect — team members respect each other's capability and
-        independence
-      - Courage — do the right thing, tackle the hard problem
+    - Commitment — team commits to its goals
+    - Focus — attention stays on this sprint's work
+    - Openness — open about the work and its obstacles
+    - Respect — team members respect each other's capability and
+      independence
+    - Courage — do the right thing, tackle the hard problem
 
 - **Test levels?** — unit → integration → system → UAT (business
   users sign off). (Older-panel keyword: **STLC** — requirement
