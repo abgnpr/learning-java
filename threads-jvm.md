@@ -1103,13 +1103,13 @@ up generationally, young and often.
 
 | Block | Rep 1 | Rep 2 | Rep 3 |
 |---|---|---|---|
-| §1 Ground floor | ☐ | ☐ | ☐ |
-| §2 The two problems | ☐ | ☐ | ☐ |
-| §3 monitor + synchronized + thread states | ☐ | ☐ | ☐ |
-| §4 wait / notify | ☐ | ☐ | ☐ |
-| §5 ReentrantLock | ☐ | ☐ | ☐ |
-| §6 volatile + atomics | ☐ | ☐ | ☐ |
-| §7 Liveness | ☐ | ☐ | ☐ |
-| §8 Executors + virtual threads | ☐ | ☐ | ☐ |
-| §9 Don't hand-roll it | ☐ | ☐ | ☐ |
-| §10 JVM | ☐ | ☐ | ☐ |
+| §1 Ground floor | 🟢 | ☐ | ☐ |
+| §2 The two problems | 🟢 | ☐ | ☐ |
+| §3 monitor + synchronized + thread states | 🟢 | ☐ | ☐ |
+| §4 wait / notify | 🟢 | ☐ | ☐ |
+| §5 ReentrantLock | 🟢 | ☐ | ☐ |
+| §6 volatile + atomics | 🟢 | ☐ | ☐ |
+| §7 Liveness | 🟢 | ☐ | ☐ |
+| §8 Executors + virtual threads | 🟢 | ☐ | ☐ |
+| §9 Don't hand-roll it | 🟢 | ☐ | ☐ |
+| §10 JVM | 🟢 | ☐ | ☐ |

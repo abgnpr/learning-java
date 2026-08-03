@@ -1746,10 +1746,10 @@ not Kafka, as the truth for dedupe and recovery.
 | §2 Collections | 🟢 | ☐ | ☐ |
 | §3 Exceptions | 🟢 | ☐ | ☐ |
 | §4 Java 8+ | 🟢 | ☐ | ☐ |
-| §5 Threads + JVM | ☐ | ☐ | ☐ |
+| §5 Threads + JVM | 🟢 | ☐ | ☐ |
 | §6 Trap wall | 🟢 | ☐ | ☐ |
-| §7 Enterprise | ☐ | ☐ | ☐ |
-| §8 Kafka ⚓ | ☐ | ☐ | ☐ |
+| §7 Enterprise | 🟢 | ☐ | ☐ |
+| §8 Kafka ⚓ | 🟢 | ☐ | ☐ |
 | §9 SDLC/testing | 🟢 | ☐ | ☐ |
 
 *Drill order suggestion: §8 first (flagship + profile anchor), then

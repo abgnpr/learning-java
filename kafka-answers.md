@@ -754,17 +754,17 @@ not Kafka, as the truth for dedupe and recovery.
 
 | Section | Tier | Rep 1 | Rep 2 | Rep 3 |
 |---|---|---|---|---|
-| §2 Topic, partition, offset | 1 | ☐ | ☐ | ☐ |
-| §5 Consumers, groups, offsets | 1 | ☐ | ☐ | ☐ |
-| §6 Delivery guarantees | 1 | ☐ | ☐ | ☐ |
-| §11 IMPS anchor ⚓ | 1 | ☐ | ☐ | ☐ |
+| §2 Topic, partition, offset | 1 | 🟢 | ☐ | ☐ |
+| §5 Consumers, groups, offsets | 1 | 🟢 | ☐ | ☐ |
+| §6 Delivery guarantees | 1 | 🟢 | ☐ | ☐ |
+| §11 IMPS anchor ⚓ | 1 | 🟢 | ☐ | ☐ |
 | §7 Rebalancing & liveness | 2 | ☐ | ☐ | ☐ |
 | §3 Cluster & durability | 2 | ☐ | ☐ | ☐ |
 | §8 Retention, lag, DLQ | 2 | ☐ | ☐ | ☐ |
 | §4 The producer | 3 | ☐ | ☐ | ☐ |
 | §9 Spring Kafka | 3 | ☐ | ☐ | ☐ |
-| §1 Log vs queue | 3 | ☐ | ☐ | ☐ |
-| §10 Why Kafka is fast | 3 | ☐ | ☐ | ☐ |
+| §1 Log vs queue | 3 | 🟢 | ☐ | ☐ |
+| §10 Why Kafka is fast | 3 | 🟢 | ☐ | ☐ |
 | §12 Rapid-fire traps | 3 | ☐ | ☐ | ☐ |
 
 *Tier 1 earns a second rep before Tier 3 gets a first one.*
