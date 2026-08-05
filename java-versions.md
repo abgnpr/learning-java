@@ -399,8 +399,21 @@ answer, code with aligned `// comments`. Deep companion to
 - **Three laws to say out loud** —
   - **lazy** — nothing happens until the terminal; no terminal, no
     work (no ON press, no belt movement)
-  - **single-use** — one run per belt; a consumed stream throws if
-    touched again — build a fresh one from the source
+  - **single-use** — one run per belt. A stream is marked *linked or
+    consumed* the moment you chain off it or fire a terminal on it;
+    reaching for it again throws `IllegalStateException: stream has
+    already been operated upon or closed`. Build a fresh one from the
+    source — cheap, and always legal by the third law
+
+    ```java
+    Stream<Person> s = people.stream();
+    long n = s.count();                        // terminal — spent
+    List<Person> l = s.collect(toList());      // 💥 IllegalStateException
+
+    long n2 = people.stream().count();         // fix: re-open per run
+    List<Person> l2 = people.stream().collect(toList());
+    ```
+
   - **non-mutating** — the shelf you loaded from keeps every item;
     the source collection is never changed
 - **map vs flatMap** — `map` transforms one element into one
