@@ -45,5 +45,10 @@ with `Ctrl-C`, or guard with `timeout 6`.
 
 Notes are marked 🟢 drilled aloud · 🟡 racked (exists, not drilled) ·
 🔴 not built. **Reading is not loading** — a kit only earns 🟢 after a
-blind rep out loud. Current state is tracked in
-[CLAUDE.md](CLAUDE.md); today everything is 🟡.
+blind rep out loud.
+
+**The rep scorecard at the foot of each kit is authoritative**;
+[CLAUDE.md](CLAUDE.md) summarises them. `core-java.md` and
+`threads-jvm.md` are through rep 1 in full; `kafka-answers.md` is
+half-way; the threads lab and the two `*-basics` kits are racked and
+unrepped.
