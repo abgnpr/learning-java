@@ -78,12 +78,24 @@ Study material is grouped by subject, one folder per subject, with no `notes/`
 wrapper. `core-java/` holds its four study kits and the runnable `lab/`;
 `kafka/` holds `kafka-answers.md` and `kafka-basics.md`; `spring-boot/` holds
 `spring-boot-basics.md` and its completion estimate. Only `README.md` and this
-charter sit at the root. Inside `core-java/lab/`, folders 01–06 hold the
-foundational challenge groups, 07 holds the eight concurrency stations, and 08
-holds the advanced challenge group. `core-java/lab/Scratchpad.java` is the
-try-things-out file (Skipper's, 2026-07-22).
+charter sit at the root, plus `tools/` for repo upkeep scripts. Inside
+`core-java/lab/`, folders 01–06 hold the foundational challenge groups, 07
+holds the eight concurrency stations, and 08 holds the advanced challenge
+group. `core-java/lab/Scratchpad.java` is the try-things-out file
+(Skipper's, 2026-07-22).
 
 ## Working practice
+
+**Cross-links are checked, not eyeballed.** `python3
+tools/check-links.py` walks every `.md` in the repo and verifies each
+link's file target and `#anchor` against the real headings. Run it
+after moving, splitting, or renaming a kit — that's when anchors rot.
+Exit 1 means broken links, listed `file:line`. It knows GitHub's slug
+rule, so `## §A Functional interface — the "slot"` is reached as
+`#a-functional-interface--the-slot` (symbols vanish, the spaces that
+flanked them each become a hyphen). Links inside code fences and
+inline backticks are examples and get skipped; external `http(s)`
+links aren't ours to verify.
 
 **Mermaid diagrams: write them, don't render them.** Emit the
 mermaid block and ask Skipper to eyeball it. Do NOT shell out to

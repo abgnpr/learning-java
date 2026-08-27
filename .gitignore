@@ -30,3 +30,7 @@ replay_pid*.log
 Thumbs.db
 *.swp
 *~
+
+# ── Python (tools/) ──────────────────────────────────────────────
+__pycache__/
+*.pyc

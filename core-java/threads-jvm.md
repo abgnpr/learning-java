@@ -296,7 +296,7 @@ exists for one of these two.
 
   Only the entry queue can produce the next owner. Acquiring the monitor is the only way into the owner slot. notify() doesn't grant ownership—it merely moves a waiting thread from the wait-set back to the entry queue. From there it competes for the monitor like every other thread, can lose to a thread that never waited at all, and resumes from wait() only after re-acquiring the monitor ([§4](#4-waiting-inside-a-lock)). That's why the guard is always a while, not an if.
 
-  ![Java Monitor Illustration](/assets/java-monitor.png)
+  ![Java Monitor Illustration](../assets/java-monitor.png)
 
   **Where a thread sits vs what state it is in** — the three regions
   are parts of the *object's monitor*; BLOCKED, WAITING and
