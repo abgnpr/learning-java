@@ -1,7 +1,7 @@
 # learning-java
 
 Interview preparation notes for Java, Spring Boot and Kafka —
-rapid-fire answers, study material, and one hands-on lab.
+rapid-fire answers, study material, and hands-on labs.
 
 Callsign **HOT COFFEE**, base 6 of the interview fleet. Operating
 charter lives in [CLAUDE.md](CLAUDE.md); HQ is
@@ -14,7 +14,8 @@ charter lives in [CLAUDE.md](CLAUDE.md); HQ is
 | [core-java.md](core-java.md) | Rapid-fire Q&A across OOP, collections, exceptions, Java 8+, traps, Spring/JDBC/REST, Kafka and SDLC/testing. Answers sized for **speaking**, not writing. |
 | [java-versions.md](java-versions.md) | Java 7 → 25 timeline: version, year, headline feature, one snippet. Plus a Tier-1 "Java 8 from zero" study block (§A–§I). |
 | [threads-jvm.md](threads-jvm.md) | Threads, locks, the memory model, executors and JVM internals — ordered so that no answer depends on one below it. |
-| [s5-threads-lab.md](s5-threads-lab.md) | Eight runnable stations for the concurrency section — races, visibility, deadlock, pools, virtual threads. Code in [lab/threads/](lab/threads/). |
+| [s5-threads-lab.md](s5-threads-lab.md) | Eight runnable stations for the concurrency section — races, visibility, deadlock, pools, virtual threads. Code in [lab/core-java/07-threads/](lab/core-java/07-threads/). |
+| [java-challenges-lab.md](java-challenges-lab.md) | 64 runnable Java challenge starters across introduction, strings, big numbers, data structures, OOP, exceptions and advanced Java. Code in [lab/core-java/](lab/core-java/). |
 | [spring-boot-basics.md](spring-boot-basics.md) | DI/IoC, beans and scopes, auto-config, web MVC, validation, data/JPA, transactions and proxies, testing, actuator. |
 | [kafka-basics.md](kafka-basics.md) | Log and partitions, ordering, producers, consumer groups, offsets and commit semantics, delivery guarantees, rebalancing, ISR, retention, DLQ. |
 
@@ -23,19 +24,36 @@ The notes sit flat at the repo root. Runnable code lives under
 
 ```
 lab/
-├── threads/         the eight stations
-└── Scratchpad.java  scratch file for trying things out
+└── core-java/
+    ├── 01-introduction/
+    ├── 02-strings/
+    ├── 03-big-numbers/
+    ├── 04-data-structures/
+    ├── 05-oop/
+    ├── 06-exceptions/
+    ├── 07-threads/
+    ├── 08-advanced/
+    └── Scratchpad.java
 ```
 
-## The lab
+## The labs
 
-The one kit you run rather than read. Each station is a single file
-you launch directly — predict the output first, then run it, then
-read why you were right or wrong:
+Every exercise is a single file you launch directly; no Maven or Gradle
+build is required. The Java challenge track starts compile-safe but
+unsolved: implement the marked seam or seams, then let its embedded
+checks judge the result.
 
 ```bash
-cd lab/threads
-java StartVsRun.java
+cd lab/core-java
+java 01-introduction/WelcomeToJava.java
+```
+
+The concurrency stations are demonstrations: predict the output first,
+then run them and explain why you were right or wrong.
+
+```bash
+cd lab/core-java
+java 07-threads/01-start-vs-run/StartVsRun.java
 ```
 
 Two stations hang on purpose. That hang is the lesson — kill them
@@ -50,5 +68,5 @@ blind rep out loud.
 **The rep scorecard at the foot of each kit is authoritative**;
 [CLAUDE.md](CLAUDE.md) summarises them. `core-java.md` and
 `threads-jvm.md` are through rep 1 in full; `kafka-answers.md` is
-half-way; the threads lab and the two `*-basics` kits are racked and
-unrepped.
+half-way; the runnable labs and the two `*-basics` kits are racked and
+unrepped/unsolved.
