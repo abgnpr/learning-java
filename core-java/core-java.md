@@ -1410,7 +1410,7 @@ data layer → integration architecture → tooling → patterns)*
 
 ## §8 Kafka ⚓
 
-→ **[kafka-answers.md](../kafka-answers.md)** — the log model ·
+→ **[kafka-answers.md](../kafka/kafka-answers.md)** — the log model ·
 partitions and ordering · producers · consumer groups and offsets ·
 delivery guarantees · rebalancing · retention and DLQ · Spring
 Kafka · the IMPS anchor. Self-contained, answers sized for speaking.

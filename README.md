@@ -16,18 +16,26 @@ charter lives in [CLAUDE.md](CLAUDE.md); HQ is
 | [threads-jvm.md](core-java/threads-jvm.md) | Threads, locks, the memory model, executors and JVM internals — ordered so that no answer depends on one below it. |
 | [Threads lab index](lab/core-java/07-threads/README.md) | Eight runnable stations for the concurrency section — races, visibility, deadlock, pools, virtual threads. |
 | [Core Java lab index](lab/core-java/README.md) | 64 self-testing challenges plus eight concurrency stations, organized as one numbered learning path. |
-| [spring-boot-basics.md](spring-boot-basics.md) | DI/IoC, beans and scopes, auto-config, web MVC, validation, data/JPA, transactions and proxies, testing, actuator. |
-| [kafka-basics.md](kafka-basics.md) | Log and partitions, ordering, producers, consumer groups, offsets and commit semantics, delivery guarantees, rebalancing, ISR, retention, DLQ. |
+| [spring-boot-basics.md](spring-boot/spring-boot-basics.md) | DI/IoC, beans and scopes, auto-config, web MVC, validation, data/JPA, transactions and proxies, testing, actuator. |
+| [kafka-basics.md](kafka/kafka-basics.md) | Log and partitions, ordering, producers, consumer groups, offsets and commit semantics, delivery guarantees, rebalancing, ISR, retention, DLQ. |
+| [kafka-answers.md](kafka/kafka-answers.md) | The self-contained Kafka answer sheet (§1–§12) — every term defined in place, sized for speaking. |
 
-The three Core Java kits sit together under `core-java/`; the Spring and
-Kafka notes stay at the repo root. Runnable code and its index live under
-`lab/`:
+Study notes are grouped by subject, one folder each. Runnable code and its
+index live under `lab/`:
 
 ```
 core-java/
 ├── core-java.md
 ├── java-versions.md
 └── threads-jvm.md
+
+kafka/
+├── kafka-answers.md
+└── kafka-basics.md
+
+spring-boot/
+├── spring-boot-basics.md
+└── spring-boot-basics.ESTIMATE.md
 
 lab/
 └── core-java/
@@ -74,6 +82,6 @@ blind rep out loud.
 
 **The rep scorecard at the foot of each kit is authoritative**;
 [CLAUDE.md](CLAUDE.md) summarises them. `core-java/core-java.md` and
-`core-java/threads-jvm.md` are through rep 1 in full; `kafka-answers.md` is
+`core-java/threads-jvm.md` are through rep 1 in full; `kafka/kafka-answers.md` is
 half-way; the runnable labs and the two `*-basics` kits are racked and
 unrepped/unsolved.
