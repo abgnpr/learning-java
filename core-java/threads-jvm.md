@@ -20,7 +20,7 @@ on one below it.
 
 **How to drill:** aloud, blind. Answers are sized for SPEAKING — say
 the 1–3 lines, then stop talking. Never bluff; anchor to IMPS (⚓)
-when pressed. Runnable companion: [s5-threads-lab.md](s5-threads-lab.md)
+when pressed. Runnable companion: [threads lab](../lab/core-java/07-threads/README.md)
 — eight predict→run→explain stations, linked inline as [→ S2].
 
 ---
@@ -134,7 +134,7 @@ flowchart TD
   that calls `run()`; calling `run()` directly is just a method
   call on the current thread.
   - the lab station that prints the thread name both ways:
-    [→ S1](s5-threads-lab.md)
+    [→ S1](../lab/core-java/07-threads/README.md)
 
 ---
 
@@ -172,7 +172,7 @@ exists for one of these two.
     outward payments can both pass. Fix: Redis MULTI/WATCH or a Lua
     script. (Honest "what I'd fix" gold.)
   - the lab station that loses updates on cue:
-    [→ S2](s5-threads-lab.md)
+    [→ S2](../lab/core-java/07-threads/README.md)
 
 - **The visibility problem?** *(problem two of two — a race is
   about *order*, this is about whether the write is seen at all)*
@@ -199,7 +199,7 @@ exists for one of these two.
     (above) is "saw it, then clobbered it". `synchronized` fixes
     both; `volatile` fixes only this one.
   - the lab station that hangs on exactly this:
-    [→ S3](s5-threads-lab.md)
+    [→ S3](../lab/core-java/07-threads/README.md)
 
 - **Critical section?** — the specific lines that touch shared
   mutable state and so must not run in two threads at once.
@@ -486,7 +486,7 @@ key."**
   One-liner: **`wait()` coordinates threads; `sleep()` merely delays
   one thread.**
   - the lab station that shows the difference under contention:
-    [→ S4](s5-threads-lab.md)
+    [→ S4](../lab/core-java/07-threads/README.md)
 
 - **notify vs notifyAll?** — `notify()` wakes **one arbitrary
   waiter**. It does **not** hand over the monitor — it simply moves
@@ -541,7 +541,7 @@ key."**
   topic, consumer processors `poll()` at their own pace — the
   broker's partition log is the shared buffer.
 
-  [→ S7](s5-threads-lab.md) runs the `BlockingQueue` version.
+  [→ S7](../lab/core-java/07-threads/README.md) runs the `BlockingQueue` version.
 
 ---
 
@@ -829,7 +829,7 @@ key."**
   exactly these two conditions. Reach for `java.util.concurrent`
   first; hand-roll `Condition`s only when nothing there fits.
   (Lab station S7 runs the `BlockingQueue` version:
-  [→ S7](s5-threads-lab.md).)
+  [→ S7](../lab/core-java/07-threads/README.md).)
 
   - rule of thumb: **default to `synchronized`** — shorter, and it
     can't leak. **Upgrade to `ReentrantLock` only for timed
@@ -859,7 +859,7 @@ key."**
     retrying when another thread got there first — atomicity
     without a lock.
   - the lab station where a plain flag hangs and `volatile` doesn't:
-    [→ S3](s5-threads-lab.md)
+    [→ S3](../lab/core-java/07-threads/README.md)
 
 ---
 
@@ -869,7 +869,7 @@ key."**
   Avoid: consistent lock ordering, or `tryLock` with timeout
   ([§5](#5-upgrading-the-lock--reentrantlock)).
   - the lab station that deadlocks on cue *(hangs on purpose —
-    guard with `timeout 6`)*: [→ S5](s5-threads-lab.md)
+    guard with `timeout 6`)*: [→ S5](../lab/core-java/07-threads/README.md)
 - **Starvation?** — a thread that never gets the lock. The default
   lock is non-fair, so a just-arrived thread can barge ahead of a
   long waiter; a fair lock (`new ReentrantLock(true)`,
@@ -997,7 +997,7 @@ key."**
   *One-liner:* a pool is workers + a shared task queue; fixed pool
   for steady CPU-bound load, cached for bursty short I/O work;
   `shutdown()` drains, `shutdownNow()` interrupts.
-  - [→ S6](s5-threads-lab.md)
+  - [→ S6](../lab/core-java/07-threads/README.md)
 
 - **Virtual threads (Java 21)?** *(the modern follow-up)*
   - platform thread = thin wrapper over one OS thread — MB-scale
@@ -1012,7 +1012,7 @@ key."**
   - honesty: IMPS is Spring Boot 2.7 — predates virtual threads;
     speak of them as "what I'd use today," not as shipped
   - [→ Java 21 deep dive](java-versions.md#java-21-2023--lts--virtual-threads)
-    · [→ S8](s5-threads-lab.md)
+    · [→ S8](../lab/core-java/07-threads/README.md)
 
 ---
 

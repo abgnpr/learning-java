@@ -1,6 +1,6 @@
-# §5 Threads + JVM — the hands-on lab 🐧🔬
+# Threads + JVM — the hands-on lab 🐧🔬
 
-Companion to [threads-jvm.md](threads-jvm.md). That kit is the abstract
+Companion to [threads-jvm.md](../../../core-java/threads-jvm.md). That kit is the abstract
 theatre — races, visibility, deadlock — that only *clicks* once you watch
 it misbehave in front of you. Eight tiny runnable stations. You **predict
 the output first**, then run, then read *why*. That's the loading rep.
@@ -30,7 +30,7 @@ Kill with `Ctrl-C`, or guard it:
 
 ---
 
-## S1 — `start()` vs `run()`  · file: [StartVsRun.java](lab/core-java/07-threads/01-start-vs-run/StartVsRun.java)
+## S1 — `start()` vs `run()`  · file: [StartVsRun.java](01-start-vs-run/StartVsRun.java)
 
 **Proves:** `start()` spawns a new thread that calls `run()`; calling
 `run()` directly is just an ordinary method call on the current thread.
@@ -55,7 +55,7 @@ calling run() yourself just runs it on the caller — no new thread."*
 
 ---
 
-## S2 — the lost update (race condition)  · file: [LostUpdate.java](lab/core-java/07-threads/02-lost-update/LostUpdate.java)
+## S2 — the lost update (race condition)  · file: [LostUpdate.java](02-lost-update/LostUpdate.java)
 
 **Proves:** `i++` is read-modify-write — three steps, not atomic. Eight
 threads racing on a plain `int` **lose** updates. `AtomicInteger` (CAS)
@@ -87,7 +87,7 @@ updates. Flags → volatile; counters → AtomicInteger; compound state → a lo
 
 ---
 
-## S3 — visibility (`volatile`)  · file: [Visibility.java](lab/core-java/07-threads/03-visibility/Visibility.java)  ⚠️ hangs
+## S3 — visibility (`volatile`)  · file: [Visibility.java](03-visibility/Visibility.java)  ⚠️ hangs
 
 **Proves:** without `volatile`, one thread can spin on a **stale cached
 copy** of a flag forever — the JIT hoists the read out of the loop.
@@ -119,7 +119,7 @@ still a race."*
 
 ---
 
-## S4 — `wait()` vs `sleep()`, the famous one  · file: [WaitVsSleep.java](lab/core-java/07-threads/04-wait-vs-sleep/WaitVsSleep.java)
+## S4 — `wait()` vs `sleep()`, the famous one  · file: [WaitVsSleep.java](04-wait-vs-sleep/WaitVsSleep.java)
 
 **Proves the memory hook physically:** *sleep clutches the lock; wait lets
 go.* Same setup twice — a holder takes the lock, a waiter tries to enter.
@@ -153,7 +153,7 @@ lock, wakes itself on timeout."*
 
 ---
 
-## S5 — deadlock, then fix it  · file: [Deadlock.java](lab/core-java/07-threads/05-deadlock/Deadlock.java)  ⚠️ hangs
+## S5 — deadlock, then fix it  · file: [Deadlock.java](05-deadlock/Deadlock.java)  ⚠️ hangs
 
 **Proves:** two threads acquiring two locks in **opposite order** deadlock.
 Consistent lock ordering fixes it.
@@ -189,7 +189,7 @@ off instead of blocking forever."*
 
 ---
 
-## S6 — thread pool = workers + a shared in-tray  · file: [PoolReuse.java](lab/core-java/07-threads/06-pool-reuse/PoolReuse.java)
+## S6 — thread pool = workers + a shared in-tray  · file: [PoolReuse.java](06-pool-reuse/PoolReuse.java)
 
 **Proves the mental picture:** a `newFixedThreadPool(3)` is 3 worker threads
 pulling from one shared queue. 6 tasks → 3 workers get **reused**.
@@ -219,7 +219,7 @@ drains the queue, shutdownNow() interrupts and returns the un-run tasks."*
 
 ---
 
-## S7 — producer/consumer + backpressure  · file: [ProducerConsumer.java](lab/core-java/07-threads/07-producer-consumer/ProducerConsumer.java)
+## S7 — producer/consumer + backpressure  · file: [ProducerConsumer.java](07-producer-consumer/ProducerConsumer.java)
 
 **Proves:** a `BlockingQueue` *is* the producer-consumer pattern — `put()`
 blocks when full, `take()` blocks when empty. No hand-rolled wait/notify.
@@ -250,7 +250,7 @@ wait/notify. Kafka is the distributed version of the same idea."*
 
 ---
 
-## S8 — a million virtual threads (Java 21)  · file: [VirtualThreads.java](lab/core-java/07-threads/08-virtual-threads/VirtualThreads.java)
+## S8 — a million virtual threads (Java 21)  · file: [VirtualThreads.java](08-virtual-threads/VirtualThreads.java)
 
 **Proves:** virtual threads are KB-scale — a million blocking-I/O tasks is
 fine. Platform threads (1 OS thread each, MB stacks) would OOM long before.
@@ -276,7 +276,7 @@ OS threads.
 > Honesty (truth law): IMPS is Spring Boot 2.7, *predates* virtual threads.
 > Speak of these as *"what I'd reach for today for blocking-I/O fan-out,"*
 > not as something you shipped. CPU-bound work gains nothing from them.
-> ([java-versions.md → Java 21](java-versions.md#java-21-2023--lts--virtual-threads))
+> ([java-versions.md → Java 21](../../../core-java/java-versions.md#java-21-2023--lts--virtual-threads))
 
 **Say it:** *"A virtual thread is JVM-managed and KB-scale; it mounts a
 carrier to run and unmounts on blocking I/O. So I/O-bound work is just

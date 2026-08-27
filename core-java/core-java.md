@@ -961,7 +961,7 @@ dive. Drill here, study there.*
 → **[threads-jvm.md](threads-jvm.md)** — threads · locks · the memory
 model · executors · JVM internals, ordered so that no answer depends
 on one below it. Runnable companion:
-[s5-threads-lab.md](s5-threads-lab.md).
+[threads lab index](../lab/core-java/07-threads/README.md).
 
 *One-liner for the section:* threads share the heap but own
 their stacks; `synchronized` for exclusion, `volatile` for
@@ -1410,7 +1410,7 @@ data layer → integration architecture → tooling → patterns)*
 
 ## §8 Kafka ⚓
 
-→ **[kafka-answers.md](kafka-answers.md)** — the log model ·
+→ **[kafka-answers.md](../kafka-answers.md)** — the log model ·
 partitions and ordering · producers · consumer groups and offsets ·
 delivery guarantees · rebalancing · retention and DLQ · Spring
 Kafka · the IMPS anchor. Self-contained, answers sized for speaking.

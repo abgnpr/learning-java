@@ -11,20 +11,27 @@ charter lives in [CLAUDE.md](CLAUDE.md); HQ is
 
 | File | What it is |
 |---|---|
-| [core-java.md](core-java.md) | Rapid-fire Q&A across OOP, collections, exceptions, Java 8+, traps, Spring/JDBC/REST, Kafka and SDLC/testing. Answers sized for **speaking**, not writing. |
-| [java-versions.md](java-versions.md) | Java 7 → 25 timeline: version, year, headline feature, one snippet. Plus a Tier-1 "Java 8 from zero" study block (§A–§I). |
-| [threads-jvm.md](threads-jvm.md) | Threads, locks, the memory model, executors and JVM internals — ordered so that no answer depends on one below it. |
-| [s5-threads-lab.md](s5-threads-lab.md) | Eight runnable stations for the concurrency section — races, visibility, deadlock, pools, virtual threads. Code in [lab/core-java/07-threads/](lab/core-java/07-threads/). |
-| [java-challenges-lab.md](java-challenges-lab.md) | 64 runnable Java challenge starters across introduction, strings, big numbers, data structures, OOP, exceptions and advanced Java. Code in [lab/core-java/](lab/core-java/). |
+| [core-java.md](core-java/core-java.md) | Rapid-fire Q&A across OOP, collections, exceptions, Java 8+, traps, Spring/JDBC/REST, Kafka and SDLC/testing. Answers sized for **speaking**, not writing. |
+| [java-versions.md](core-java/java-versions.md) | Java 7 → 25 timeline: version, year, headline feature, one snippet. Plus a Tier-1 "Java 8 from zero" study block (§A–§I). |
+| [threads-jvm.md](core-java/threads-jvm.md) | Threads, locks, the memory model, executors and JVM internals — ordered so that no answer depends on one below it. |
+| [Threads lab index](lab/core-java/07-threads/README.md) | Eight runnable stations for the concurrency section — races, visibility, deadlock, pools, virtual threads. |
+| [Core Java lab index](lab/core-java/README.md) | 64 self-testing challenges plus eight concurrency stations, organized as one numbered learning path. |
 | [spring-boot-basics.md](spring-boot-basics.md) | DI/IoC, beans and scopes, auto-config, web MVC, validation, data/JPA, transactions and proxies, testing, actuator. |
 | [kafka-basics.md](kafka-basics.md) | Log and partitions, ordering, producers, consumer groups, offsets and commit semantics, delivery guarantees, rebalancing, ISR, retention, DLQ. |
 
-The notes sit flat at the repo root. Runnable code lives under
+The three Core Java kits sit together under `core-java/`; the Spring and
+Kafka notes stay at the repo root. Runnable code and its index live under
 `lab/`:
 
 ```
+core-java/
+├── core-java.md
+├── java-versions.md
+└── threads-jvm.md
+
 lab/
 └── core-java/
+    ├── README.md
     ├── 01-introduction/
     ├── 02-strings/
     ├── 03-big-numbers/
@@ -66,7 +73,7 @@ Notes are marked 🟢 drilled aloud · 🟡 racked (exists, not drilled) ·
 blind rep out loud.
 
 **The rep scorecard at the foot of each kit is authoritative**;
-[CLAUDE.md](CLAUDE.md) summarises them. `core-java.md` and
-`threads-jvm.md` are through rep 1 in full; `kafka-answers.md` is
+[CLAUDE.md](CLAUDE.md) summarises them. `core-java/core-java.md` and
+`core-java/threads-jvm.md` are through rep 1 in full; `kafka-answers.md` is
 half-way; the runnable labs and the two `*-basics` kits are racked and
 unrepped/unsolved.
