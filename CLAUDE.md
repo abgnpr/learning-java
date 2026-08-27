@@ -48,7 +48,7 @@ Pareto core path + Extensions list). Readiness: 🟢 drilled aloud ·
 | `spring-boot/spring-boot-basics.md` | DI/IoC · beans/scopes · config · **auto-config** · web MVC · validation · data/JPA · **transactions & proxies** · testing · actuator | §1→§4→§3→§5→§7→§8 | 🟡 racked 2026-07-21 |
 | `spring-boot/spring-security-basics.md` | **Senior Security anti-fumble kit**: filter-chain architecture · authN/passwords · route authZ · method security/**SpEL** · sessions/context · JWT resource server · CSRF/CORS · 401/403 boundary · testing · production scenarios | §0→§1→§2→§3→§4→§6→§7→§8→§9→§10 | 🟡 racked 2026-08-27 |
 | `spring-boot/spring-data-jpa-performance.md` | **Senior JPA/Hibernate anti-fumble kit**: persistence context/entity states · mappings · fetch plans/**N+1** · projections · pagination · JDBC batching/bulk DML · optimistic/pessimistic locking · caches · OSIV · diagnostics/tests · production scenarios | §0→§1→§2→§3→§4→§5→§6→§7→§9→§10→§11 | 🟡 racked 2026-08-27 |
-| `kafka/kafka-basics-exercise.md` | the **exercise** face of the same ground (🔮/🛠/🐛/💭 + hidden solutions), where `kafka/kafka-basics.md` is the spoken answer sheet: log/partitions · **ordering** · producers · consumer groups · **offsets & commit semantics** · **delivery guarantees** · rebalancing · durability/ISR · retention/compaction · DLQ · Spring Kafka | §1→§3→§4→§5→§2→§6 | 🟡 racked 2026-07-21 |
+| `kafka/kafka-basics-exercise.md` | the **exercise** face of the same ground (🔮/🛠/🐛/💭 + hidden solutions), where `kafka/kafka-basics.md` is the spoken answer sheet: log/partitions · **ordering** · producers · consumer groups · **offsets & commit semantics** · **delivery guarantees** · rebalancing · durability/ISR · retention/compaction · DLQ · Spring Kafka | §2→§5→§6→§7→§4 | 🟡 racked 2026-07-21 |
 
 Runnable kits use Java 21's single-file launcher with no build. The
 threads lab runs with `cd core-java/lab && java
@@ -60,8 +60,8 @@ until solved. All 64 challenge sources compile together on Temurin
 
 The `kafka-basics-exercise.md` and `spring-boot-basics.md` kits are
 standalone (no IMPS anchors — Skipper's call: IMPS's Spring is
-thin). Kafka *could* take optional 🔗 IMPS hooks later (§4.3 commit
-timing, §9 DLQ ↔ reversion saga). Extensions lists inside each doc
+thin). Kafka *could* take optional 🔗 IMPS hooks later (§5.9 commit
+timing, §8 DLQ ↔ reversion saga). Extensions lists inside each doc
 are the spin-off queue (e.g. `kafka-streams-basics.md`).
 
 Kits may be live ammunition for a campaign running out of HQ — check
