@@ -12,7 +12,8 @@ charter lives in [CLAUDE.md](CLAUDE.md); HQ is
 | File | What it is |
 |---|---|
 | [core-java.md](core-java/core-java.md) | Rapid-fire Q&A across OOP, collections, exceptions, Java 8+, traps, Spring/JDBC/REST, Kafka and SDLC/testing. Answers sized for **speaking**, not writing. |
-| [java-versions.md](core-java/java-versions.md) | Java 7 → 25 timeline: version, year, headline feature, one snippet. Plus a Tier-1 "Java 8 from zero" study block (§A–§I). |
+| [java-versions.md](core-java/java-versions.md) | Java 7 → 25 timeline: version, year, headline feature, one snippet. |
+| [java-8.md](core-java/java-8.md) | The Tier-1 "Java 8 from zero" study block (§A–§I) — functional interfaces, lambdas, streams, `Optional`, `java.time`. |
 | [threads-jvm.md](core-java/threads-jvm.md) | Threads, locks, the memory model, executors and JVM internals — ordered so that no answer depends on one below it. |
 | [Threads lab index](core-java/lab/07-threads/README.md) | Eight runnable stations for the concurrency section — races, visibility, deadlock, pools, virtual threads. |
 | [Core Java lab index](core-java/lab/README.md) | 64 self-testing challenges plus eight concurrency stations, organized as one numbered learning path. |
@@ -26,6 +27,7 @@ index live alongside the Core Java notes:
 ```
 core-java/
 ├── core-java.md
+├── java-8.md
 ├── java-versions.md
 ├── threads-jvm.md
 └── lab/

@@ -819,9 +819,9 @@ version?" is a certainty).
 ## §4 Java 8+ (know it cold)
 
 *Two-layer ammo. This section = the spoken rapid-fire; the
-learn-from-zero layer + full version timeline live in
-[java-versions.md](java-versions.md) — each bullet links its deep
-dive. Drill here, study there.*
+learn-from-zero layer lives in [java-8.md](java-8.md) and the full
+version timeline in [java-versions.md](java-versions.md) — each
+bullet links its deep dive. Drill here, study there.*
 
 - **Java 8 headline features?** — lambdas, Stream API, functional
   interfaces, `default`/`static` interface methods, `Optional`,
@@ -835,22 +835,22 @@ dive. Drill here, study there.*
   - `Consumer` (T→void)
   *Chant: Predicate asks · Function morphs · Supplier gives ·
   Consumer takes.*
-  [→ §A](java-versions.md#a-functional-interface--the-slot-a-lambda-fills)
+  [→ §A](java-8.md#a-functional-interface--the-slot-a-lambda-fills)
 
 - **Lambda?** — inline implementation of a functional interface:
   `(a, b) -> a + b`. Less ceremony than anonymous classes; types
   inferred from the target interface.
-  [→ §B](java-versions.md#b-lambda--the-compact-syntax)
+  [→ §B](java-8.md#b-lambda--the-compact-syntax)
 
 - **Effectively final?** *(the lambda gotcha)* — a lambda may
   capture a local variable only if it's assigned once and never
   reassigned; reassign → compile error. Fields exempt.
-  [→ §B](java-versions.md#b-lambda--the-compact-syntax)
+  [→ §B](java-8.md#b-lambda--the-compact-syntax)
 
 - **Method reference?** — `::` shorthand when the lambda just
   calls one method: `String::valueOf`, `list::add`,
   `ArrayList::new`.
-  [→ §C](java-versions.md#c-method-reference--shorthand-for-a-one-call-lambda)
+  [→ §C](java-8.md#c-method-reference--shorthand-for-a-one-call-lambda)
 
 - **Stream?**
   - declarative pipeline
@@ -867,7 +867,7 @@ dive. Drill here, study there.*
                                   └─▶ collect()   [terminal fires it]
   ```
 
-  [→ §D](java-versions.md#d-stream-api--the-payoff)
+  [→ §D](java-8.md#d-stream-api--the-payoff)
 
 - **Stream vs Collection?** *(X-vs-Y staple)* — a Collection
   stores elements; a Stream computes over them: no storage, lazy,
@@ -878,11 +878,11 @@ dive. Drill here, study there.*
   - terminals — produce a result, fire the pipeline
   - spot-the-terminal trick: return type isn't a Stream → terminal
 
-  [→ §D](java-versions.md#d-stream-api--the-payoff)
+  [→ §D](java-8.md#d-stream-api--the-payoff)
 
 - **map vs flatMap?** — map: one-to-one transform; flatMap:
   one-to-many, flattened (`List<List<T>>` → elements).
-  [→ §D](java-versions.md#d-stream-api--the-payoff)
+  [→ §D](java-8.md#d-stream-api--the-payoff)
 
 - **Collectors?** — `collect` gathers the stream:
   - `toList`, `joining` — the plain gathers
@@ -898,16 +898,16 @@ dive. Drill here, study there.*
   // {"ReqPay": 9421, "ReqChkTxn": 130, ...}
   ```
 
-  [→ §E](java-versions.md#e-collectors--what-collect-uses)
+  [→ §E](java-8.md#e-collectors--what-collect-uses)
 - **Optional?** — a container that may hold a value; `orElse`,
   `ifPresent`, `orElseThrow`. Meant for return types — makes
   "maybe absent" explicit instead of returning null.
-  [→ §F](java-versions.md#f-optional--maybe-absent-made-explicit)
+  [→ §F](java-8.md#f-optional--maybe-absent-made-explicit)
 
 - **orElse vs orElseGet?** *(MCQ trap)* — `orElse(expr)` evaluates
   its argument every time, present or not; `orElseGet(supplier)`
   runs only when empty. Costly fallback → `orElseGet`.
-  [→ §F](java-versions.md#f-optional--maybe-absent-made-explicit)
+  [→ §F](java-8.md#f-optional--maybe-absent-made-explicit)
 
 - **of vs ofNullable?** *(MCQ trap)* — `Optional.of(null)` throws
   NPE immediately; `Optional.ofNullable(null)` → empty Optional.
@@ -916,7 +916,7 @@ dive. Drill here, study there.*
 - **Why default methods?** — evolve interfaces without breaking
   implementers (`Iterable.forEach`, `List.sort` were added that
   way). Clash of two defaults → diamond rules, §1.
-  [→ §G](java-versions.md#g-default--static-methods-in-interfaces)
+  [→ §G](java-8.md#g-default--static-methods-in-interfaces)
 
 - **java.time vs old Date?**
   - new — LocalDate/LocalDateTime/ZonedDateTime: immutable,
@@ -924,7 +924,7 @@ dive. Drill here, study there.*
   - old — Date/Calendar/SimpleDateFormat: mutable, famously not thread-safe
   - trap: `d.plusDays(30)` unassigned does nothing
 
-  [→ §H](java-versions.md#h-javatime--the-new-datetime-api)
+  [→ §H](java-8.md#h-javatime--the-new-datetime-api)
 
 - **Metaspace?** — Java 8 removed PermGen; class metadata moved to
   native memory (Metaspace). MCQ staple.
@@ -947,7 +947,7 @@ dive. Drill here, study there.*
   sealed classes (17) · switch expressions (14) · virtual threads
   (21). String `switch` works since 7. Full timeline + snippets:
   [java-versions.md](java-versions.md); LTS memory hook:
-  [→ §I](java-versions.md#i-the-lts-list--cheap-to-memorize-certain-to-be-asked);
+  [→ §I](java-8.md#i-the-lts-list--cheap-to-memorize-certain-to-be-asked);
   "which JDK did IMPS run?" answer:
   [→ the two answers](java-versions.md#the-two-answers-to-have-cold).
 
