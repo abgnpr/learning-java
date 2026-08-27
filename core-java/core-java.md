@@ -8,7 +8,7 @@
   - [§5 Threads + JVM](#5-threads--jvm)
   - [§6 Trap wall (the code-output classics, spoken)](#6-trap-wall-the-code-output-classics-spoken)
   - [§7 Enterprise — Spring / JDBC / REST / integration](#7-enterprise--spring--jdbc--rest--integration)
-  - [§8 Kafka ⚓ → kafka-answers.md](#8-kafka-)
+  - [§8 Kafka ⚓ → kafka-basics.md](#8-kafka-)
   - [§9 SDLC + testing](#9-sdlc--testing)
   - [§10 Honesty guardrails (truth law)](#10-honesty-guardrails-truth-law)
   - [Rep scorecard — 🟢 only after a blind aloud rep](#rep-scorecard---only-after-a-blind-aloud-rep)
@@ -1109,11 +1109,11 @@ data layer → integration architecture → tooling → patterns)*
   - `@Controller` / `@RestController` — web; `@RestController` =
     `@Controller` + `@ResponseBody` (JSON bodies)
 
-- **@Transactional?** — nobody ever holds your bean. Spring hands
-  the caller a **proxy** — a generated stand-in with the same
-  interface — and the proxy is what opens the transaction, calls
-  your method, then commits or rolls back. You write zero
-  `commit()` / `rollback()`.
+- **@Transactional?** — callers normally hold a Spring **proxy**, not
+  the raw bean. That generated stand-in is either a JDK proxy exposing
+  the bean's interface or a class-based proxy subclassing the target.
+  The proxy opens the transaction, calls your method, then commits or
+  rolls back. You write zero `commit()` / `rollback()`.
 
   ```text
   caller ──▶ proxy ─── begin ──▶ your method
@@ -1127,9 +1127,13 @@ data layer → integration architecture → tooling → patterns)*
   - **self-invocation trap** — the proxy only sees calls that
     arrive **through** it. One method of the class calling
     `this.otherMethod()` goes straight to the object, so
-    `@Transactional` on `otherMethod` does nothing. Same reason
-    it must be `public` — a private method has no door to wrap.
-    Fix: put the annotated method on another bean and inject it.
+    `@Transactional` on `otherMethod` does nothing. A `private`
+    method has no proxy-visible door to wrap either. With a JDK
+    interface proxy, transactional methods must be public interface
+    methods; since Spring Framework 6, class-based proxies can also
+    advise protected and package-visible methods. Public remains the
+    portable, least-surprising service boundary. Fix self-invocation
+    by putting the annotated method on another bean and injecting it.
     *Hook: the annotation is on the door; an inside call never
     uses the door.*
 
@@ -1410,7 +1414,7 @@ data layer → integration architecture → tooling → patterns)*
 
 ## §8 Kafka ⚓
 
-→ **[kafka-answers.md](../kafka/kafka-answers.md)** — the log model ·
+→ **[kafka-basics.md](../kafka/kafka-basics.md)** — the log model ·
 partitions and ordering · producers · consumer groups and offsets ·
 delivery guarantees · rebalancing · retention and DLQ · Spring
 Kafka · the IMPS anchor. Self-contained, answers sized for speaking.

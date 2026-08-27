@@ -18,8 +18,10 @@ charter lives in [CLAUDE.md](CLAUDE.md); HQ is
 | [Threads lab index](core-java/lab/07-threads/README.md) | Eight runnable stations for the concurrency section — races, visibility, deadlock, pools, virtual threads. |
 | [Core Java lab index](core-java/lab/README.md) | 64 self-testing challenges plus eight concurrency stations, organized as one numbered learning path. |
 | [spring-boot-basics.md](spring-boot/spring-boot-basics.md) | DI/IoC, beans and scopes, auto-config, web MVC, validation, data/JPA, transactions and proxies, testing, actuator. |
-| [kafka-basics.md](kafka/kafka-basics.md) | Log and partitions, ordering, producers, consumer groups, offsets and commit semantics, delivery guarantees, rebalancing, ISR, retention, DLQ. |
-| [kafka-answers.md](kafka/kafka-answers.md) | The self-contained Kafka answer sheet (§1–§12) — every term defined in place, sized for speaking. |
+| [spring-security-basics.md](spring-boot/spring-security-basics.md) | Senior anti-fumble kit: filter-chain architecture, authentication, route/method authorization, SpEL, JWT, sessions, CSRF/CORS, error boundaries, tests and production scenarios. |
+| [spring-data-jpa-performance.md](spring-boot/spring-data-jpa-performance.md) | Senior persistence kit: entity states, mappings, fetch plans/N+1, projections, pagination, JDBC batching, bulk DML, locking, caches, OSIV, diagnostics and production scenarios. |
+| [kafka-basics-exercise.md](kafka/kafka-basics-exercise.md) | Log and partitions, ordering, producers, consumer groups, offsets and commit semantics, delivery guarantees, rebalancing, ISR, retention, DLQ. |
+| [kafka-basics.md](kafka/kafka-basics.md) | The self-contained Kafka answer sheet (§1–§12) — every term defined in place, sized for speaking. |
 
 Study notes are grouped by subject, one folder each. The Core Java lab and its
 index live alongside the Core Java notes:
@@ -43,11 +45,13 @@ core-java/
     └── Scratchpad.java
 
 kafka/
-├── kafka-answers.md
+├── kafka-basics-exercise.md
 └── kafka-basics.md
 
 spring-boot/
 ├── spring-boot-basics.md
+├── spring-security-basics.md
+├── spring-data-jpa-performance.md
 └── spring-boot-basics.ESTIMATE.md
 ```
 
@@ -82,6 +86,6 @@ blind rep out loud.
 
 **The rep scorecard at the foot of each kit is authoritative**;
 [CLAUDE.md](CLAUDE.md) summarises them. `core-java/core-java.md` and
-`core-java/threads-jvm.md` are through rep 1 in full; `kafka/kafka-answers.md` is
-half-way; the runnable labs and the two `*-basics` kits are racked and
-unrepped/unsolved.
+`core-java/threads-jvm.md` are through rep 1 in full; `kafka/kafka-basics.md` is
+half-way; the runnable labs, `kafka/kafka-basics-exercise.md` and
+the Spring Boot/Security/JPA kits are racked and unrepped/unsolved.

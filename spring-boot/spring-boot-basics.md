@@ -711,9 +711,9 @@ H2 + Validation + Actuator) and run snippets in it, or use a single
 - [ ] **7.6** 💭 `JpaRepository` / JPA vs raw **`JdbcTemplate`** vs
   **`JdbcClient`** (`Boot 3.2+`) — when would you deliberately skip the
   ORM and write SQL?
-- [ ] **7.7** 💭 `save()` for an entity with a set id — insert or
-  update? How does JPA decide, and what surprises people about
-  `saveAll` batching?
+- [ ] **7.7** 💭 `save()` for an entity with a set id — `persist` or
+  `merge`? How does Spring Data decide whether the entity is new, and
+  what surprises people about `saveAll` batching?
 
 <details><summary>Solutions 7</summary>
 
@@ -764,10 +764,16 @@ H2 + Validation + Actuator) and run snippets in it, or use a single
   (classic) and **`JdbcClient`** (`Boot 3.2+`, fluent) map rows to
   objects with a `RowMapper` and nothing hidden. JPA for the
   aggregate/write model; SQL for the read/reporting model.
-- 7.7 *(ref: Spring Data — Saving)* `save()` on an entity whose id is
-  **null/unset** → INSERT; on an entity that is **detached with an
-  existing id** → merge/UPDATE. Surprise: `saveAll` doesn't guarantee
-  a single batched INSERT unless batching is configured
+- 7.7 *(ref: Spring Data — Saving)* `save()` asks Spring Data's
+  `EntityInformation` whether the entity is **new**. By default it
+  first checks a non-primitive `@Version` property (`null` = new); if
+  there is none, it checks the id (`null` = new). New →
+  `EntityManager.persist`; not new → `EntityManager.merge`.
+  A non-null assigned id therefore does **not** universally mean
+  "UPDATE": assigned-id entities often implement `Persistable` and
+  supply `isNew()`, and `merge` is an operation on entity state, not a
+  promise about the exact SQL. Surprise: `saveAll` doesn't guarantee a
+  single batched INSERT unless batching is configured
   (`hibernate.jdbc.batch_size`) **and** the id strategy allows it
   (7.3 — `IDENTITY` defeats batching).
 </details>
@@ -806,14 +812,16 @@ H2 + Validation + Actuator) and run snippets in it, or use a single
   `REPEATABLE_READ` vs `SERIALIZABLE`; which anomalies each prevents
   (dirty / non-repeatable / phantom reads). Does Spring set it or the
   DB?
-- [ ] **8.6** 💭 Why must `@Transactional` methods be **public**, and
-  why can't the class or method be **final** under CGLIB proxying?
-  What's the difference between JDK dynamic proxies and CGLIB?
+- [ ] **8.6** 💭 Which method visibilities can `@Transactional`
+  advise through a JDK interface proxy versus a class-based proxy?
+  Why can neither a `private` method nor a `final` method be advised
+  by a class-based proxy? Include the Spring 6+ visibility change.
 - [ ] **8.7** 💭 Same proxy mechanism powers `@Async`, `@Cacheable`,
   `@Transactional`, `@Retryable`. State the **one rule** that explains
   why self-invocation silently disables **all** of them.
-- [ ] **8.8** 🐛 `@Async` method returns a value you read immediately —
-  why is it wrong/blocking-or-null, and what's the right return type?
+- [ ] **8.8** 🐛 An `@Async` method declares an ordinary `T` return
+  type. Why is that not a valid asynchronous result contract, which
+  return types are supported, and when does the caller actually block?
 
 <details><summary>Solutions 8</summary>
 
@@ -855,26 +863,31 @@ H2 + Validation + Actuator) and run snippets in it, or use a single
   (`@Transactional(isolation = REPEATABLE_READ)`); the **database**
   enforces it, and not every DB supports every level.
 - 8.6 *(ref: Data Access — Proxy modes; Core — AOP proxies)* Proxy
-  advice can only intercept calls it **wraps**: with **CGLIB** (the
-  Boot default, subclassing) the proxy is a **subclass** that
-  overrides your methods — so a `final` class can't be subclassed and
-  a `final`/`private`/non-`public` method can't be overridden/advised.
-  **JDK dynamic proxies** implement an **interface** (so the bean must
-  have one, and only interface methods are advised). Either way,
-  non-public methods fall outside the advised surface.
+  advice can only intercept calls it **wraps**. **JDK dynamic
+  proxies** expose an interface, so transactional methods must be
+  **public interface methods**. A **class-based proxy** subclasses the
+  target and overrides an interceptable method. Since **Spring
+  Framework 6**, `public`, `protected`, and package-visible methods
+  can be transactional through class-based proxies by default.
+  `private` methods cannot be overridden, and `final` methods cannot
+  be overridden; a `final` class cannot be subclassed. Public methods
+  remain the least surprising choice when code may switch proxy type.
 - 8.7 *(ref: Core — Understanding AOP Proxies)* **The rule: advice only
   applies to calls that go *through the proxy* — i.e. calls from
   *outside* the bean.** Any `this.method()` internal call skips the
   proxy, so `@Transactional`, `@Async`, `@Cacheable`, `@Retryable` all
   silently do nothing on self-invocation. One rule explains every one
   of these bugs.
-- 8.8 *(ref: Integration — @Async)* `@Async` runs the method on
-  **another thread** via the proxy; reading its result immediately
-  either sees a **not-yet-populated** value or blocks. Return
-  **`CompletableFuture<T>`** (or `void` for fire-and-forget) and
-  compose on it (`.thenAccept`, `.get()` when you truly must block).
-  Also: `@Async` needs `@EnableAsync`, and — self-invocation again —
-  won't work if called from within the same bean.
+- 8.8 *(ref: Integration — @Async)* The proxy submits the invocation
+  to an executor and must give the caller an **asynchronous handle**.
+  Supported return shapes are `void` or `Future` types, normally
+  **`CompletableFuture<T>`**; an ordinary `T` cannot represent a value
+  that will arrive later. Calling the method returns the future
+  promptly. Composition (`thenApply`, `thenAccept`) stays
+  non-blocking; `get()`/`join()` blocks only when the caller explicitly
+  waits. Use `void` only for deliberate fire-and-forget work because
+  failures cannot be returned to the caller. `@Async` also needs
+  `@EnableAsync` and, as in §8.7, self-invocation bypasses its proxy.
 </details>
 
 ---
@@ -1047,16 +1060,18 @@ Predict/answer each, then verify:
   `spring.main.allow-bean-definition-overriding=true` (a smell) or
   rename/qualify one.
 - 11.5 *(ref: Data Access — Proxy limitations)* **Silently ignored** —
-  it compiles and runs, but the proxy can't advise a non-public method,
-  so there's **no transaction**. The scariest kind of bug: no error,
-  wrong behavior. (Same reason as §8.6.)
+  it compiles and runs, but a proxy cannot intercept or override a
+  `private` method, so there's **no transaction**. Protected and
+  package-visible methods are a different case for Spring 6+
+  class-based proxies (§8.6). The scariest kind of bug: no error,
+  wrong behavior.
 - 11.6 *(ref: Core — Bean Scopes)* A **data race / shared mutable
   state** bug — one singleton instance is shared across all request
   threads, so `counter++` (not atomic) loses updates. Use
   `AtomicInteger`, a `Micrometer` counter, or don't keep request state
   on a singleton (§2.1).
-- 11.7 *(ref: Boot — Component Scan)* **Scanned** — default scanning
-  covers the main class's package **and all sub-packages**; but
+- 11.7 *(ref: Boot — Component Scan)* **Not scanned.** Default scanning
+  covers the main class's package **and all sub-packages**, but
   `com.acme.util` is a **sibling** of `com.acme.app`, not under it, so
   it is **NOT scanned** unless you widen `@ComponentScan(basePackages
   = "com.acme")` or move the main class up to `com.acme`. (Trap:
@@ -1076,17 +1091,19 @@ its own drill file** (mirroring how `go-basics.md` spun off
 real task demands it. Rough priority top-to-bottom for a backend/
 payments track.
 
+**Senior companions:**
+
+- [spring-security-basics.md](spring-security-basics.md) — filter-chain
+  architecture, authentication, request/method authorization, SpEL,
+  JWT, CSRF/CORS, security failure boundaries and tests.
+- [spring-data-jpa-performance.md](spring-data-jpa-performance.md) —
+  persistence-context mechanics, mappings, fetch plans, projections,
+  pagination, batching, bulk DML, locking, caches, OSIV and diagnostics.
+
 - **`spring-boot-transactions-deep.md`** — propagation combinations,
   `TransactionTemplate` (programmatic), transaction synchronization
   callbacks, read-only optimizations, distributed-tx reality (why
   there's no XA across a bank CBS + a switch → sagas / outbox).
-- **`spring-boot-jpa-performance.md`** — fetch strategies, entity
-  graphs, `@BatchSize`, second-level cache, projections/DTOs,
-  `@Modifying` bulk updates, flush modes, the `open-in-view` debate.
-- **`spring-security-basics.md`** — the filter chain, `SecurityFilter
-  Chain` bean (**`Boot 3`**, post-`WebSecurityConfigurerAdapter`),
-  authN vs authZ, method security (`@PreAuthorize`), JWT/OAuth2
-  resource server, CSRF/CORS.
 - **`spring-boot-messaging.md`** — `@KafkaListener`, producer/consumer
   config, acks & offset commit semantics, `@RabbitListener`, retries &
   DLQ, `@TransactionalEventListener`, the transactional outbox
