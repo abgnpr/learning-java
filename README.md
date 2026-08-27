@@ -14,31 +14,21 @@ charter lives in [CLAUDE.md](CLAUDE.md); HQ is
 | [core-java.md](core-java/core-java.md) | Rapid-fire Q&A across OOP, collections, exceptions, Java 8+, traps, Spring/JDBC/REST, Kafka and SDLC/testing. Answers sized for **speaking**, not writing. |
 | [java-versions.md](core-java/java-versions.md) | Java 7 → 25 timeline: version, year, headline feature, one snippet. Plus a Tier-1 "Java 8 from zero" study block (§A–§I). |
 | [threads-jvm.md](core-java/threads-jvm.md) | Threads, locks, the memory model, executors and JVM internals — ordered so that no answer depends on one below it. |
-| [Threads lab index](lab/core-java/07-threads/README.md) | Eight runnable stations for the concurrency section — races, visibility, deadlock, pools, virtual threads. |
-| [Core Java lab index](lab/core-java/README.md) | 64 self-testing challenges plus eight concurrency stations, organized as one numbered learning path. |
+| [Threads lab index](core-java/lab/07-threads/README.md) | Eight runnable stations for the concurrency section — races, visibility, deadlock, pools, virtual threads. |
+| [Core Java lab index](core-java/lab/README.md) | 64 self-testing challenges plus eight concurrency stations, organized as one numbered learning path. |
 | [spring-boot-basics.md](spring-boot/spring-boot-basics.md) | DI/IoC, beans and scopes, auto-config, web MVC, validation, data/JPA, transactions and proxies, testing, actuator. |
 | [kafka-basics.md](kafka/kafka-basics.md) | Log and partitions, ordering, producers, consumer groups, offsets and commit semantics, delivery guarantees, rebalancing, ISR, retention, DLQ. |
 | [kafka-answers.md](kafka/kafka-answers.md) | The self-contained Kafka answer sheet (§1–§12) — every term defined in place, sized for speaking. |
 
-Study notes are grouped by subject, one folder each. Runnable code and its
-index live under `lab/`:
+Study notes are grouped by subject, one folder each. The Core Java lab and its
+index live alongside the Core Java notes:
 
 ```
 core-java/
 ├── core-java.md
 ├── java-versions.md
-└── threads-jvm.md
-
-kafka/
-├── kafka-answers.md
-└── kafka-basics.md
-
-spring-boot/
-├── spring-boot-basics.md
-└── spring-boot-basics.ESTIMATE.md
-
-lab/
-└── core-java/
+├── threads-jvm.md
+└── lab/
     ├── README.md
     ├── 01-introduction/
     ├── 02-strings/
@@ -49,6 +39,14 @@ lab/
     ├── 07-threads/
     ├── 08-advanced/
     └── Scratchpad.java
+
+kafka/
+├── kafka-answers.md
+└── kafka-basics.md
+
+spring-boot/
+├── spring-boot-basics.md
+└── spring-boot-basics.ESTIMATE.md
 ```
 
 ## The labs
@@ -59,7 +57,7 @@ unsolved: implement the marked seam or seams, then let its embedded
 checks judge the result.
 
 ```bash
-cd lab/core-java
+cd core-java/lab
 java 01-introduction/WelcomeToJava.java
 ```
 
@@ -67,7 +65,7 @@ The concurrency stations are demonstrations: predict the output first,
 then run them and explain why you were right or wrong.
 
 ```bash
-cd lab/core-java
+cd core-java/lab
 java 07-threads/01-start-vs-run/StartVsRun.java
 ```
 

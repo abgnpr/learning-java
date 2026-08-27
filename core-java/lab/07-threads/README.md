@@ -1,6 +1,6 @@
 # Threads + JVM — the hands-on lab 🐧🔬
 
-Companion to [threads-jvm.md](../../../core-java/threads-jvm.md). That kit is the abstract
+Companion to [threads-jvm.md](../../threads-jvm.md). That kit is the abstract
 theatre — races, visibility, deadlock — that only *clicks* once you watch
 it misbehave in front of you. Eight tiny runnable stations. You **predict
 the output first**, then run, then read *why*. That's the loading rep.
@@ -10,7 +10,7 @@ the output first**, then run, then read *why*. That's the loading rep.
 Java 21, single-file launcher — no build, no `javac`. From this folder:
 
 ```bash
-cd lab/core-java/07-threads
+cd core-java/lab/07-threads
 java 01-start-vs-run/StartVsRun.java
 ```
 
@@ -276,7 +276,7 @@ OS threads.
 > Honesty (truth law): IMPS is Spring Boot 2.7, *predates* virtual threads.
 > Speak of these as *"what I'd reach for today for blocking-I/O fan-out,"*
 > not as something you shipped. CPU-bound work gains nothing from them.
-> ([java-versions.md → Java 21](../../../core-java/java-versions.md#java-21-2023--lts--virtual-threads))
+> ([java-versions.md → Java 21](../../java-versions.md#java-21-2023--lts--virtual-threads))
 
 **Say it:** *"A virtual thread is JVM-managed and KB-scale; it mounts a
 carrier to run and unmounts on blocking I/O. So I/O-bound work is just

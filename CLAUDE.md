@@ -42,16 +42,16 @@ Pareto core path + Extensions list). Readiness: 🟢 drilled aloud ·
 | `kafka/kafka-answers.md` | **the Kafka answer sheet, self-contained** (§1–§12): log-vs-queue · partitions/ordering · cluster/ISR/`acks` · producer · groups & offsets · **delivery guarantees** · rebalancing & liveness knobs · retention/compaction/DLQ · Spring Kafka · why-fast · **⚓ IMPS anchor** · traps. Defines every term it uses; no outbound depth pointers | §2→§5→§6→§11, then §7→§3→§8 | 🟡 **6/12 sections at rep 1** — §1, §2, §5, §6, §10, §11 done; §3, §4, §7, §8, §9, §12 unrepped (scorecard at the doc's foot is authoritative) |
 | `core-java/java-versions.md` | Java 7→25 timeline, headline feature + snippet each · LTS line 8/11/17/21/25 · **Tier-1 "Java 8 from zero" study block** (§A–§I) | timeline→§A–§I | 🟡 racked |
 | `core-java/threads-jvm.md` | thread · **the two problems** (race/atomicity, visibility/happens-before) · critical section · monitor + `synchronized` + **thread states** (§3 owns all six) · wait/notify + producer-consumer · **ReentrantLock/Condition** · volatile/atomics · liveness · executors + virtual threads · concurrent collections · JVM/GC — ordered so no answer depends on one below it | §1→§10 in order | 🟢 **10/10 blocks at rep 1** — whole kit drilled aloud once; rep 2 not started (scorecard at the doc's foot is authoritative) |
-| `lab/core-java/07-threads/README.md` + `lab/core-java/07-threads/` | 8 runnable predict→run→explain stations: start/run · lost update · volatile · wait/sleep · deadlock · pools · producer-consumer · virtual threads | S1→S8 in order | 🟡 racked 2026-07-21, **0/8 stations repped** |
-| `lab/core-java/README.md` + `lab/core-java/` | Unified index for 64 solution-free, self-testing Java starters plus 8 concurrency stations: introduction · strings/regex · BigNumber · data structures · OOP · exceptions · threads · advanced Java | challenges 01→64; stations S1→S8 | 🟡 racked 2026-08-26, **0/72 complete** |
+| `core-java/lab/07-threads/README.md` + `core-java/lab/07-threads/` | 8 runnable predict→run→explain stations: start/run · lost update · volatile · wait/sleep · deadlock · pools · producer-consumer · virtual threads | S1→S8 in order | 🟡 racked 2026-07-21, **0/8 stations repped** |
+| `core-java/lab/README.md` + `core-java/lab/` | Unified index for 64 solution-free, self-testing Java starters plus 8 concurrency stations: introduction · strings/regex · BigNumber · data structures · OOP · exceptions · threads · advanced Java | challenges 01→64; stations S1→S8 | 🟡 racked 2026-08-26, **0/72 complete** |
 | `spring-boot/spring-boot-basics.md` | DI/IoC · beans/scopes · config · **auto-config** · web MVC · validation · data/JPA · **transactions & proxies** · testing · actuator | §1→§4→§3→§5→§7→§8 | 🟡 racked 2026-07-21 |
 | `kafka/kafka-basics.md` | the **exercise** face of the same ground (🔮/🛠/🐛/💭 + hidden solutions), where `kafka/kafka-answers.md` is the spoken answer sheet: log/partitions · **ordering** · producers · consumer groups · **offsets & commit semantics** · **delivery guarantees** · rebalancing · durability/ISR · retention/compaction · DLQ · Spring Kafka | §1→§3→§4→§5→§2→§6 | 🟡 racked 2026-07-21 |
 
 Runnable kits use Java 21's single-file launcher with no build. The
-threads lab runs with `cd lab/core-java && java
+threads lab runs with `cd core-java/lab && java
 07-threads/01-start-vs-run/StartVsRun.java`; S3 and S5 hang on purpose,
 so guard them with `timeout 6`. The challenge track runs from
-`lab/core-java/` and its untouched starters fail at the marked `TODO`
+`core-java/lab/` and its untouched starters fail at the marked `TODO`
 until solved. All 64 challenge sources compile together on Temurin
 21.0.11 (2026-08-27).
 
@@ -73,17 +73,14 @@ has a home when it lands.
 
 ## Layout
 
-Study notes are grouped by subject, one folder per subject, with no
-`notes/` wrapper. `core-java/` holds the three Core Java kits —
-`core-java.md`, `java-versions.md`, `threads-jvm.md`. `kafka/` holds
-`kafka-answers.md` and `kafka-basics.md`; `spring-boot/` holds
-`spring-boot-basics.md` and its completion estimate. Only `README.md`
-and this charter sit at the root.
-The runnable Core Java kit and its index are colocated under
-`lab/core-java/`: folders 01–06 hold the foundational challenge groups,
-07 holds the eight concurrency stations, and 08 holds the advanced
-challenge group. `lab/core-java/Scratchpad.java` is the try-things-out
-file (Skipper's, 2026-07-22).
+Study material is grouped by subject, one folder per subject, with no `notes/`
+wrapper. `core-java/` holds its three study kits and the runnable `lab/`;
+`kafka/` holds `kafka-answers.md` and `kafka-basics.md`; `spring-boot/` holds
+`spring-boot-basics.md` and its completion estimate. Only `README.md` and this
+charter sit at the root. Inside `core-java/lab/`, folders 01–06 hold the
+foundational challenge groups, 07 holds the eight concurrency stations, and 08
+holds the advanced challenge group. `core-java/lab/Scratchpad.java` is the
+try-things-out file (Skipper's, 2026-07-22).
 
 ## Working practice
 

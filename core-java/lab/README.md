@@ -25,10 +25,10 @@ form the curriculum map.
 ## How to run
 
 Open a source file, read its task and acceptance checks, then complete the
-marked `TODO`. Run that file directly from `lab/core-java/`:
+marked `TODO`. Run that file directly from `core-java/lab/`:
 
 ```bash
-cd lab/core-java
+cd core-java/lab
 java 01-introduction/WelcomeToJava.java
 ```
 
@@ -40,7 +40,7 @@ Compile all 64 challenge starters without writing class files into the
 repository:
 
 ```bash
-cd lab/core-java
+cd core-java/lab
 challenge_build=$(mktemp -d)
 find . -name '*.java' ! -path './07-threads/*' ! -name 'Scratchpad.java' \
   -print0 | xargs -0 javac -d "$challenge_build"

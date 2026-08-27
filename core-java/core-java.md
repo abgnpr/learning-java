@@ -961,7 +961,7 @@ dive. Drill here, study there.*
 → **[threads-jvm.md](threads-jvm.md)** — threads · locks · the memory
 model · executors · JVM internals, ordered so that no answer depends
 on one below it. Runnable companion:
-[threads lab index](../lab/core-java/07-threads/README.md).
+[threads lab index](lab/07-threads/README.md).
 
 *One-liner for the section:* threads share the heap but own
 their stacks; `synchronized` for exclusion, `volatile` for
