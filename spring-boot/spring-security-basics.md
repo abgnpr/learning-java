@@ -372,6 +372,17 @@ fast unsalted digest such as raw SHA-256. Never log credentials.
   design change would you propose?
 - [ ] **4.8** 🔮 Route security allows the endpoint but method security
   denies it. Which result wins?
+- [ ] **4.9** 🛠 `updateAccounts` accepts two collection arguments.
+  Filter only the `accounts` argument before invocation so the method
+  receives accounts owned by the current principal. When is
+  `filterTarget` required?
+- [ ] **4.10** 🛠 Apply `@PostFilter` to an account-list query. What does
+  `filterObject` mean for a collection and for a map, and why is this
+  usually the wrong primary tenant filter for a large or paged result?
+- [ ] **4.11** 🏭 A bulk money operation receives ten commands, three
+  unauthorized. Should `@PreFilter` silently run the other seven, or
+  should the whole command fail? State the business decision before
+  choosing the annotation.
 
 <details><summary>Solutions 4</summary>
 
@@ -427,6 +438,54 @@ fast unsalted digest such as raw SHA-256. Never log credentials.
 - 4.8 Access is denied. Passing the HTTP checkpoint only permits the
   request to reach application code. Every later authorization
   checkpoint must also grant access.
+- 4.9 `@PreFilter` evaluates each candidate **before** the target method
+  runs. `filterObject` is the current element; when more than one
+  filterable argument exists, name the intended parameter explicitly:
+
+  ```java
+  @PreFilter(
+      value = "filterObject.owner == authentication.name",
+      filterTarget = "accounts"
+  )
+  public void updateAccounts(Collection<Account> accounts,
+                             Collection<String> auditTags) {
+      // accounts contains only elements that passed the expression
+  }
+  ```
+
+  Current method-security filtering supports arrays, collections,
+  maps, and open streams. For a map, `filterObject` is its entry, so
+  expressions normally inspect `filterObject.key` or
+  `filterObject.value`. Collection filtering removes rejected
+  elements; do not pass an immutable collection and assume it will be
+  copied. Test the exact argument shape through the Spring proxy.
+- 4.10 `@PostFilter` evaluates the returned elements **after** the
+  method has loaded and produced them:
+
+  ```java
+  @PostFilter("filterObject.owner == authentication.name")
+  public Collection<Account> readAccounts() {
+      return repository.findAll();
+  }
+  ```
+
+  For a collection/array/stream, `filterObject` is the current element;
+  for a map it is the current entry. This can be useful for a small,
+  bounded in-memory result or defense in depth, but it does not stop
+  unauthorized rows from being fetched. On large results it wastes
+  database, network, memory, and policy work. On a page it can also
+  leave misleading page sizes/totals. Put tenant/ownership predicates
+  in the repository query and keep post-filtering as an optional final
+  guard.
+- 4.11 Filtering and denial are different product semantics.
+  `@PreFilter` silently removes unauthorized inputs and invokes the
+  method with the remainder. That can be correct for "process every
+  command you may process," but it is dangerous for an atomic transfer
+  or reconciliation batch because the caller may believe all ten
+  succeeded. For all-or-nothing work, pre-authorize the whole command
+  with a typed policy (or validate ownership in the service) and reject
+  before side effects. Use filtering only when partial processing is an
+  explicit, observable contract with per-item outcomes.
 
 </details>
 
@@ -870,6 +929,10 @@ for complex rules and authorities for stable capabilities.
   that transfers money?
 - [ ] **11.16** Can a service trust an unsigned identity header merely
   because the gateway normally sets it?
+- [ ] **11.17** Does `@PostFilter` prevent unauthorized rows from being
+  read from the database?
+- [ ] **11.18** Does `@PreFilter` reject the entire invocation when one
+  element fails its expression?
 
 <details><summary>Solutions 11</summary>
 
@@ -893,6 +956,10 @@ for complex rules and authorities for stable capabilities.
   invocation.**
 - 11.16 **No. Authenticate the channel/credential and prevent gateway
   bypass or forgery.**
+- 11.17 **No. It filters the result after the method returns; constrain
+  the query at the data boundary.**
+- 11.18 **No. It removes failing elements and invokes the method with
+  the remainder. Use pre-authorization for all-or-nothing semantics.**
 
 </details>
 
@@ -909,6 +976,7 @@ for complex rules and authorities for stable capabilities.
 | Route vs method security? | Route rules protect HTTP paths and methods; method rules protect service invocations and can use arguments/returned objects. Use both where the business boundary deserves defense in depth. |
 | `hasRole` vs `hasAuthority`? | Authorities compare exact strings; roles add `ROLE_` by default, so `hasRole("ADMIN")` checks `ROLE_ADMIN`. |
 | Method-security trap? | It is AOP: self-invocation and unmanaged objects bypass the proxy. Enable it explicitly with `@EnableMethodSecurity`. |
+| `@PreFilter` / `@PostFilter`? | They remove failing input/result elements using `filterObject`; they do not reject the whole batch or make an over-broad query efficient. Prefer typed pre-authorization for atomic commands and query-time tenant filtering for large reads. |
 | JWT trust? | Decode is not trust. Verify signature/algorithm/key and validate issuer, expiry, not-before, audience, and required claims. Signed usually does not mean encrypted. |
 | CSRF decision? | Keep it when browsers automatically attach authentication credentials, especially cookies. A truly header-bearer API commonly disables it for that chain. |
 | CORS? | A browser cross-origin response policy, not authentication or authorization; process preflight before authentication rejection. |

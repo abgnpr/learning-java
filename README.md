@@ -18,8 +18,12 @@ charter lives in [CLAUDE.md](CLAUDE.md); HQ is
 | [Threads lab index](core-java/lab/07-threads/README.md) | Eight runnable stations for the concurrency section — races, visibility, deadlock, pools, virtual threads. |
 | [Core Java lab index](core-java/lab/README.md) | 64 self-testing challenges plus eight concurrency stations, organized as one numbered learning path. |
 | [spring-boot-basics.md](spring-boot/spring-boot-basics.md) | DI/IoC, beans and scopes, auto-config, web MVC, validation, data/JPA, transactions and proxies, testing, actuator. |
+| [Spring senior-core checklist](spring-boot/senior-core-checklist.md) | Build tracker and acceptance scope for the completed senior kits plus the remaining production-testing and observability kits. |
 | [spring-security-basics.md](spring-boot/spring-security-basics.md) | Senior anti-fumble kit: filter-chain architecture, authentication, route/method authorization, SpEL, JWT, sessions, CSRF/CORS, error boundaries, tests and production scenarios. |
 | [spring-data-jpa-performance.md](spring-boot/spring-data-jpa-performance.md) | Senior persistence kit: entity states, mappings, fetch plans/N+1, projections, pagination, JDBC batching, bulk DML, locking, caches, OSIV, diagnostics and production scenarios. |
+| [spring-boot-transactions-deep.md](spring-boot/spring-boot-transactions-deep.md) | Senior transaction kit: logical/physical scopes, propagation costs, rollback-only state, isolation/deadlocks, remote calls, idempotency, DB/Kafka coordination, outbox and saga. |
+| [spring-boot-resilience.md](spring-boot/spring-boot-resilience.md) | Senior resilience kit: deadline budgets, retry/idempotency, circuit breakers, bulkheads, rate limits, saturation, safe degradation and graceful shutdown. |
+| [spring-container-internals.md](spring-boot/spring-container-internals.md) | Senior container kit: definitions/registry, factory/context, refresh and bean lifecycle, post-processors, AOP proxies, `FactoryBean` and configuration modes. |
 | [kafka-basics-exercise.md](kafka/kafka-basics-exercise.md) | Log and partitions, ordering, producers, consumer groups, offsets and commit semantics, delivery guarantees, rebalancing, ISR, retention, DLQ. |
 | [kafka-basics.md](kafka/kafka-basics.md) | The self-contained Kafka answer sheet (§1–§12) — every term defined in place, sized for speaking. |
 
@@ -50,6 +54,10 @@ kafka/
 
 spring-boot/
 ├── spring-boot-basics.md
+├── spring-boot-resilience.md
+├── spring-boot-transactions-deep.md
+├── spring-container-internals.md
+├── senior-core-checklist.md
 ├── spring-security-basics.md
 ├── spring-data-jpa-performance.md
 └── spring-boot-basics.ESTIMATE.md
@@ -88,4 +96,5 @@ blind rep out loud.
 [CLAUDE.md](CLAUDE.md) summarises them. `core-java/core-java.md` and
 `core-java/threads-jvm.md` are through rep 1 in full; `kafka/kafka-basics.md` is
 half-way; the runnable labs, `kafka/kafka-basics-exercise.md` and
-the Spring Boot/Security/JPA kits are racked and unrepped/unsolved.
+the Spring Boot/Security/JPA/Transactions/Resilience/Container kits are racked and
+unrepped/unsolved.

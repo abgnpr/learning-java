@@ -1,7 +1,7 @@
 # JAVA THEATER 🐧 — the Java/Spring/Kafka war
 
 **Status: STOCKED — shell 2026-07-20, repo stood up 2026-07-22.
-Five kits racked, partially drilled.**
+Senior Java, Spring and Kafka kits racked, partially drilled.**
 
 HQ: `~/Documents/interview-hq` (penguin protocol lives there).
 Base 6 on the MAP. **Callsign: HOT COFFEE** (Skipper-confirmed
@@ -48,7 +48,14 @@ Pareto core path + Extensions list). Readiness: 🟢 drilled aloud ·
 | `spring-boot/spring-boot-basics.md` | DI/IoC · beans/scopes · config · **auto-config** · web MVC · validation · data/JPA · **transactions & proxies** · testing · actuator | §1→§4→§3→§5→§7→§8 | 🟡 racked 2026-07-21 |
 | `spring-boot/spring-security-basics.md` | **Senior Security anti-fumble kit**: filter-chain architecture · authN/passwords · route authZ · method security/**SpEL** · sessions/context · JWT resource server · CSRF/CORS · 401/403 boundary · testing · production scenarios | §0→§1→§2→§3→§4→§6→§7→§8→§9→§10 | 🟡 racked 2026-08-27 |
 | `spring-boot/spring-data-jpa-performance.md` | **Senior JPA/Hibernate anti-fumble kit**: persistence context/entity states · mappings · fetch plans/**N+1** · projections · pagination · JDBC batching/bulk DML · optimistic/pessimistic locking · caches · OSIV · diagnostics/tests · production scenarios | §0→§1→§2→§3→§4→§5→§6→§7→§9→§10→§11 | 🟡 racked 2026-08-27 |
+| `spring-boot/spring-boot-transactions-deep.md` | **Senior transaction anti-fumble kit**: logical/physical scopes · rollback-only/`UnexpectedRollbackException` · propagation resource costs · isolation/deadlocks · manager selection · programmatic boundaries · remote calls/idempotency · DB/Kafka coordination · outbox/saga · production scenarios | §0→§1→§2→§3→§4→§5→§6→§7→§8→§9→§10→§11 | 🟡 racked 2026-08-31 |
+| `spring-boot/spring-boot-resilience.md` | **Senior resilience anti-fumble kit**: deadline budgets · transport/pool timeouts · retry/idempotency · circuit breakers · bulkheads · rate limits · executor/pool saturation · safe degradation · graceful shutdown · fault/load proof | §0→§1→§2→§3→§4→§5→§6→§7→§8→§9→§10 | 🟡 racked 2026-08-31 |
+| `spring-boot/spring-container-internals.md` | **Senior container anti-fumble kit**: configuration metadata · `BeanDefinitionRegistry` · factory/context · refresh/bean lifecycle · factory/bean post-processors · AOP proxies · `FactoryBean` · configuration modes · cycles | §0→§1→§2→§3→§4→§5→§6→§7→§8→§9→§10→§11 | 🟡 racked 2026-08-31 |
 | `kafka/kafka-basics-exercise.md` | the **exercise** face of the same ground (🔮/🛠/🐛/💭 + hidden solutions), where `kafka/kafka-basics.md` is the spoken answer sheet: log/partitions · **ordering** · producers · consumer groups · **offsets & commit semantics** · **delivery guarantees** · rebalancing · durability/ISR · retention/compaction · DLQ · Spring Kafka | §2→§5→§6→§7→§4 | 🟡 racked 2026-07-21 |
+
+The remaining Spring senior-core build scope is tracked in
+`spring-boot/senior-core-checklist.md`; its checkboxes describe material
+construction, while each kit's scorecard describes study readiness.
 
 Runnable kits use Java 21's single-file launcher with no build. The
 threads lab runs with `cd core-java/lab && java
@@ -78,8 +85,9 @@ has a home when it lands.
 
 Study material is grouped by subject, one folder per subject, with no `notes/`
 wrapper. `core-java/` holds its four study kits and the runnable `lab/`;
-`kafka/` holds `kafka-basics.md` and `kafka-basics-exercise.md`; `spring-boot/` holds
-the Spring Boot, Security and JPA kits plus the Boot completion estimate.
+`kafka/` holds `kafka-basics.md` and `kafka-basics-exercise.md`; `spring-boot/`
+holds the Spring Boot, Security, JPA, Transactions, Resilience and Container
+kits, the senior-core build checklist and the Boot completion estimate.
 Only `README.md` and this charter sit at the root, plus `tools/` for repo
 upkeep scripts. Inside
 `core-java/lab/`, folders 01–06 hold the foundational challenge groups, 07

@@ -632,7 +632,9 @@ needs.
   reread current state, re-evaluate invariants, and reapply the command.
   Retrying only `save` repeats stale state. Retry only when the
   operation and external side effects are idempotent/safely coordinated,
-  with a small bounded backoff.
+  with a small bounded backoff. See
+  [Spring Boot resilience](spring-boot-resilience.md) for deadline,
+  classification and retry-composition drills.
 - 7.4 They usually map to database row locks such as `FOR SHARE` /
   `FOR UPDATE`, subject to dialect support. They serialize contenders
   and can simplify hot-resource decisions, but consume connections,
@@ -783,8 +785,9 @@ needs.
   state while an unpredictable network call waits or times out. The
   remote side cannot roll back with the local DB. Shorten the local
   transaction and coordinate via idempotency, state machines,
-  outbox/events, or compensating actions. The transactions-deep kit
-  owns those patterns.
+  outbox/events, or compensating actions. The
+  [transactions-deep kit](spring-boot-transactions-deep.md) owns those
+  patterns.
 
 </details>
 

@@ -1091,6 +1091,9 @@ its own drill file** (mirroring how `go-basics.md` spun off
 real task demands it. Rough priority top-to-bottom for a backend/
 payments track.
 
+Build status and the acceptance scope for the senior core live in
+[senior-core-checklist.md](senior-core-checklist.md).
+
 **Senior companions:**
 
 - [spring-security-basics.md](spring-security-basics.md) — filter-chain
@@ -1099,16 +1102,21 @@ payments track.
 - [spring-data-jpa-performance.md](spring-data-jpa-performance.md) —
   persistence-context mechanics, mappings, fetch plans, projections,
   pagination, batching, bulk DML, locking, caches, OSIV and diagnostics.
-
-- **`spring-boot-transactions-deep.md`** — propagation combinations,
-  `TransactionTemplate` (programmatic), transaction synchronization
-  callbacks, read-only optimizations, distributed-tx reality (why
-  there's no XA across a bank CBS + a switch → sagas / outbox).
+- [spring-boot-transactions-deep.md](spring-boot-transactions-deep.md) —
+  logical/physical scopes, rollback-only behavior, propagation/resource
+  costs, deadlocks, programmatic boundaries, remote calls, DB/Kafka
+  coordination, outbox and saga.
+- [spring-container-internals.md](spring-container-internals.md) —
+  `BeanDefinitionRegistry`,
+  `BeanFactory` vs `ApplicationContext`, factory vs bean post-processors,
+  context refresh, proxy creation, `FactoryBean`, and
+  `@Configuration(proxyBeanMethods = ...)`.
 - **`spring-boot-messaging.md`** — `@KafkaListener`, producer/consumer
   config, acks & offset commit semantics, `@RabbitListener`, retries &
   DLQ, `@TransactionalEventListener`, the transactional outbox
   pattern.
-- **`spring-boot-resilience.md`** — Resilience4j (circuit breaker,
+- [spring-boot-resilience.md](spring-boot-resilience.md) — Resilience4j
+  (circuit breaker,
   retry, bulkhead, rate limiter), timeouts, `@Retryable`, graceful
   degradation, idempotency keys.
 - **`spring-boot-observability.md`** — Micrometer metrics deep,
