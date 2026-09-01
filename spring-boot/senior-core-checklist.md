@@ -7,6 +7,11 @@ studied aloud.
 
 ## Built foundation
 
+- [x] [Spring senior backend reference](spring-senior-core.md) — the complete
+  readable answer sheet connecting container/startup, Boot, proxies, MVC,
+  security, JPA, transactions, cross-system consistency, resilience,
+  observability, testing and banking production scenarios. Exercise-kit
+  construction and study readiness remain separate states.
 - [x] [Spring Boot core](spring-boot-basics.md) — container/DI basics,
   configuration, auto-configuration, MVC, validation, JPA vocabulary,
   transaction proxies, test slices and production-awareness topics.

@@ -8,6 +8,9 @@ It is to trace one bean from configuration metadata to a usable, lifecycle-
 managed instance and diagnose startup failures without calling it “Spring
 magic.”
 
+**Readable reference:** [Spring Senior Backend Reference](spring-senior-core.md),
+chapters 1–5.
+
 **Legend** — exercise styles:
 🔮 predict the result · 🛠 build/inspect · 🐛 diagnose/fix ·
 💭 explain the trade-off · 🏭 production scenario

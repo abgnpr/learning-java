@@ -18,6 +18,7 @@ charter lives in [CLAUDE.md](CLAUDE.md); HQ is
 | [Threads lab index](core-java/lab/07-threads/README.md) | Eight runnable stations for the concurrency section — races, visibility, deadlock, pools, virtual threads. |
 | [Core Java lab index](core-java/lab/README.md) | 64 self-testing challenges plus eight concurrency stations, organized as one numbered learning path. |
 | [spring-boot-basics.md](spring-boot/spring-boot-basics.md) | DI/IoC, beans and scopes, auto-config, web MVC, validation, data/JPA, transactions and proxies, testing, actuator. |
+| [spring-senior-core.md](spring-boot/spring-senior-core.md) | Complete senior Spring reference: container/runtime flows, Boot, MVC, security, JPA, transactions, cross-system consistency, resilience, observability, testing and banking scenarios. |
 | [Spring senior-core checklist](spring-boot/senior-core-checklist.md) | Build tracker and acceptance scope for the completed senior kits plus the remaining production-testing and observability kits. |
 | [spring-security-basics.md](spring-boot/spring-security-basics.md) | Senior anti-fumble kit: filter-chain architecture, authentication, route/method authorization, SpEL, JWT, sessions, CSRF/CORS, error boundaries, tests and production scenarios. |
 | [spring-data-jpa-performance.md](spring-boot/spring-data-jpa-performance.md) | Senior persistence kit: entity states, mappings, fetch plans/N+1, projections, pagination, JDBC batching, bulk DML, locking, caches, OSIV, diagnostics and production scenarios. |
@@ -58,6 +59,7 @@ spring-boot/
 ├── spring-boot-transactions-deep.md
 ├── spring-container-internals.md
 ├── senior-core-checklist.md
+├── spring-senior-core.md
 ├── spring-security-basics.md
 ├── spring-data-jpa-performance.md
 └── spring-boot-basics.ESTIMATE.md
@@ -96,5 +98,5 @@ blind rep out loud.
 [CLAUDE.md](CLAUDE.md) summarises them. `core-java/core-java.md` and
 `core-java/threads-jvm.md` are through rep 1 in full; `kafka/kafka-basics.md` is
 half-way; the runnable labs, `kafka/kafka-basics-exercise.md` and
-the Spring Boot/Security/JPA/Transactions/Resilience/Container kits are racked and
-unrepped/unsolved.
+the Spring senior reference and Boot/Security/JPA/Transactions/Resilience/
+Container kits are racked and unrepped/unsolved.

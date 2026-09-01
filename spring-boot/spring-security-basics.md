@@ -7,6 +7,9 @@ production. The goal is not to memorize every filter or OAuth grant.
 It is to trace one request, predict the result, and defend the security
 boundary under interview pressure.
 
+**Readable reference:** [Spring Senior Backend Reference](spring-senior-core.md),
+chapters 8–9.
+
 **Legend** — exercise styles:
 🔮 predict the result · 🛠 build/configure · 🐛 diagnose/fix ·
 💭 explain the trade-off · 🏭 production scenario

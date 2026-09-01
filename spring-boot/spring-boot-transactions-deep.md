@@ -6,6 +6,9 @@ after an exception was caught**, and **what happens when a payment workflow
 crosses a database, Kafka, and another service**. The goal is to predict the
 outcome under failure and contention, not recite propagation enum names.
 
+**Readable reference:** [Spring Senior Backend Reference](spring-senior-core.md),
+chapters 13–14.
+
 **Legend** — exercise styles:
 🔮 predict the result · 🛠 build/configure · 🐛 diagnose/fix ·
 💭 explain the trade-off · 🏭 production scenario

@@ -46,6 +46,7 @@ Pareto core path + Extensions list). Readiness: 🟢 drilled aloud ·
 | `core-java/lab/07-threads/README.md` + `core-java/lab/07-threads/` | 8 runnable predict→run→explain stations: start/run · lost update · volatile · wait/sleep · deadlock · pools · producer-consumer · virtual threads | S1→S8 in order | 🟡 racked 2026-07-21, **0/8 stations repped** |
 | `core-java/lab/README.md` + `core-java/lab/` | Unified index for 64 solution-free, self-testing Java starters plus 8 concurrency stations: introduction · strings/regex · BigNumber · data structures · OOP · exceptions · threads · advanced Java | challenges 01→64; stations S1→S8 | 🟡 racked 2026-08-26, **0/72 complete** |
 | `spring-boot/spring-boot-basics.md` | DI/IoC · beans/scopes · config · **auto-config** · web MVC · validation · data/JPA · **transactions & proxies** · testing · actuator | §1→§4→§3→§5→§7→§8 | 🟡 racked 2026-07-21 |
+| `spring-boot/spring-senior-core.md` | **Complete senior Spring answer book**: runtime/container · Boot/auto-config · AOP · MVC · Security · JPA/performance · transactions/distributed consistency · resilience · observability · production testing · banking scenarios | §5→§6→§8→§10→§11→§13→§14→§15→§16 | 🟡 racked 2026-09-01 |
 | `spring-boot/spring-security-basics.md` | **Senior Security anti-fumble kit**: filter-chain architecture · authN/passwords · route authZ · method security/**SpEL** · sessions/context · JWT resource server · CSRF/CORS · 401/403 boundary · testing · production scenarios | §0→§1→§2→§3→§4→§6→§7→§8→§9→§10 | 🟡 racked 2026-08-27 |
 | `spring-boot/spring-data-jpa-performance.md` | **Senior JPA/Hibernate anti-fumble kit**: persistence context/entity states · mappings · fetch plans/**N+1** · projections · pagination · JDBC batching/bulk DML · optimistic/pessimistic locking · caches · OSIV · diagnostics/tests · production scenarios | §0→§1→§2→§3→§4→§5→§6→§7→§9→§10→§11 | 🟡 racked 2026-08-27 |
 | `spring-boot/spring-boot-transactions-deep.md` | **Senior transaction anti-fumble kit**: logical/physical scopes · rollback-only/`UnexpectedRollbackException` · propagation resource costs · isolation/deadlocks · manager selection · programmatic boundaries · remote calls/idempotency · DB/Kafka coordination · outbox/saga · production scenarios | §0→§1→§2→§3→§4→§5→§6→§7→§8→§9→§10→§11 | 🟡 racked 2026-08-31 |
@@ -86,8 +87,9 @@ has a home when it lands.
 Study material is grouped by subject, one folder per subject, with no `notes/`
 wrapper. `core-java/` holds its four study kits and the runnable `lab/`;
 `kafka/` holds `kafka-basics.md` and `kafka-basics-exercise.md`; `spring-boot/`
-holds the Spring Boot, Security, JPA, Transactions, Resilience and Container
-kits, the senior-core build checklist and the Boot completion estimate.
+holds the complete senior Spring reference, the Boot, Security, JPA,
+Transactions, Resilience and Container exercise kits, the senior-core build
+checklist and the Boot completion estimate.
 Only `README.md` and this charter sit at the root, plus `tools/` for repo
 upkeep scripts. Inside
 `core-java/lab/`, folders 01–06 hold the foundational challenge groups, 07

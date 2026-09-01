@@ -6,6 +6,9 @@ model. The goal is to predict **when SQL runs**, deliberately choose
 **what is fetched**, and diagnose a slow or incorrect persistence path
 without blaming “Hibernate magic.”
 
+**Readable reference:** [Spring Senior Backend Reference](spring-senior-core.md),
+chapters 10–12.
+
 **Legend** — exercise styles:
 🔮 predict the result · 🛠 build/query · 🐛 diagnose/fix ·
 💭 explain the trade-off · 🏭 production scenario

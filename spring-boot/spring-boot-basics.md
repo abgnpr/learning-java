@@ -1094,6 +1094,9 @@ payments track.
 Build status and the acceptance scope for the senior core live in
 [senior-core-checklist.md](senior-core-checklist.md).
 
+**Readable reference:**
+[Spring Senior Backend Reference](spring-senior-core.md).
+
 **Senior companions:**
 
 - [spring-security-basics.md](spring-security-basics.md) — filter-chain

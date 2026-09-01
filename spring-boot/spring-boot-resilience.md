@@ -6,6 +6,9 @@ slow down or fail. The goal is not to stack every resilience annotation. It
 is to preserve the latency budget, protect scarce resources, and avoid
 turning one failure into duplicate financial work or fleet-wide saturation.
 
+**Readable reference:** [Spring Senior Backend Reference](spring-senior-core.md),
+chapter 15.
+
 **Legend** — exercise styles:
 🔮 predict the result · 🛠 build/configure · 🐛 diagnose/fix ·
 💭 explain the trade-off · 🏭 production scenario
