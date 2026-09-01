@@ -35,13 +35,18 @@ studied aloud.
 - [x] [Container internals core](spring-container-internals.md) — metadata,
   definitions/registry, factory/context, refresh and bean lifecycle,
   post-processors, proxy creation, `FactoryBean` and configuration modes.
+- [x] [Observability and diagnosis core](spring-boot-observability.md) — safe
+  structured logs, Micrometer metrics/cardinality, tracing/context,
+  Actuator security, probes, SLOs, dashboards and slow-path diagnosis.
+- [x] [Production testing core](spring-boot-testing-deep.md) — scope
+  selection, slices, real-database Testcontainers, transaction traps,
+  security/stubs, query budgets, concurrency, idempotency and isolation.
 
 ## Required senior-core kits
 
-Do not mark a kit complete merely because another note mentions some of its
-vocabulary. For the current banking-MNC target, build the unchecked kits in
-this interview-payoff order: **observability → production testing**. The
-numbered sections retain the original gap taxonomy.
+All required kits for the current banking-MNC target are built. The numbered
+sections retain the original gap taxonomy; study readiness remains tracked in
+each kit's rep scorecard.
 
 ### 1. Deep transactions — complete
 
@@ -91,29 +96,29 @@ numbered sections retain the original gap taxonomy.
 - [x] Ordering, early instantiation and circular-dependency failure modes.
 - [x] Production scenarios, trap wall, answer card and rep scorecard.
 
-### 3. Production testing
+### 3. Production testing — complete
 
-- [ ] Create `spring-boot-testing-deep.md` without duplicating the Security
+- [x] Create `spring-boot-testing-deep.md` without duplicating the Security
   and JPA kits' detailed drills.
-- [ ] Plain unit tests versus Spring slices versus full integration tests.
-- [ ] Selection matrix for `@WebMvcTest`, `@DataJpaTest` and
+- [x] Plain unit tests versus Spring slices versus full integration tests.
+- [x] Selection matrix for `@WebMvcTest`, `@DataJpaTest` and
   `@SpringBootTest`.
-- [ ] Testcontainers with the production database and
+- [x] Testcontainers with the production database and
   `@ServiceConnection`.
-- [ ] Test-managed transaction rollback traps: deferred flush, false
+- [x] Test-managed transaction rollback traps: deferred flush, false
   positives and client/server-thread transaction boundaries.
-- [ ] Security tests using `@WithMockUser`, request post-processors, CSRF and
+- [x] Security tests using `@WithMockUser`, request post-processors, CSRF and
   JWT support.
-- [ ] External dependency stubs with WireMock or equivalent, including
+- [x] External dependency stubs with WireMock or equivalent, including
   timeout/error contracts.
-- [ ] Repository statement-count/N+1 regression tests and realistic data
+- [x] Repository statement-count/N+1 regression tests and realistic data
   cardinality.
-- [ ] Concurrency tests for optimistic conflicts, atomic updates and
+- [x] Concurrency tests for optimistic conflicts, atomic updates and
   deadlock/retry behavior.
-- [ ] Idempotency tests covering duplicate and concurrent requests.
-- [ ] Contract tests, deterministic fixtures/`@Sql`, test isolation and
+- [x] Idempotency tests covering duplicate and concurrent requests.
+- [x] Contract tests, deterministic fixtures/`@Sql`, test isolation and
   parallel-test safety.
-- [ ] Production scenarios, trap wall, answer card and rep scorecard.
+- [x] Production scenarios, trap wall, answer card and rep scorecard.
 
 ### 4. Resilience — complete
 
@@ -136,34 +141,34 @@ numbered sections retain the original gap taxonomy.
   traps.
 - [x] Production scenarios, trap wall, answer card and rep scorecard.
 
-### 5. Observability and diagnosis
+### 5. Observability and diagnosis — complete
 
-- [ ] Create `spring-boot-observability.md`.
-- [ ] Structured logs with stable fields, redaction and correlation/trace
+- [x] Create `spring-boot-observability.md`.
+- [x] Structured logs with stable fields, redaction and correlation/trace
   IDs.
-- [ ] Micrometer counters, gauges, timers and distribution percentiles;
+- [x] Micrometer counters, gauges, timers and distribution percentiles;
   tag-cardinality control.
-- [ ] Distributed tracing with Micrometer Tracing/OpenTelemetry and context
+- [x] Distributed tracing with Micrometer Tracing/OpenTelemetry and context
   propagation across HTTP, executors and messaging.
-- [ ] Actuator exposure/security, custom observations and health indicators.
-- [ ] Liveness versus readiness and dependency-health design.
-- [ ] Golden signals: latency, traffic, errors and saturation.
-- [ ] Diagnose a slow endpoint across controller/filter time, executor queue,
+- [x] Actuator exposure/security, custom observations and health indicators.
+- [x] Liveness versus readiness and dependency-health design.
+- [x] Golden signals: latency, traffic, errors and saturation.
+- [x] Diagnose a slow endpoint across controller/filter time, executor queue,
   connection-pool wait, SQL/lock time and downstream calls.
-- [ ] Dashboards and alerts based on service objectives rather than raw
+- [x] Dashboards and alerts based on service objectives rather than raw
   totals.
-- [ ] Production scenarios, trap wall, answer card and rep scorecard.
+- [x] Production scenarios, trap wall, answer card and rep scorecard.
 
 ## Completion gate for every new kit
 
-- [ ] Uses the repository drill format: 🔮 predict, 🛠 build, 🐛 fix and
+- [x] Uses the repository drill format: 🔮 predict, 🛠 build, 🐛 fix and
   💭 explain, with answers under `<details>`.
-- [ ] Has a Pareto core path, version boundary, primary official references,
+- [x] Has a Pareto core path, version boundary, primary official references,
   production scenarios, trap wall, answer card and rep scorecard.
-- [ ] Cross-links related material instead of copying large explanations.
-- [ ] Is added to `README.md`, `CLAUDE.md` and the Spring Boot extension
+- [x] Cross-links related material instead of copying large explanations.
+- [x] Is added to `README.md`, `CLAUDE.md` and the Spring Boot extension
   queue.
-- [ ] Passes `git diff --check` and `python3 tools/check-links.py`.
+- [x] Passes `git diff --check` and `python3 tools/check-links.py`.
 
 ## Outside this checklist
 

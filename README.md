@@ -19,11 +19,13 @@ charter lives in [CLAUDE.md](CLAUDE.md); HQ is
 | [Core Java lab index](core-java/lab/README.md) | 64 self-testing challenges plus eight concurrency stations, organized as one numbered learning path. |
 | [spring-boot-basics.md](spring-boot/spring-boot-basics.md) | DI/IoC, beans and scopes, auto-config, web MVC, validation, data/JPA, transactions and proxies, testing, actuator. |
 | [spring-senior-core.md](spring-boot/spring-senior-core.md) | Complete senior Spring reference: container/runtime flows, Boot, MVC, security, JPA, transactions, cross-system consistency, resilience, observability, testing and banking scenarios. |
-| [Spring senior-core checklist](spring-boot/senior-core-checklist.md) | Build tracker and acceptance scope for the completed senior kits plus the remaining production-testing and observability kits. |
+| [Spring senior-core checklist](spring-boot/senior-core-checklist.md) | Completed build tracker and acceptance scope for the senior Spring interview core. |
 | [spring-security-basics.md](spring-boot/spring-security-basics.md) | Senior anti-fumble kit: filter-chain architecture, authentication, route/method authorization, SpEL, JWT, sessions, CSRF/CORS, error boundaries, tests and production scenarios. |
 | [spring-data-jpa-performance.md](spring-boot/spring-data-jpa-performance.md) | Senior persistence kit: entity states, mappings, fetch plans/N+1, projections, pagination, JDBC batching, bulk DML, locking, caches, OSIV, diagnostics and production scenarios. |
 | [spring-boot-transactions-deep.md](spring-boot/spring-boot-transactions-deep.md) | Senior transaction kit: logical/physical scopes, propagation costs, rollback-only state, isolation/deadlocks, remote calls, idempotency, DB/Kafka coordination, outbox and saga. |
 | [spring-boot-resilience.md](spring-boot/spring-boot-resilience.md) | Senior resilience kit: deadline budgets, retry/idempotency, circuit breakers, bulkheads, rate limits, saturation, safe degradation and graceful shutdown. |
+| [spring-boot-observability.md](spring-boot/spring-boot-observability.md) | Senior observability kit: structured logs/redaction, Micrometer metrics/cardinality, tracing/context, Actuator security, probes, SLOs, dashboards and diagnosis. |
+| [spring-boot-testing-deep.md](spring-boot/spring-boot-testing-deep.md) | Senior production-testing kit: scope selection, slices, Testcontainers, transaction traps, security/stubs, query budgets, concurrency, idempotency and isolation. |
 | [spring-container-internals.md](spring-boot/spring-container-internals.md) | Senior container kit: definitions/registry, factory/context, refresh and bean lifecycle, post-processors, AOP proxies, `FactoryBean` and configuration modes. |
 | [kafka-basics-exercise.md](kafka/kafka-basics-exercise.md) | Log and partitions, ordering, producers, consumer groups, offsets and commit semantics, delivery guarantees, rebalancing, ISR, retention, DLQ. |
 | [kafka-basics.md](kafka/kafka-basics.md) | The self-contained Kafka answer sheet (§1–§12) — every term defined in place, sized for speaking. |
@@ -55,7 +57,9 @@ kafka/
 
 spring-boot/
 ├── spring-boot-basics.md
+├── spring-boot-observability.md
 ├── spring-boot-resilience.md
+├── spring-boot-testing-deep.md
 ├── spring-boot-transactions-deep.md
 ├── spring-container-internals.md
 ├── senior-core-checklist.md
@@ -99,4 +103,4 @@ blind rep out loud.
 `core-java/threads-jvm.md` are through rep 1 in full; `kafka/kafka-basics.md` is
 half-way; the runnable labs, `kafka/kafka-basics-exercise.md` and
 the Spring senior reference and Boot/Security/JPA/Transactions/Resilience/
-Container kits are racked and unrepped/unsolved.
+Observability/Testing/Container kits are racked and unrepped/unsolved.

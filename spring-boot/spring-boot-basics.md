@@ -1122,16 +1122,18 @@ Build status and the acceptance scope for the senior core live in
   (circuit breaker,
   retry, bulkhead, rate limiter), timeouts, `@Retryable`, graceful
   degradation, idempotency keys.
-- **`spring-boot-observability.md`** — Micrometer metrics deep,
-  distributed tracing (Micrometer Tracing / OpenTelemetry), custom
-  Actuator endpoints, structured logging, correlation IDs.
+- [spring-boot-observability.md](spring-boot-observability.md) — Micrometer
+  metrics deep,
+  distributed tracing (Micrometer Tracing / OpenTelemetry), Actuator
+  exposure/probes, structured logging, correlation IDs and SLO diagnosis.
 - **`spring-webflux-reactive.md`** — `Mono`/`Flux`, the reactive
   stack vs MVC, `WebClient` streaming, backpressure, R2DBC, when
   reactive actually pays (and when it doesn't).
 - **`spring-boot-caching-scheduling.md`** — `@Cacheable`/`@CacheEvict`
   + a real cache (Redis/Caffeine), `@Scheduled`, `@Async` executors &
   thread-pool tuning.
-- **`spring-boot-testing-deep.md`** — Testcontainers patterns,
+- [spring-boot-testing-deep.md](spring-boot-testing-deep.md) — Testcontainers
+  patterns,
   `@ServiceConnection`, contract testing, `@Sql` fixtures, slice-test
   matrix, WireMock for external calls, MockMvc vs `WebTestClient`.
 - **`spring-boot-api-design.md`** — versioning strategies, OpenAPI/

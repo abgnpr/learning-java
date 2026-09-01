@@ -46,17 +46,19 @@ Pareto core path + Extensions list). Readiness: 🟢 drilled aloud ·
 | `core-java/lab/07-threads/README.md` + `core-java/lab/07-threads/` | 8 runnable predict→run→explain stations: start/run · lost update · volatile · wait/sleep · deadlock · pools · producer-consumer · virtual threads | S1→S8 in order | 🟡 racked 2026-07-21, **0/8 stations repped** |
 | `core-java/lab/README.md` + `core-java/lab/` | Unified index for 64 solution-free, self-testing Java starters plus 8 concurrency stations: introduction · strings/regex · BigNumber · data structures · OOP · exceptions · threads · advanced Java | challenges 01→64; stations S1→S8 | 🟡 racked 2026-08-26, **0/72 complete** |
 | `spring-boot/spring-boot-basics.md` | DI/IoC · beans/scopes · config · **auto-config** · web MVC · validation · data/JPA · **transactions & proxies** · testing · actuator | §1→§4→§3→§5→§7→§8 | 🟡 racked 2026-07-21 |
-| `spring-boot/spring-senior-core.md` | **Complete senior Spring answer book**: runtime/container · Boot/auto-config · AOP · MVC · Security · JPA/performance · transactions/distributed consistency · resilience · observability · production testing · banking scenarios | §5→§6→§8→§10→§11→§13→§14→§15→§16 | 🟡 racked 2026-09-01 |
+| `spring-boot/spring-senior-core.md` | **Complete senior Spring answer book**: runtime/container · Boot/auto-config · AOP · MVC · Security · JPA/performance · transactions/distributed consistency · resilience · observability · production testing · banking scenarios | §5→§6→§8→§10→§11→§13→§14→§15→§16→§17 | 🟡 racked 2026-09-01 |
 | `spring-boot/spring-security-basics.md` | **Senior Security anti-fumble kit**: filter-chain architecture · authN/passwords · route authZ · method security/**SpEL** · sessions/context · JWT resource server · CSRF/CORS · 401/403 boundary · testing · production scenarios | §0→§1→§2→§3→§4→§6→§7→§8→§9→§10 | 🟡 racked 2026-08-27 |
 | `spring-boot/spring-data-jpa-performance.md` | **Senior JPA/Hibernate anti-fumble kit**: persistence context/entity states · mappings · fetch plans/**N+1** · projections · pagination · JDBC batching/bulk DML · optimistic/pessimistic locking · caches · OSIV · diagnostics/tests · production scenarios | §0→§1→§2→§3→§4→§5→§6→§7→§9→§10→§11 | 🟡 racked 2026-08-27 |
 | `spring-boot/spring-boot-transactions-deep.md` | **Senior transaction anti-fumble kit**: logical/physical scopes · rollback-only/`UnexpectedRollbackException` · propagation resource costs · isolation/deadlocks · manager selection · programmatic boundaries · remote calls/idempotency · DB/Kafka coordination · outbox/saga · production scenarios | §0→§1→§2→§3→§4→§5→§6→§7→§8→§9→§10→§11 | 🟡 racked 2026-08-31 |
 | `spring-boot/spring-boot-resilience.md` | **Senior resilience anti-fumble kit**: deadline budgets · transport/pool timeouts · retry/idempotency · circuit breakers · bulkheads · rate limits · executor/pool saturation · safe degradation · graceful shutdown · fault/load proof | §0→§1→§2→§3→§4→§5→§6→§7→§8→§9→§10 | 🟡 racked 2026-08-31 |
+| `spring-boot/spring-boot-observability.md` | **Senior observability anti-fumble kit**: structured logs/redaction · Micrometer meters/cardinality/distributions · tracing/context propagation · Actuator security · probes · SLOs · slow-path diagnosis · dashboards/alerts | §0→§1→§2→§3→§4→§5→§6→§7→§8→§10→§11 | 🟡 racked 2026-09-01 |
+| `spring-boot/spring-boot-testing-deep.md` | **Senior production-testing anti-fumble kit**: unit/slice/full scope · MVC · real-DB Testcontainers · transaction traps · security/stubs · query budgets · concurrency/idempotency · contracts/isolation | §0→§1→§2→§3→§4→§5→§6→§7→§8→§9→§10→§11 | 🟡 racked 2026-09-01 |
 | `spring-boot/spring-container-internals.md` | **Senior container anti-fumble kit**: configuration metadata · `BeanDefinitionRegistry` · factory/context · refresh/bean lifecycle · factory/bean post-processors · AOP proxies · `FactoryBean` · configuration modes · cycles | §0→§1→§2→§3→§4→§5→§6→§7→§8→§9→§10→§11 | 🟡 racked 2026-08-31 |
 | `kafka/kafka-basics-exercise.md` | the **exercise** face of the same ground (🔮/🛠/🐛/💭 + hidden solutions), where `kafka/kafka-basics.md` is the spoken answer sheet: log/partitions · **ordering** · producers · consumer groups · **offsets & commit semantics** · **delivery guarantees** · rebalancing · durability/ISR · retention/compaction · DLQ · Spring Kafka | §2→§5→§6→§7→§4 | 🟡 racked 2026-07-21 |
 
-The remaining Spring senior-core build scope is tracked in
-`spring-boot/senior-core-checklist.md`; its checkboxes describe material
-construction, while each kit's scorecard describes study readiness.
+The completed Spring senior-core construction scope is recorded in
+`spring-boot/senior-core-checklist.md`; each kit's scorecard separately
+describes study readiness.
 
 Runnable kits use Java 21's single-file launcher with no build. The
 threads lab runs with `cd core-java/lab && java
@@ -88,8 +90,8 @@ Study material is grouped by subject, one folder per subject, with no `notes/`
 wrapper. `core-java/` holds its four study kits and the runnable `lab/`;
 `kafka/` holds `kafka-basics.md` and `kafka-basics-exercise.md`; `spring-boot/`
 holds the complete senior Spring reference, the Boot, Security, JPA,
-Transactions, Resilience and Container exercise kits, the senior-core build
-checklist and the Boot completion estimate.
+Transactions, Resilience, Observability, Testing and Container exercise kits,
+the senior-core build checklist and the Boot completion estimate.
 Only `README.md` and this charter sit at the root, plus `tools/` for repo
 upkeep scripts. Inside
 `core-java/lab/`, folders 01–06 hold the foundational challenge groups, 07

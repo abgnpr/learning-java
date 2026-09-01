@@ -41,6 +41,8 @@ active-recall side:
 - [JPA and Hibernate performance exercises](spring-data-jpa-performance.md)
 - [Deep transaction exercises](spring-boot-transactions-deep.md)
 - [Resilience exercises](spring-boot-resilience.md)
+- [Observability exercises](spring-boot-observability.md)
+- [Production testing exercises](spring-boot-testing-deep.md)
 
 Read a chapter here, close it, and answer the corresponding companion kit
 aloud. A senior answer should normally have three layers:
@@ -64,12 +66,13 @@ If the interview is close, own these chapters first:
 > [§11](#11-mapping-fetching-and-query-performance) →
 > [§13](#13-spring-transactions) →
 > [§14](#14-cross-system-consistency) →
-> [§15](#15-resilience) → [§16](#16-observability-and-diagnosis)**
+> [§15](#15-resilience) → [§16](#16-observability-and-diagnosis) →
+> [§17](#17-production-testing)**
 
 That path covers the questions that distinguish "used Spring" from
 "understands production Spring": proxy boundaries, filter/MVC boundaries,
 the persistence context, N+1, rollback-only state, outbox/idempotency,
-timeout/retry composition and evidence-led diagnosis.
+timeout/retry composition, evidence-led diagnosis and failure-proof testing.
 
 ### Version boundary
 
@@ -3337,8 +3340,8 @@ line running in the target system.
 | §10–§12 persistence | [JPA performance kit](spring-data-jpa-performance.md) | query-count test and one concurrent-write test |
 | §13–§14 consistency | [Transaction kit](spring-boot-transactions-deep.md) | rollback-only reproduction and outbox/idempotency design |
 | §15 resilience | [Resilience kit](spring-boot-resilience.md) | delayed/failing stub proves deadline, attempts and fallback |
-| §16 observability | observability exercise kit tracked in [senior checklist](senior-core-checklist.md) | slow-request trace plus pool/query evidence |
-| §17 testing | production-testing exercise kit tracked in [senior checklist](senior-core-checklist.md) | real-database, security, concurrency and idempotency tests |
+| §16 observability | [Observability kit](spring-boot-observability.md) | slow-request trace plus pool/query evidence |
+| §17 testing | [Production testing kit](spring-boot-testing-deep.md) | real-database, security, concurrency and idempotency tests |
 | §18 scenarios | all companions | five-minute end-to-end design answer with failure states |
 | §19 answer wall | this reference | blind aloud rep; expand only on follow-up |
 
