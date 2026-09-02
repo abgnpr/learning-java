@@ -11,7 +11,7 @@ public final class WelcomeToJava {
     }
 
     static String greeting() {
-        throw new UnsupportedOperationException("TODO: return the Java greeting");
+        return "Hello, Java!";
     }
 
     public static void main(String[] args) {
@@ -23,7 +23,9 @@ public final class WelcomeToJava {
 
     private static void checkEquals(Object expected, Object actual, String label) {
         if (!expected.equals(actual)) {
-            throw new AssertionError(label + ": expected <" + expected + "> but was <" + actual + ">");
+            throw new AssertionError(label
+                    + ":\n  expected: <" + expected + ">"
+                    + "\n    actual: <" + actual + ">");
         }
     }
 }

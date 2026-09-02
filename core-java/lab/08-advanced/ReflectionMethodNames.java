@@ -53,7 +53,9 @@ public class ReflectionMethodNames {
 
     private static void checkEquals(List<String> expected, List<String> actual, String message) {
         if (!expected.equals(actual)) {
-            throw new AssertionError(message + ": expected=" + expected + ", actual=" + actual);
+            throw new AssertionError(message
+                    + ":\n  expected: <" + expected + ">"
+                    + "\n    actual: <" + actual + ">");
         }
     }
 }

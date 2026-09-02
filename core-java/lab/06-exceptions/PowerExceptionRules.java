@@ -37,22 +37,28 @@ public class PowerExceptionRules {
             String expected, CheckedAction action, String message) {
         try {
             action.run();
-            throw new AssertionError(message + ": expected an exception");
+            throw new AssertionError(message
+                    + ":\n  expected: <java.lang.Exception>"
+                    + "\n    actual: <no exception thrown>");
         } catch (Exception exception) {
             if (exception.getClass() != Exception.class) {
-                throw new AssertionError(message + ": expected checked java.lang.Exception, got "
-                        + exception.getClass().getName());
+                throw new AssertionError(message
+                        + ":\n  expected: <java.lang.Exception>"
+                        + "\n    actual: <" + exception.getClass().getName() + ">");
             }
             if (!expected.equals(exception.getMessage())) {
-                throw new AssertionError(message + ": expected message=" + expected
-                        + ", actual=" + exception.getMessage());
+                throw new AssertionError(message
+                        + ":\n  expected: <" + expected + ">"
+                        + "\n    actual: <" + exception.getMessage() + ">");
             }
         }
     }
 
     private static void checkEquals(long expected, long actual, String message) {
         if (expected != actual) {
-            throw new AssertionError(message + ": expected=" + expected + ", actual=" + actual);
+            throw new AssertionError(message
+                    + ":\n  expected: <" + expected + ">"
+                    + "\n    actual: <" + actual + ">");
         }
     }
 }

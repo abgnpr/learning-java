@@ -29,7 +29,9 @@ public class IteratorAfterMarker {
 
     private static void checkEquals(List<?> expected, List<?> actual, String message) {
         if (!expected.equals(actual)) {
-            throw new AssertionError(message + ": expected=" + expected + ", actual=" + actual);
+            throw new AssertionError(message
+                    + ":\n  expected: <" + expected + ">"
+                    + "\n    actual: <" + actual + ">");
         }
     }
 }

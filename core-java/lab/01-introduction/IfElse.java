@@ -11,7 +11,33 @@ public final class IfElse {
     }
 
     static String classify(int value) {
-        throw new UnsupportedOperationException("TODO: implement the conditional classification");
+
+        // standard
+        // if (value < 0) {
+        // return "negative";
+        // } else if (value == 0) {
+        // return "zero";
+        // } else if (value % 2 == 0) {
+        // return "positive-even";
+        // } else {
+        // return "positive-odd";
+        // }
+
+        // preview in java 21
+        // return switch (value) {
+        // case int v when v < 0 -> "negative";
+        // case 0 -> "zero";
+        // case int v when v % 2 == 0 -> "positive-even";
+        // default -> "positive-odd";
+        // };
+
+        // standard java 21 using switch
+        return switch (Integer.signum(value)) {
+            case -1 -> "negative";
+            case 0 -> "zero";
+            default -> value % 2 == 0 ? "positive-even" : "positive-odd";
+        };
+
     }
 
     public static void main(String[] args) {
@@ -24,7 +50,9 @@ public final class IfElse {
 
     private static void checkEquals(String expected, String actual, String label) {
         if (!expected.equals(actual)) {
-            throw new AssertionError(label + ": expected <" + expected + "> but was <" + actual + ">");
+            throw new AssertionError(label
+                    + ":\n  expected: <" + expected + ">"
+                    + "\n    actual: <" + actual + ">");
         }
     }
 }

@@ -41,7 +41,9 @@ public class BigDecimalOrdering {
 
     static void checkEquals(Object expected, Object actual, String label) {
         if (!expected.equals(actual)) {
-            throw new AssertionError(label + ": expected " + expected + ", got " + actual);
+            throw new AssertionError(label
+                    + ":\n  expected: <" + expected + ">"
+                    + "\n    actual: <" + actual + ">");
         }
     }
 }

@@ -62,7 +62,9 @@ public class LambdaPredicates {
 
     private static void checkEquals(boolean expected, boolean actual, String message) {
         if (expected != actual) {
-            throw new AssertionError(message + ": expected=" + expected + ", actual=" + actual);
+            throw new AssertionError(message
+                    + ":\n  expected: <" + expected + ">"
+                    + "\n    actual: <" + actual + ">");
         }
     }
 }

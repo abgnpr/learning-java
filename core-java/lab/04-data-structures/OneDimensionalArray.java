@@ -23,8 +23,9 @@ public class OneDimensionalArray {
 
     static void checkArray(int[] expected, int[] actual, String label) {
         if (!java.util.Arrays.equals(expected, actual)) {
-            throw new AssertionError(label + ": expected "
-                + java.util.Arrays.toString(expected) + ", got " + java.util.Arrays.toString(actual));
+            throw new AssertionError(label
+                    + ":\n  expected: <" + java.util.Arrays.toString(expected) + ">"
+                    + "\n    actual: <" + java.util.Arrays.toString(actual) + ">");
         }
     }
 }

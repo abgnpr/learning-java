@@ -40,7 +40,9 @@ public class SportsMethodOverriding {
 
     private static void checkEquals(Object expected, Object actual, String message) {
         if (!expected.equals(actual)) {
-            throw new AssertionError(message + ": expected=" + expected + ", actual=" + actual);
+            throw new AssertionError(message
+                    + ":\n  expected: <" + expected + ">"
+                    + "\n    actual: <" + actual + ">");
         }
     }
 }

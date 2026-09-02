@@ -200,3 +200,12 @@ you can predict and explain its behavior.
 | Threads and Concurrency | 8 | 0/8 |
 | Advanced | 12 | 0/12 |
 | **Total** | **72** | **0/72** |
+
+## Revision references
+
+Save useful follow-up material here when a challenge exposes a construct worth
+revisiting.
+
+| Challenge | Construct | Resource | Studied |
+|---|---|---|---|
+| 02 — Java Stdin and Stdout I | Stream collectors, especially `Collectors.joining()` | [Baeldung — Guide to Java Collectors](https://www.baeldung.com/java-collectors) | 2026-09-02 |

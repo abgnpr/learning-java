@@ -23,7 +23,9 @@ public final class IntToString {
 
     private static void checkEquals(String expected, String actual, String label) {
         if (!expected.equals(actual)) {
-            throw new AssertionError(label + ": expected <" + expected + "> but was <" + actual + ">");
+            throw new AssertionError(label
+                    + ":\n  expected: <" + expected + ">"
+                    + "\n    actual: <" + actual + ">");
         }
     }
 }

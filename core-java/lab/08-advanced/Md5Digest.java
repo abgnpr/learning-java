@@ -25,7 +25,9 @@ public class Md5Digest {
 
     private static void checkEquals(String expected, String actual, String message) {
         if (!expected.equals(actual)) {
-            throw new AssertionError(message + ": expected=" + expected + ", actual=" + actual);
+            throw new AssertionError(message
+                    + ":\n  expected: <" + expected + ">"
+                    + "\n    actual: <" + actual + ">");
         }
     }
 }

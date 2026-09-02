@@ -45,7 +45,13 @@ public class FoodFactoryPattern {
             Food actual, String message) {
         if (actual == null || actual.getClass() != expectedClass
                 || !expectedType.equals(actual.type())) {
-            throw new AssertionError(message + ": expected " + expectedClass.getSimpleName());
+            String actualDescription = actual == null
+                    ? "null"
+                    : actual.getClass().getSimpleName() + " with type " + actual.type();
+            throw new AssertionError(message
+                    + ":\n  expected: <"
+                    + expectedClass.getSimpleName() + " with type " + expectedType + ">"
+                    + "\n    actual: <" + actualDescription + ">");
         }
     }
 }

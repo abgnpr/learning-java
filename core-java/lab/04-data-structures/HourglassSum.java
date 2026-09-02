@@ -39,7 +39,9 @@ public class HourglassSum {
 
     static void checkEquals(int expected, int actual, String label) {
         if (expected != actual) {
-            throw new AssertionError(label + ": expected " + expected + ", got " + actual);
+            throw new AssertionError(label
+                    + ":\n  expected: <" + expected + ">"
+                    + "\n    actual: <" + actual + ">");
         }
     }
 }

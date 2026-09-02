@@ -45,7 +45,9 @@ public class InstanceofTypeCounter {
 
     private static void checkEquals(Counts expected, Counts actual, String message) {
         if (!expected.equals(actual)) {
-            throw new AssertionError(message + ": expected=" + expected + ", actual=" + actual);
+            throw new AssertionError(message
+                    + ":\n  expected: <" + expected + ">"
+                    + "\n    actual: <" + actual + ">");
         }
     }
 }

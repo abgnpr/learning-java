@@ -27,7 +27,9 @@ public final class ValidUsername {
 
     private static void checkEquals(boolean expected, boolean actual, String label) {
         if (expected != actual) {
-            throw new AssertionError(label + ": expected <" + expected + "> but was <" + actual + ">");
+            throw new AssertionError(label
+                    + ":\n  expected: <" + expected + ">"
+                    + "\n    actual: <" + actual + ">");
         }
     }
 }

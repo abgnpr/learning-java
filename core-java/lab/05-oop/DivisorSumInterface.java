@@ -29,7 +29,9 @@ public class DivisorSumInterface {
 
     private static void checkEquals(int expected, int actual, String message) {
         if (expected != actual) {
-            throw new AssertionError(message + ": expected=" + expected + ", actual=" + actual);
+            throw new AssertionError(message
+                    + ":\n  expected: <" + expected + ">"
+                    + "\n    actual: <" + actual + ">");
         }
     }
 }
