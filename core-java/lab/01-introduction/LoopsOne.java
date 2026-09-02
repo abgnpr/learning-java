@@ -1,3 +1,7 @@
+
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
 /*
  * Challenge 06: Java Loops I
  * Difficulty: Easy
@@ -12,7 +16,24 @@ public final class LoopsOne {
     }
 
     static String multiplicationTable(int value, int limit) {
-        throw new UnsupportedOperationException("TODO: generate the table with a loop");
+        // mapToObj, not map: IntStream.map is an IntUnaryOperator (int -> int),
+        // so returning a String there does not compile. mapToObj is the single
+        // crossing point from a primitive stream back to Stream<T>.
+        //     .map(i -> String.format(...))   // int -> String: won't compile
+        //
+        // Collectors exist on Stream<T> only. IntStream has NO collect(Collector)
+        // overload -- its 3-arg collect is mutable reduction, a different shape
+        // entirely (supplier, accumulator, combiner):
+        //     collect(StringBuilder::new, StringBuilder::append, StringBuilder::append)
+        // So Collectors.joining() is unreachable until after mapToObj.
+        //
+        // rangeClosed(1, limit) -- closed, so limit is included; range() would
+        // stop one short. Starting at 1 also makes the empty case free:
+        // rangeClosed(1, 0) is an empty stream and joining() returns "" for
+        // one, so "zero rows" needs no branch of its own.
+        return IntStream.rangeClosed(1, limit)
+                .mapToObj(i -> String.format("%d x %d = %d", value, i, value * i))
+                .collect(Collectors.joining("\n"));
     }
 
     public static void main(String[] args) {

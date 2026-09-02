@@ -60,6 +60,19 @@ find . -name '*.java' ! -path './07-threads/*' ! -name 'Scratchpad.java' \
 The source files contain no answer key. Keep each exercise independent so
 it remains runnable through Java's single-file source launcher.
 
+### Assisted review
+
+Steps 4–6 have an optional assisted form: the `/lab-review` skill, defined in
+[.claude/skills/lab-review/SKILL.md](../../.claude/skills/lab-review/SKILL.md).
+Invoke it after your own BUILD to run the challenge, critique the solution,
+annotate it with why-comments, and update this file's progress and revision
+tables.
+
+The skill never writes the implementation — that is the rep, and it belongs to
+the reader. A better approach gets described and left for the reader to accept
+or reject. Before the attempt, it gives the smallest hint that unblocks rather
+than the answer.
+
 ## Track
 
 The order moves from syntax and standard input through collections and object
@@ -218,7 +231,7 @@ you can predict and explain its behavior.
 
 | Subdomain | Labs | Complete |
 |---|---:|---:|
-| Introduction | 13 | 4/13 |
+| Introduction | 13 | 7/13 |
 | Strings | 11 | 0/11 |
 | BigNumber | 3 | 0/3 |
 | Data Structures | 15 | 0/15 |
@@ -227,7 +240,7 @@ you can predict and explain its behavior.
 | Threads and Concurrency | 8 | 0/8 |
 | Advanced | 12 | 0/12 |
 | Stream API | 18 | 0/18 |
-| **Total** | **90** | **4/90** |
+| **Total** | **90** | **7/90** |
 
 ## Revision references
 
@@ -237,3 +250,8 @@ revisiting.
 | Challenge | Construct | Resource | Studied |
 |---|---|---|---|
 | 02 — Java Stdin and Stdout I | Stream collectors, especially `Collectors.joining()` | [Baeldung — Guide to Java Collectors](https://www.baeldung.com/java-collectors) | 2026-09-02 |
+| 04 — Java Stdin and Stdout II | Console input and output | [Baeldung — Java Console I/O](https://www.baeldung.com/java-console-input-output) | 2026-09-02 |
+| 05 — Java Output Formatting | `Formatter` conversions: width vs precision, the `-` and `0` flags | [Java 21 API — `java.util.Formatter`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Formatter.html) | 2026-09-02 |
+| 06 — Java Loops I | Primitive streams: `mapToObj` as the crossing to `Stream<T>`, and why `Collector`s need it | [Baeldung — Primitive Type Streams in Java](https://www.baeldung.com/java-8-primitive-streams) | 2026-09-02 |
+| 07 — Java Loops II | `iterate()` + `limit()`: laziness and bounding an infinite source | [Baeldung — Java and Infinite Streams](https://www.baeldung.com/java-inifinite-streams) | 2026-09-02 |
+| 07 — Java Loops II | Stateless lambdas: why a captured accumulator is the wrong way to carry state | [Baeldung — Lambda Expressions and Functional Interfaces: Tips and Best Practices](https://www.baeldung.com/java-8-lambda-expressions-tips) | 2026-09-02 |

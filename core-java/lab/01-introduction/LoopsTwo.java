@@ -1,3 +1,4 @@
+
 /*
  * Challenge 07: Java Loops II
  * Difficulty: Easy
@@ -8,13 +9,44 @@
  * Run: java LoopsTwo.java
  */
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 
 public final class LoopsTwo {
     private LoopsTwo() {
     }
 
     static List<Long> buildSeries(long start, long increment, int terms) {
-        throw new UnsupportedOperationException("TODO: generate the doubling-increment series");
+        // The loop carries state: each term is built from the previous one.
+        //     long p = 1, v = start;                  // int p overflows at 32 terms
+        //     for (int i = 0; i < terms; i++) { v += increment * p; l.add(v); p *= 2; }
+        // map() cannot do that -- it is a pure per-element function with no memory
+        // of earlier elements (that is what lets streams split and parallelize).
+        // Faking it with a captured long[] accumulator breaks under .parallel().
+        //
+        // So the stream is only legal because the recurrence has a closed form.
+        // Unrolling the additions leaves a sum of powers of two, and a run of
+        // those is always one less than the next power (1+2+4+8 = 1111b = 2^4 - 1):
+        //     term i = start + increment * (2^i - 1)
+        // The whole loop history collapses into one shift.
+        return LongStream.iterate(1, i -> i + 1)
+                .limit(terms)
+                // The exponent is tied to where the source starts counting. This
+                // source emits 1,2,3..., so it is (1L << i) - 1. Off an
+                // IntStream.range(0, terms) -- which emits 0,1,2... and needs no
+                // limit() -- the same series needs (1L << (i + 1)) - 1. Copying a
+                // closed form without checking the first index is an off-by-one.
+                // 1L, not 1: 1 << 31 overflows an int. Math.pow is worse -- it
+                // returns a double, which is inexact past 2^53.
+                .mapToObj(i -> start + increment * ((1L << i) - 1))
+                // LongStream has no collect(Collector); that is Stream<T>'s. Its
+                // own collect() is the 3-arg supplier/accumulator/combiner form.
+                // mapToObj crosses to the object world and maps in one step;
+                // boxed() would be the crossing alone.
+                .collect(Collectors.toList());
+        // Untested edge: 1L << i is meaningful only for i < 63. Java masks the
+        // shift count mod 64, so 1L << 64 is silently 1 -- wrong values, no throw.
+        // terms = 0 needs no guard: limit(0) is empty and collects to [].
     }
 
     public static void main(String[] args) {
