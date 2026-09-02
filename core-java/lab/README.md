@@ -1,7 +1,7 @@
 # Core Java labs ☕🧪
 
-This directory contains 72 runnable Java labs arranged as a learning path:
-64 self-testing challenge starters and eight concurrency stations. Each lab
+This directory contains 90 runnable Java labs arranged as a learning path:
+82 self-testing challenge starters and eight concurrency stations. Each lab
 uses only the Java 21 standard library. The task descriptions are
 self-contained, original practice contracts; the challenge names and ordering
 form the curriculum map.
@@ -18,7 +18,8 @@ form the curriculum map.
 | 06 | Exception handling | 2 |
 | 07 | Threads and concurrency | 8 |
 | 08 | Advanced Java | 12 |
-| | **Total** | **72** |
+| 09 | Stream API | 18 |
+| | **Total** | **90** |
 
 `Scratchpad.java` is available for experiments and is not counted as a lab.
 
@@ -36,7 +37,7 @@ An untouched starter throws `UnsupportedOperationException` or fails a
 structural check. A completed challenge prints its completion line after every
 embedded check succeeds.
 
-Compile all 64 challenge starters without writing class files into the
+Compile all 82 challenge starters without writing class files into the
 repository:
 
 ```bash
@@ -62,9 +63,9 @@ it remains runnable through Java's single-file source launcher.
 ## Track
 
 The order moves from syntax and standard input through collections and object
-design to concurrency, reflection, annotations, lambdas and cryptographic
-hashes. Challenge numbers 01–64 cover sections 01–06 and 08; section 07 uses
-station numbers S1–S8 and has a separate
+design to concurrency, reflection, annotations, lambdas, cryptographic hashes,
+and the Stream API. Challenge numbers 01–82 cover sections 01–06 and 08–09;
+section 07 uses station numbers S1–S8 and has a separate
 [predict-run-explain guide](07-threads/README.md).
 
 ### Introduction
@@ -183,6 +184,32 @@ hang; guard them with `timeout 6` or stop them with `Ctrl-C`.
 | 63 | Java MD5 | Medium | [Md5Digest.java](08-advanced/Md5Digest.java) |
 | 64 | Java SHA-256 | Medium | [Sha256Digest.java](08-advanced/Sha256Digest.java) |
 
+### Stream API
+
+The [section guide](09-stream-api/README.md) explains the stream mental model,
+learning order, and review checkpoints.
+
+| # | Challenge | Difficulty | Starter |
+|---:|---|---|---|
+| 65 | Filter and Map Pipeline | Easy | [FilterMapPipeline.java](09-stream-api/FilterMapPipeline.java) |
+| 66 | Laziness and Short-Circuiting | Easy | [LazyFirstMatch.java](09-stream-api/LazyFirstMatch.java) |
+| 67 | Distinct, Sorted, Skip, and Limit | Easy | [DistinctScorePage.java](09-stream-api/DistinctScorePage.java) |
+| 68 | Flatten Nested Data | Easy | [FlatMapWords.java](09-stream-api/FlatMapWords.java) |
+| 69 | One-to-Many Mapping with `mapMulti` | Medium | [MapMultiRanges.java](09-stream-api/MapMultiRanges.java) |
+| 70 | Prefix Operations | Easy | [TakeDropWhileReadings.java](09-stream-api/TakeDropWhileReadings.java) |
+| 71 | Matching and Finding | Easy | [MatchAndFindInventory.java](09-stream-api/MatchAndFindInventory.java) |
+| 72 | Optional in a Stream Pipeline | Medium | [OptionalEmailPipeline.java](09-stream-api/OptionalEmailPipeline.java) |
+| 73 | Three-Argument Reduction | Medium | [ReduceTransactions.java](09-stream-api/ReduceTransactions.java) |
+| 74 | Primitive Streams and Statistics | Easy | [PrimitiveStreamStatistics.java](09-stream-api/PrimitiveStreamStatistics.java) |
+| 75 | Joining Collector | Easy | [JoiningCollector.java](09-stream-api/JoiningCollector.java) |
+| 76 | Grouping with a Downstream Collector | Medium | [GroupingSales.java](09-stream-api/GroupingSales.java) |
+| 77 | Partitioning with Downstream Mapping | Medium | [PartitionPeople.java](09-stream-api/PartitionPeople.java) |
+| 78 | Building Maps with Duplicate Keys | Medium | [MergingVotes.java](09-stream-api/MergingVotes.java) |
+| 79 | Teeing Collector | Medium | [TeeingRange.java](09-stream-api/TeeingRange.java) |
+| 80 | Build a Custom Collector | Hard | [CustomBracketCollector.java](09-stream-api/CustomBracketCollector.java) |
+| 81 | Infinite Stream Sources | Medium | [InfiniteStreamBounds.java](09-stream-api/InfiniteStreamBounds.java) |
+| 82 | Parallel Collection Without Shared Mutation | Hard | [ParallelWordFrequency.java](09-stream-api/ParallelWordFrequency.java) |
+
 ## Scorecard
 
 Mark a challenge only after its checks pass and you can explain the core
@@ -191,7 +218,7 @@ you can predict and explain its behavior.
 
 | Subdomain | Labs | Complete |
 |---|---:|---:|
-| Introduction | 13 | 0/13 |
+| Introduction | 13 | 4/13 |
 | Strings | 11 | 0/11 |
 | BigNumber | 3 | 0/3 |
 | Data Structures | 15 | 0/15 |
@@ -199,7 +226,8 @@ you can predict and explain its behavior.
 | Exception Handling | 2 | 0/2 |
 | Threads and Concurrency | 8 | 0/8 |
 | Advanced | 12 | 0/12 |
-| **Total** | **72** | **0/72** |
+| Stream API | 18 | 0/18 |
+| **Total** | **90** | **4/90** |
 
 ## Revision references
 
