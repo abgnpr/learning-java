@@ -98,7 +98,7 @@ then run them and explain why you were right or wrong.
 
 ```bash
 cd core-java/lab
-java 07-threads/01-start-vs-run/StartVsRun.java
+java 07-threads/StartVsRun.java
 ```
 
 Two stations hang on purpose. That hang is the lesson — kill them

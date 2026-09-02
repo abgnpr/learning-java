@@ -65,7 +65,7 @@ describes study readiness.
 
 Runnable kits use Java 21's single-file launcher with no build. The
 threads lab runs with `cd core-java/lab && java
-07-threads/01-start-vs-run/StartVsRun.java`; S3 and S5 hang on purpose,
+07-threads/StartVsRun.java`; S3 may hang and S5 hangs on purpose,
 so guard them with `timeout 6`. The challenge track runs from
 `core-java/lab/` and its untouched starters fail at the marked `TODO`
 until solved. All 64 challenge sources compile together on Temurin

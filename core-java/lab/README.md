@@ -157,14 +157,14 @@ hang; guard them with `timeout 6` or stop them with `Ctrl-C`.
 
 | Station | Topic | Source |
 |---:|---|---|
-| S1 | `start()` vs `run()` | [StartVsRun.java](07-threads/01-start-vs-run/StartVsRun.java) |
-| S2 | Lost update | [LostUpdate.java](07-threads/02-lost-update/LostUpdate.java) |
-| S3 | Visibility and `volatile` | [Visibility.java](07-threads/03-visibility/Visibility.java) |
-| S4 | `wait()` vs `sleep()` | [WaitVsSleep.java](07-threads/04-wait-vs-sleep/WaitVsSleep.java) |
-| S5 | Deadlock | [Deadlock.java](07-threads/05-deadlock/Deadlock.java) |
-| S6 | Thread-pool reuse | [PoolReuse.java](07-threads/06-pool-reuse/PoolReuse.java) |
-| S7 | Producer/consumer | [ProducerConsumer.java](07-threads/07-producer-consumer/ProducerConsumer.java) |
-| S8 | Virtual threads | [VirtualThreads.java](07-threads/08-virtual-threads/VirtualThreads.java) |
+| S1 | `start()` vs `run()` | [StartVsRun.java](07-threads/StartVsRun.java) |
+| S2 | Lost update | [LostUpdate.java](07-threads/LostUpdate.java) |
+| S3 | Visibility and `volatile` | [Visibility.java](07-threads/Visibility.java) |
+| S4 | `wait()` vs `sleep()` | [WaitVsSleep.java](07-threads/WaitVsSleep.java) |
+| S5 | Deadlock | [Deadlock.java](07-threads/Deadlock.java) |
+| S6 | Thread-pool reuse | [PoolReuse.java](07-threads/PoolReuse.java) |
+| S7 | Producer/consumer | [ProducerConsumer.java](07-threads/ProducerConsumer.java) |
+| S8 | Virtual threads | [VirtualThreads.java](07-threads/VirtualThreads.java) |
 
 ### Advanced
 
