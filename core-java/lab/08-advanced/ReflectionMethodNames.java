@@ -1,8 +1,9 @@
 /*
  * Challenge 54: Java Reflection - Attributes (Easy)
  *
- * Task: Inspect a class at runtime and return the names of only the methods it
- * declares, sorted in ascending order.
+ * Task: Inspect a class at runtime and return the name of every method it
+ * declares, sorted in ascending order. Exclude inherited methods; include one
+ * entry per declared overload, so a name may appear more than once.
  * Complete: declaredMethodNames(Class<?>).
  * Run: java ReflectionMethodNames.java
  */

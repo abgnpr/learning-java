@@ -1,8 +1,8 @@
 /*
  * Challenge 50: Java Iterator (Easy)
  *
- * Task: Walk a heterogeneous list with an Iterator and collect every element
- * that appears after a marker value.
+ * Task: Walk a heterogeneous list with an Iterator and return every element
+ * after the marker value. The marker appears exactly once in the list.
  * Complete: elementsAfterMarker(List<Object>, Object).
  * Run: java IteratorAfterMarker.java
  */

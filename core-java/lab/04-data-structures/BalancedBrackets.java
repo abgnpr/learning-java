@@ -2,7 +2,8 @@
  * Challenge 35 — Java Stack (Medium)
  *
  * Task: Decide whether every (), [], and {} delimiter in a string closes in
- * the correct order. An empty string is balanced.
+ * the correct order. Input contains only those delimiters; an empty string is
+ * balanced.
  * Complete: isBalanced(String text)
  * Run: java BalancedBrackets.java
  */

@@ -1,8 +1,8 @@
 /*
  * Challenge 36 — Java Hashset (Easy)
  *
- * Task: Insert ordered pairs of strings into a set and report the number of
- * distinct pairs after each insertion.
+ * Task: Insert ordered pairs of strings into a set and return the running
+ * number of distinct pairs after each insertion.
  * Complete: runningDistinctCounts(List<Pair> pairs)
  * Run: java DistinctPairs.java
  */

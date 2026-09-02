@@ -2,7 +2,8 @@
  * Challenge 40 — Java Dequeue (Medium)
  *
  * Task: For every contiguous window of a fixed size, count its distinct
- * integers and return the largest count seen.
+ * integers and return the largest count seen. The window size is between 1
+ * and the array length, inclusive.
  * Complete: maxDistinctInWindow(int[] values, int windowSize)
  * Run: java DistinctWindow.java
  */

@@ -1,6 +1,6 @@
 // Station 2 — the race condition. `i++` is read-modify-write, NOT atomic.
-// 8 threads each add 100k. Plain int loses updates; AtomicInteger doesn't.
-// Run:  java LostUpdate.java   (rerun a few times — the loss varies)
+// 8 threads each add 100k. Plain int can lose updates; AtomicInteger doesn't.
+// Run:  java LostUpdate.java   (rerun a few times — any loss usually varies)
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class LostUpdate {

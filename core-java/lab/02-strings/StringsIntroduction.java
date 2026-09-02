@@ -2,9 +2,10 @@
  * Challenge 14: Java Strings Introduction
  * Difficulty: Easy
  *
- * Task: For two non-empty ASCII strings, report their combined length, whether
- * the first sorts after the second using case-sensitive String.compareTo, and
- * a version of the pair with each first letter capitalized.
+ * Task: For two non-empty ASCII strings, return a Summary containing their
+ * combined length, whether the first sorts after the second using
+ * case-sensitive String.compareTo, and the pair with both first letters
+ * capitalized.
  * Complete: static Summary analyze(String first, String second)
  * Run: java StringsIntroduction.java
  */

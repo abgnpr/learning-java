@@ -2,9 +2,10 @@
  * Challenge 09: Java End-of-file
  * Difficulty: Easy
  *
- * Task: Read text until EOF and prefix every input line, including blank lines,
- * with its one-based line number and a space. Accept LF or CRLF terminators;
- * a final line terminator does not create another blank input line.
+ * Task: Return the supplied text with every input line, including blank lines,
+ * prefixed by its one-based line number and a space. Treat the end of the
+ * String as EOF. Accept LF or CRLF terminators; a final line terminator does
+ * not create another blank input line.
  * Complete: static String numberLines(String input)
  * Run: java EndOfFile.java
  */

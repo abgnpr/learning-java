@@ -2,7 +2,9 @@
  * Challenge 33 — Java List (Easy)
  *
  * Task: Apply zero-based Insert and Delete commands to an integer list and
- * return the list after every command has been processed in order.
+ * return the list after every command has been processed in order. Every
+ * supplied index is valid at the time its command runs, and Insert commands
+ * always include a value.
  * Complete: applyOperations(List<Integer> initial, List<Operation> operations)
  * Run: java ListOperations.java
  */

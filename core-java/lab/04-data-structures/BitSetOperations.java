@@ -1,8 +1,11 @@
 /*
  * Challenge 41 — Java BitSet (Easy)
  *
- * Task: Maintain two zero-filled fixed-size bit sets. Apply AND, OR, XOR,
- * FLIP, and SET commands, reporting both cardinalities after every command.
+ * Task: Maintain two zero-filled bit sets of the supplied positive size and
+ * return both cardinalities after every command. For AND, OR, and XOR, left
+ * identifies the target set and right identifies the other set (1 or 2). For
+ * FLIP and SET, left identifies the set and right is a valid zero-based bit
+ * index.
  * Complete: execute(int size, List<Operation> operations)
  * Run: java BitSetOperations.java
  */

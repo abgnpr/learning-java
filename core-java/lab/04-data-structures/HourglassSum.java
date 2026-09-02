@@ -1,8 +1,9 @@
 /*
  * Challenge 29 — Java 2D Array (Easy)
  *
- * Task: Find the greatest hourglass sum in a rectangular integer grid. An
- * hourglass uses three cells, then the center cell, then three cells below.
+ * Task: Find the greatest hourglass sum in a rectangular integer grid with at
+ * least three rows and three columns. An hourglass uses three cells, then the
+ * center cell, then three cells below.
  * Complete: maxHourglassSum(int[][] grid)
  * Run: java HourglassSum.java
  */

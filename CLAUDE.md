@@ -21,8 +21,11 @@ for *any* Java interview, not one of them.
 
 ## Ground & ammunition
 
-- Drill ground: `~/Programs/design-patterns` (MAP annex a1 — Gradle
-  Java repo + diagrams). LLD reps happen THERE; notes live HERE.
+- Drill ground: `~/Programs/learning-lld` (MAP annex a1). Canonical
+  exercise contracts live in `exercises/`; Java's hand-written
+  pattern study and timed implementations live in `java/patterns/`
+  and `java/machine-coding/`. Reps happen THERE; Java knowledge kits
+  live HERE.
 - The Java flagship story: the IMPS switch (Spring Boot 2.7 receiver,
   Kafka topics, 7 plain-Java consumers, reversion saga) — recon:
   `interview-hq/audits/project-recon/imps-switch-recon.md`.

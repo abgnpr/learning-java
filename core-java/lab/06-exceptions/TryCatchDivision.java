@@ -1,8 +1,9 @@
 /*
  * Challenge 51: Java Exception Handling (Try-catch) (Easy)
  *
- * Task: Read two integer tokens, divide them, and convert invalid input or
- * division-by-zero failures into the required diagnostic text.
+ * Task: Parse two integer tokens and return their integer quotient. Return
+ * ArithmeticException.toString() for division by zero, or the fully qualified
+ * InputMismatchException class name when either token is not an integer.
  * Complete: evaluate(String).
  * Run: java TryCatchDivision.java
  */

@@ -2,7 +2,8 @@
  * Challenge 60: Java Annotations (Medium)
  *
  * Task: Inspect runtime budget annotations, find the method for a requested
- * family role, and invoke it only when the spending limit allows it.
+ * family role, and invoke it only when spend is at or below its limit. Return
+ * "Budget Limit Over" when the role is unknown or spend exceeds the limit.
  * Complete: messageFor(FamilyMember, String, int).
  * Run: java BudgetAnnotations.java
  */

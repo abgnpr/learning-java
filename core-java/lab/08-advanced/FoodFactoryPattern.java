@@ -2,7 +2,8 @@
  * Challenge 57: Java Factory Pattern (Easy)
  *
  * Task: Centralize food creation in a factory that maps trimmed,
- * case-insensitive orders for pizza and cake to the matching product type.
+ * case-insensitive orders to the matching Pizza or Cake product. Every
+ * supplied order normalizes to "pizza" or "cake".
  * Complete: FoodFactory.createFood(String).
  * Run: java FoodFactoryPattern.java
  */

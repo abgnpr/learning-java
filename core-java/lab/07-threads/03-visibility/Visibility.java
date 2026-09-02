@@ -1,8 +1,8 @@
-// Station 3 — visibility. Without `volatile`, the worker may spin FOREVER
-// because the JIT hoists the `stop` read out of the loop (reads a stale copy).
+// Station 3 — visibility. Without `volatile`, this data race gives the worker
+// no guarantee of observing the write; an optimizer may reuse the old value.
 // Run:  java Visibility.java
 //   -> if it hangs, that's the bug. Ctrl-C, add `volatile` to `stop`, rerun.
-//   (JIT-dependent: it may or may not hang on your box — volatile GUARANTEES it never does.)
+//   (JIT-dependent: it may or may not hang — volatile establishes visibility.)
 public class Visibility {
     static boolean stop = false;          // <-- add `volatile` here to fix
 

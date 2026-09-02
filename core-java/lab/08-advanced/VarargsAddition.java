@@ -1,8 +1,8 @@
 /*
  * Challenge 53: Java Varargs - Simple Addition (Easy)
  *
- * Task: Accept any positive number of integers through one varargs method and
- * format both the addends and their sum as an equation.
+ * Task: Accept one or more integers through one varargs method and format both
+ * the addends and their sum as an equation.
  * Complete: add(int...).
  * Run: java VarargsAddition.java
  */

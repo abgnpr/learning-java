@@ -2,7 +2,9 @@
  * Challenge 56: Prime Checker (Medium)
  *
  * Task: Provide overloaded checkPrime methods for several fixed arities; each
- * call returns only its prime arguments in their original order.
+ * call returns its prime arguments in their original order, separated by one
+ * space with no surrounding whitespace. Return an empty String when none are
+ * prime.
  * Complete: All PrimeChecker.checkPrime overloads.
  * Run: java OverloadedPrimeChecker.java
  */

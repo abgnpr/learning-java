@@ -7,6 +7,18 @@ Callsign **HOT COFFEE**, base 6 of the interview fleet. Operating
 charter lives in [CLAUDE.md](CLAUDE.md); HQ is
 `~/Documents/interview-hq`.
 
+This repository owns Java language and framework preparation. LLD lives in
+the language-neutral ground at `~/Programs/learning-lld`; its Java lane is
+split into:
+
+- `java/patterns/` — hand-written design-pattern examples, including study from
+  *Head First Design Patterns*;
+- `java/machine-coding/` — timed implementations of the canonical exercise
+  contracts in `exercises/`.
+
+A machine-coding problem uses a named pattern only when the design pressure
+earns it.
+
 ## What's in here
 
 | File | What it is |
@@ -69,7 +81,7 @@ spring-boot/
 └── spring-boot-basics.ESTIMATE.md
 ```
 
-## The labs
+## The in-repository labs
 
 Every exercise is a single file you launch directly; no Maven or Gradle
 build is required. The Java challenge track starts compile-safe but

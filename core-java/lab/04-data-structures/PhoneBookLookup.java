@@ -1,8 +1,8 @@
 /*
  * Challenge 34 — Java Map (Easy)
  *
- * Task: Look up names in a phone book. For each query, emit "name=number"
- * when present or "Not found" when the key is absent.
+ * Task: Look up names in a phone book and return one result String per query,
+ * in query order: "name=number" when present or "Not found" when absent.
  * Complete: lookup(Map<String, String> phoneBook, List<String> queries)
  * Run: java PhoneBookLookup.java
  */

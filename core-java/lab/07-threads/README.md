@@ -14,8 +14,8 @@ cd core-java/lab/07-threads
 java 01-start-vs-run/StartVsRun.java
 ```
 
-Two stations **hang on purpose** (S3, S5). That hang *is* the lesson.
-Kill with `Ctrl-C`, or guard it:
+S3 **may hang** because it deliberately contains a data race; S5 is designed
+to deadlock and hang. Kill either with `Ctrl-C`, or guard it:
 `timeout 6 java 03-visibility/Visibility.java`.
 
 ## The drill protocol (do NOT skip the predict)
@@ -58,8 +58,9 @@ calling run() yourself just runs it on the caller — no new thread."*
 ## S2 — the lost update (race condition)  · file: [LostUpdate.java](02-lost-update/LostUpdate.java)
 
 **Proves:** `i++` is read-modify-write — three steps, not atomic. Eight
-threads racing on a plain `int` **lose** updates. `AtomicInteger` (CAS)
-doesn't.
+threads racing on a plain `int` **can lose** updates. `AtomicInteger` (CAS)
+doesn't. A particular run is not required to exhibit a loss, so rerun if the
+unsafe total happens to match the expected total.
 
 ```java
 unsafe++;                  // read, +1, write — interleavable → lost updates
@@ -70,11 +71,12 @@ safe.incrementAndGet();    // one atomic CAS step
 
 ```
 expected : 800000
-unsafe   : 313443   (lost 486557)   <- your number will differ every run
+unsafe   : 313443   (lost 486557)   <- the number usually varies between runs
 safe     : 800000
 ```
-Over **half** the increments vanished. Rerun — the loss changes, because
-it depends on interleaving. That non-determinism *is* the race.
+This example lost over half its increments. A run can lose fewer—or, rarely,
+none—because the result depends on interleaving. That lack of a guaranteed
+result *is* the race.
 
 ⚓ **This is your IMPS story.** The Redis debit-limit check
 (`hget` → compare → `hset`) is the exact same non-atomic read-modify-write
@@ -87,10 +89,11 @@ updates. Flags → volatile; counters → AtomicInteger; compound state → a lo
 
 ---
 
-## S3 — visibility (`volatile`)  · file: [Visibility.java](03-visibility/Visibility.java)  ⚠️ hangs
+## S3 — visibility (`volatile`)  · file: [Visibility.java](03-visibility/Visibility.java)  ⚠️ may hang
 
-**Proves:** without `volatile`, one thread can spin on a **stale cached
-copy** of a flag forever — the JIT hoists the read out of the loop.
+**Proves:** without `volatile`, the data race gives the worker no guarantee of
+observing another thread's write. A compiler may legally reuse the previously
+observed value and let the loop spin forever.
 
 ```java
 static boolean stop = false;      // <-- add `volatile` to fix
@@ -107,10 +110,10 @@ The worker never sees the flip. **Now add `volatile` to `stop` and rerun** —
 it stops immediately.
 
 > Honesty: this is JIT/CPU-dependent — on some boxes the plain version
-> happens to terminate. The point isn't "it always hangs," it's that
-> **`volatile` guarantees it never does** (forces every read/write through
-> main memory + a happens-before edge). It fixes *visibility*, not atomicity
-> — S2's `i++` would still race even if volatile.
+> happens to terminate. The point isn't "it always hangs," but that a write to
+> a `volatile` field happens-before a later read of that field, establishing
+> the required visibility and ordering. It does not make compound operations
+> atomic—S2's `i++` would still race even if volatile.
 
 **Say it:** *"volatile is a visibility + ordering guarantee, not atomicity.
 It stops a thread reading a stale cached copy — but i++ on a volatile is

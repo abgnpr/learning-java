@@ -1,9 +1,10 @@
 /*
  * Challenge 32 — Java 1D Array (Part 2) (Medium)
  *
- * Task: Starting at index zero in a 0/1 game array, decide whether moves of
- * one step backward, one step forward, or a fixed leap can reach past the end.
- * A move may land only on a zero.
+ * Task: Starting at index zero in a non-empty 0/1 game array, decide whether
+ * moves of one step backward, one step forward, or a positive fixed leap can
+ * reach past the end. The first element is zero, and a move within the array
+ * may land only on a zero.
  * Complete: canEscape(int leap, int[] game)
  * Run: java LeapGame.java
  */

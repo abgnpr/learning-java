@@ -1,8 +1,9 @@
 /*
  * Challenge 58: Java Singleton Pattern (Easy)
  *
- * Task: Finish a lazily created singleton so every caller receives one shared
- * object and state written through one reference is visible through another.
+ * Task: Finish a lazily created singleton so sequential callers receive one
+ * shared object and state written through one reference is visible through
+ * another. Thread-safe initialization is outside this exercise's scope.
  * Complete: Singleton.getInstance().
  * Run: java SingletonPattern.java
  */

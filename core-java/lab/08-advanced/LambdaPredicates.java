@@ -2,7 +2,8 @@
  * Challenge 62: Java Lambda Expressions (Medium)
  *
  * Task: Return lambda expressions that classify an integer as odd, prime, or
- * palindromic through one functional interface.
+ * palindromic through one functional interface. Negative values may be odd,
+ * but they are neither prime nor decimal palindromes.
  * Complete: isOdd(), isPrime(), and isPalindrome().
  * Run: java LambdaPredicates.java
  */
