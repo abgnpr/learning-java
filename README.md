@@ -28,7 +28,8 @@ earns it.
 | [java-8.md](core-java/java-8.md) | The Tier-1 "Java 8 from zero" study block (§A–§I) — functional interfaces, lambdas, streams, `Optional`, `java.time`. |
 | [threads-jvm.md](core-java/threads-jvm.md) | Threads, locks, the memory model, executors and JVM internals — ordered so that no answer depends on one below it. |
 | [Threads lab index](core-java/lab/07-threads/README.md) | Eight runnable stations for the concurrency section — races, visibility, deadlock, pools, virtual threads. |
-| [Core Java lab index](core-java/lab/README.md) | 64 self-testing challenges plus eight concurrency stations, organized as one numbered learning path. |
+| [Core Java lab index](core-java/lab/README.md) | 82 self-testing challenges plus eight concurrency stations, organized as one numbered learning path. |
+| [Core Java lab roadmap](core-java/lab/ROADMAP.md) | Planned core-contract, I/O/time and practical-concurrency labs, followed by a payment-ledger capstone. |
 | [spring-boot-basics.md](spring-boot/spring-boot-basics.md) | DI/IoC, beans and scopes, auto-config, web MVC, validation, data/JPA, transactions and proxies, testing, actuator. |
 | [spring-senior-core.md](spring-boot/spring-senior-core.md) | Complete senior Spring reference: container/runtime flows, Boot, MVC, security, JPA, transactions, cross-system consistency, resilience, observability, testing and banking scenarios. |
 | [Spring senior-core checklist](spring-boot/senior-core-checklist.md) | Completed build tracker and acceptance scope for the senior Spring interview core. |
@@ -61,6 +62,8 @@ core-java/
     ├── 06-exceptions/
     ├── 07-threads/
     ├── 08-advanced/
+    ├── 09-stream-api/
+    ├── ROADMAP.md
     └── Scratchpad.java
 
 kafka/
@@ -113,6 +116,6 @@ blind rep out loud.
 **The rep scorecard at the foot of each kit is authoritative**;
 [CLAUDE.md](CLAUDE.md) summarises them. `core-java/core-java.md` and
 `core-java/threads-jvm.md` are through rep 1 in full; `kafka/kafka-basics.md` is
-half-way; the runnable labs, `kafka/kafka-basics-exercise.md` and
-the Spring senior reference and Boot/Security/JPA/Transactions/Resilience/
+half-way; the runnable Java challenge track is in progress. The Kafka exercise
+and Spring senior reference and Boot/Security/JPA/Transactions/Resilience/
 Observability/Testing/Container kits are racked and unrepped/unsolved.

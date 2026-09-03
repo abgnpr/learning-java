@@ -73,6 +73,9 @@ the reader. A better approach gets described and left for the reader to accept
 or reject. Before the attempt, it gives the smallest hint that unblocks rather
 than the answer.
 
+Planned lab extensions and the payment-ledger capstone are scoped in the
+[Core Java lab roadmap](ROADMAP.md).
+
 ## Track
 
 The order moves from syntax and standard input through collections and object
@@ -250,6 +253,8 @@ revisiting.
 | Challenge | Construct | Resource | Studied |
 |---|---|---|---|
 | 02 — Java Stdin and Stdout I | Stream collectors, especially `Collectors.joining()` | [Baeldung — Guide to Java Collectors](https://www.baeldung.com/java-collectors) | 2026-09-02 |
+| 03 — Java If-Else | Traditional and expression forms of `switch` | [Baeldung — The `switch` Statement in Java](https://www.baeldung.com/java-switch) | 2026-09-02 |
+| 03 — Java If-Else | Type patterns, guarded cases, and exhaustiveness in `switch` | [Baeldung — Pattern Matching for `switch`](https://www.baeldung.com/java-switch-pattern-matching) | 2026-09-02 |
 | 04 — Java Stdin and Stdout II | Console input and output | [Baeldung — Java Console I/O](https://www.baeldung.com/java-console-input-output) | 2026-09-02 |
 | 05 — Java Output Formatting | `Formatter` conversions: width vs precision, the `-` and `0` flags | [Java 21 API — `java.util.Formatter`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Formatter.html) | 2026-09-02 |
 | 06 — Java Loops I | Primitive streams: `mapToObj` as the crossing to `Stream<T>`, and why `Collector`s need it | [Baeldung — Primitive Type Streams in Java](https://www.baeldung.com/java-8-primitive-streams) | 2026-09-02 |
