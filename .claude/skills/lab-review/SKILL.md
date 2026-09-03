@@ -57,9 +57,27 @@ Read the whole file and assess:
 
 Report findings as a short list. Distinguish "this is wrong" from "this is a
 matter of taste" honestly, and say plainly when the solution is simply good —
-manufactured criticism wastes the rep. Then wait for their call.
+manufactured criticism wastes the rep.
 
-### 3. Annotate with why-comments
+### 3. Ask before annotating
+
+Feedback is the deliverable. Annotating is a separate job the user opts into.
+
+End the review with one plain-prose question offering to annotate, and stop
+there. No `AskUserQuestion` menu — a single line is the whole ask:
+
+> Want me to annotate this with why-comments?
+
+Fold any code changes you proposed in step 2 into that same line rather than
+asking about them separately. Then wait. A reply that names only the file
+("this one only", "just Datatypes") is a scope answer, not a yes.
+
+Do not run step 5 either until annotation happens — the README records a
+completed drill, and the drill is not complete while the offer is open. If
+the user declines annotation outright, ask whether they still want the
+counts updated.
+
+### 4. Annotate with why-comments
 
 The house style is set by `01-introduction/StdinStdoutOne.java` and
 `StdinStdoutTwo.java`. Read one before writing.
@@ -79,7 +97,7 @@ cost time, the API rule that is easy to get backwards. Not what the code does.
 
 Then re-run to confirm the file still passes.
 
-### 4. Update the lab README
+### 5. Update the lab README
 
 In `core-java/lab/README.md`:
 

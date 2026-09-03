@@ -234,7 +234,7 @@ you can predict and explain its behavior.
 
 | Subdomain | Labs | Complete |
 |---|---:|---:|
-| Introduction | 13 | 7/13 |
+| Introduction | 13 | 9/13 |
 | Strings | 11 | 0/11 |
 | BigNumber | 3 | 0/3 |
 | Data Structures | 15 | 0/15 |
@@ -243,7 +243,7 @@ you can predict and explain its behavior.
 | Threads and Concurrency | 8 | 0/8 |
 | Advanced | 12 | 0/12 |
 | Stream API | 18 | 0/18 |
-| **Total** | **90** | **7/90** |
+| **Total** | **90** | **9/90** |
 
 ## Revision references
 
@@ -259,4 +259,7 @@ revisiting.
 | 05 — Java Output Formatting | `Formatter` conversions: width vs precision, the `-` and `0` flags | [Java 21 API — `java.util.Formatter`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Formatter.html) | 2026-09-02 |
 | 06 — Java Loops I | Primitive streams: `mapToObj` as the crossing to `Stream<T>`, and why `Collector`s need it | [Baeldung — Primitive Type Streams in Java](https://www.baeldung.com/java-8-primitive-streams) | 2026-09-02 |
 | 07 — Java Loops II | `iterate()` + `limit()`: laziness and bounding an infinite source | [Baeldung — Java and Infinite Streams](https://www.baeldung.com/java-inifinite-streams) | 2026-09-02 |
+| 08 — Java Datatypes | `parseByte` and the `MIN_VALUE`/`MAX_VALUE` constants: what a wrapper's range contract guarantees, and that a failed parse throws rather than saturating | [Java 21 API — `java.lang.Byte`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Byte.html) | 2026-09-03 |
 | 07 — Java Loops II | Stateless lambdas: why a captured accumulator is the wrong way to carry state | [Baeldung — Lambda Expressions and Functional Interfaces: Tips and Best Practices](https://www.baeldung.com/java-8-lambda-expressions-tips) | 2026-09-02 |
+| 09 — Java End-of-file | `readLine()` returning `null` as the EOF signal, and the assign-inside-the-condition loop it forces | [Java 21 API — `java.io.BufferedReader`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/io/BufferedReader.html) | 2026-09-03 |
+| 09 — Java End-of-file | Choosing between `Scanner` and `BufferedReader`: lookahead vs raw reads, buffer size, checked vs unchecked exceptions | [Baeldung — BufferedReader vs Console vs Scanner in Java](https://www.baeldung.com/bufferedreader-vs-console-vs-scanner-in-java) | 2026-09-03 |
