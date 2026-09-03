@@ -12,7 +12,9 @@ public final class Substring {
     }
 
     static String slice(String text, int startInclusive, int endExclusive) {
-        throw new UnsupportedOperationException("TODO: return the requested substring");
+        // The end is exclusive, so equal indices naturally produce "" and no
+        // off-by-one adjustment is needed; String enforces invalid bounds.
+        return text.substring(startInclusive, endExclusive);
     }
 
     public static void main(String[] args) {
@@ -34,7 +36,7 @@ public final class Substring {
         }
         failures++;
         System.out.println("FAIL " + label
-                    + ":\n  expected: <" + expected + ">"
-                    + "\n    actual: <" + actual + ">");
+                + ":\n  expected: <" + expected + ">"
+                + "\n    actual: <" + actual + ">");
     }
 }

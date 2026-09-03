@@ -89,32 +89,32 @@ section 07 uses station numbers S1–S8 and has a separate
 | # | Challenge | Difficulty | Starter |
 |---:|---|---|---|
 | 01 | Welcome to Java! | Easy | [WelcomeToJava.java](01-introduction/WelcomeToJava.java) |
-| 02 | Java Stdin and Stdout I | Easy | [StdinStdoutOne.java](01-introduction/StdinStdoutOne.java) |
-| 03 | Java If-Else | Easy | [IfElse.java](01-introduction/IfElse.java) |
-| 04 | Java Stdin and Stdout II | Easy | [StdinStdoutTwo.java](01-introduction/StdinStdoutTwo.java) |
-| 05 | Java Output Formatting | Easy | [OutputFormatting.java](01-introduction/OutputFormatting.java) |
-| 06 | Java Loops I | Easy | [LoopsOne.java](01-introduction/LoopsOne.java) |
-| 07 | Java Loops II | Easy | [LoopsTwo.java](01-introduction/LoopsTwo.java) |
-| 08 | Java Datatypes | Easy | [Datatypes.java](01-introduction/Datatypes.java) |
-| 09 | Java End-of-file | Easy | [EndOfFile.java](01-introduction/EndOfFile.java) |
-| 10 | Java Static Initializer Block | Easy | [StaticInitializerBlock.java](01-introduction/StaticInitializerBlock.java) |
-| 11 | Java Int to String | Easy | [IntToString.java](01-introduction/IntToString.java) |
-| 12 | Java Date and Time | Easy | [DateAndTime.java](01-introduction/DateAndTime.java) |
-| 13 | Java Currency Formatter | Easy | [CurrencyFormatter.java](01-introduction/CurrencyFormatter.java) |
+| 02 | Stdin and Stdout I | Easy | [StdinStdoutOne.java](01-introduction/StdinStdoutOne.java) |
+| 03 | If-Else | Easy | [IfElse.java](01-introduction/IfElse.java) |
+| 04 | Stdin and Stdout II | Easy | [StdinStdoutTwo.java](01-introduction/StdinStdoutTwo.java) |
+| 05 | Output Formatting | Easy | [OutputFormatting.java](01-introduction/OutputFormatting.java) |
+| 06 | Loops I | Easy | [LoopsOne.java](01-introduction/LoopsOne.java) |
+| 07 | Loops II | Easy | [LoopsTwo.java](01-introduction/LoopsTwo.java) |
+| 08 | Datatypes | Easy | [Datatypes.java](01-introduction/Datatypes.java) |
+| 09 | End-of-file | Easy | [EndOfFile.java](01-introduction/EndOfFile.java) |
+| 10 | Static Initializer Block | Easy | [StaticInitializerBlock.java](01-introduction/StaticInitializerBlock.java) |
+| 11 | Int to String | Easy | [IntToString.java](01-introduction/IntToString.java) |
+| 12 | Date and Time | Easy | [DateAndTime.java](01-introduction/DateAndTime.java) |
+| 13 | Currency Formatter | Easy | [CurrencyFormatter.java](01-introduction/CurrencyFormatter.java) |
 
 ### Strings
 
 | # | Challenge | Difficulty | Starter |
 |---:|---|---|---|
-| 14 | Java Strings Introduction | Easy | [StringsIntroduction.java](02-strings/StringsIntroduction.java) |
-| 15 | Java Substring | Easy | [Substring.java](02-strings/Substring.java) |
-| 16 | Java Substring Comparisons | Easy | [SubstringComparisons.java](02-strings/SubstringComparisons.java) |
-| 17 | Java String Reverse | Easy | [StringReverse.java](02-strings/StringReverse.java) |
-| 18 | Java Anagrams | Easy | [Anagrams.java](02-strings/Anagrams.java) |
-| 19 | Java String Tokens | Easy | [StringTokens.java](02-strings/StringTokens.java) |
+| 14 | Strings Introduction | Easy | [StringsIntroduction.java](02-strings/StringsIntroduction.java) |
+| 15 | Substring | Easy | [Substring.java](02-strings/Substring.java) |
+| 16 | Substring Comparisons | Easy | [SubstringComparisons.java](02-strings/SubstringComparisons.java) |
+| 17 | String Reverse | Easy | [StringReverse.java](02-strings/StringReverse.java) |
+| 18 | Anagrams | Easy | [Anagrams.java](02-strings/Anagrams.java) |
+| 19 | String Tokens | Easy | [StringTokens.java](02-strings/StringTokens.java) |
 | 20 | Pattern Syntax Checker | Easy | [PatternSyntaxChecker.java](02-strings/PatternSyntaxChecker.java) |
-| 21 | Java Regex | Medium | [RegexIpv4.java](02-strings/RegexIpv4.java) |
-| 22 | Java Regex 2 - Duplicate Words | Medium | [DuplicateWords.java](02-strings/DuplicateWords.java) |
+| 21 | Regex | Medium | [RegexIpv4.java](02-strings/RegexIpv4.java) |
+| 22 | Regex 2 - Duplicate Words | Medium | [DuplicateWords.java](02-strings/DuplicateWords.java) |
 | 23 | Valid Username Regular Expression | Easy | [ValidUsername.java](02-strings/ValidUsername.java) |
 | 24 | Tag Content Extractor | Medium | [TagContentExtractor.java](02-strings/TagContentExtractor.java) |
 
@@ -122,49 +122,49 @@ section 07 uses station numbers S1–S8 and has a separate
 
 | # | Challenge | Difficulty | Starter |
 |---:|---|---|---|
-| 25 | Java BigDecimal | Medium | [BigDecimalOrdering.java](03-big-numbers/BigDecimalOrdering.java) |
-| 26 | Java Primality Test | Easy | [LargeNumberPrimality.java](03-big-numbers/LargeNumberPrimality.java) |
-| 27 | Java BigInteger | Easy | [BigIntegerArithmetic.java](03-big-numbers/BigIntegerArithmetic.java) |
+| 25 | BigDecimal | Medium | [BigDecimalOrdering.java](03-big-numbers/BigDecimalOrdering.java) |
+| 26 | Primality Test | Easy | [LargeNumberPrimality.java](03-big-numbers/LargeNumberPrimality.java) |
+| 27 | BigInteger | Easy | [BigIntegerArithmetic.java](03-big-numbers/BigIntegerArithmetic.java) |
 
 ### Data Structures
 
 | # | Challenge | Difficulty | Starter |
 |---:|---|---|---|
-| 28 | Java 1D Array | Easy | [OneDimensionalArray.java](04-data-structures/OneDimensionalArray.java) |
-| 29 | Java 2D Array | Easy | [HourglassSum.java](04-data-structures/HourglassSum.java) |
-| 30 | Java Subarray | Easy | [NegativeSubarrayCount.java](04-data-structures/NegativeSubarrayCount.java) |
-| 31 | Java Arraylist | Easy | [ArrayListQueries.java](04-data-structures/ArrayListQueries.java) |
-| 32 | Java 1D Array (Part 2) | Medium | [LeapGame.java](04-data-structures/LeapGame.java) |
-| 33 | Java List | Easy | [ListOperations.java](04-data-structures/ListOperations.java) |
-| 34 | Java Map | Easy | [PhoneBookLookup.java](04-data-structures/PhoneBookLookup.java) |
-| 35 | Java Stack | Medium | [BalancedBrackets.java](04-data-structures/BalancedBrackets.java) |
-| 36 | Java Hashset | Easy | [DistinctPairs.java](04-data-structures/DistinctPairs.java) |
-| 37 | Java Generics | Easy | [GenericArrayPrinter.java](04-data-structures/GenericArrayPrinter.java) |
-| 38 | Java Comparator | Medium | [PlayerRankingComparator.java](04-data-structures/PlayerRankingComparator.java) |
-| 39 | Java Sort | Easy | [StudentSort.java](04-data-structures/StudentSort.java) |
-| 40 | Java Dequeue | Medium | [DistinctWindow.java](04-data-structures/DistinctWindow.java) |
-| 41 | Java BitSet | Easy | [BitSetOperations.java](04-data-structures/BitSetOperations.java) |
-| 42 | Java Priority Queue | Medium | [StudentPriorityQueue.java](04-data-structures/StudentPriorityQueue.java) |
+| 28 | 1D Array | Easy | [OneDimensionalArray.java](04-data-structures/OneDimensionalArray.java) |
+| 29 | 2D Array | Easy | [HourglassSum.java](04-data-structures/HourglassSum.java) |
+| 30 | Subarray | Easy | [NegativeSubarrayCount.java](04-data-structures/NegativeSubarrayCount.java) |
+| 31 | Arraylist | Easy | [ArrayListQueries.java](04-data-structures/ArrayListQueries.java) |
+| 32 | 1D Array (Part 2) | Medium | [LeapGame.java](04-data-structures/LeapGame.java) |
+| 33 | List | Easy | [ListOperations.java](04-data-structures/ListOperations.java) |
+| 34 | Map | Easy | [PhoneBookLookup.java](04-data-structures/PhoneBookLookup.java) |
+| 35 | Stack | Medium | [BalancedBrackets.java](04-data-structures/BalancedBrackets.java) |
+| 36 | Hashset | Easy | [DistinctPairs.java](04-data-structures/DistinctPairs.java) |
+| 37 | Generics | Easy | [GenericArrayPrinter.java](04-data-structures/GenericArrayPrinter.java) |
+| 38 | Comparator | Medium | [PlayerRankingComparator.java](04-data-structures/PlayerRankingComparator.java) |
+| 39 | Sort | Easy | [StudentSort.java](04-data-structures/StudentSort.java) |
+| 40 | Dequeue | Medium | [DistinctWindow.java](04-data-structures/DistinctWindow.java) |
+| 41 | BitSet | Easy | [BitSetOperations.java](04-data-structures/BitSetOperations.java) |
+| 42 | Priority Queue | Medium | [StudentPriorityQueue.java](04-data-structures/StudentPriorityQueue.java) |
 
 ### Object-Oriented Programming
 
 | # | Challenge | Difficulty | Starter |
 |---:|---|---|---|
-| 43 | Java Inheritance I | Easy | [InheritanceBasics.java](05-oop/InheritanceBasics.java) |
-| 44 | Java Inheritance II | Easy | [ArithmeticInheritance.java](05-oop/ArithmeticInheritance.java) |
-| 45 | Java Abstract Class | Easy | [AbstractBook.java](05-oop/AbstractBook.java) |
-| 46 | Java Interface | Easy | [DivisorSumInterface.java](05-oop/DivisorSumInterface.java) |
-| 47 | Java Method Overriding | Easy | [SportsMethodOverriding.java](05-oop/SportsMethodOverriding.java) |
-| 48 | Java Method Overriding 2 (Super Keyword) | Easy | [SuperKeywordOverride.java](05-oop/SuperKeywordOverride.java) |
-| 49 | Java Instanceof keyword | Easy | [InstanceofTypeCounter.java](05-oop/InstanceofTypeCounter.java) |
-| 50 | Java Iterator | Easy | [IteratorAfterMarker.java](05-oop/IteratorAfterMarker.java) |
+| 43 | Inheritance I | Easy | [InheritanceBasics.java](05-oop/InheritanceBasics.java) |
+| 44 | Inheritance II | Easy | [ArithmeticInheritance.java](05-oop/ArithmeticInheritance.java) |
+| 45 | Abstract Class | Easy | [AbstractBook.java](05-oop/AbstractBook.java) |
+| 46 | Interface | Easy | [DivisorSumInterface.java](05-oop/DivisorSumInterface.java) |
+| 47 | Method Overriding | Easy | [SportsMethodOverriding.java](05-oop/SportsMethodOverriding.java) |
+| 48 | Method Overriding 2 (Super Keyword) | Easy | [SuperKeywordOverride.java](05-oop/SuperKeywordOverride.java) |
+| 49 | Instanceof keyword | Easy | [InstanceofTypeCounter.java](05-oop/InstanceofTypeCounter.java) |
+| 50 | Iterator | Easy | [IteratorAfterMarker.java](05-oop/IteratorAfterMarker.java) |
 
 ### Exception Handling
 
 | # | Challenge | Difficulty | Starter |
 |---:|---|---|---|
-| 51 | Java Exception Handling (Try-catch) | Easy | [TryCatchDivision.java](06-exceptions/TryCatchDivision.java) |
-| 52 | Java Exception Handling | Easy | [PowerExceptionRules.java](06-exceptions/PowerExceptionRules.java) |
+| 51 | Exception Handling (Try-catch) | Easy | [TryCatchDivision.java](06-exceptions/TryCatchDivision.java) |
+| 52 | Exception Handling | Easy | [PowerExceptionRules.java](06-exceptions/PowerExceptionRules.java) |
 
 ### Threads and Concurrency
 
@@ -187,18 +187,18 @@ hang; guard them with `timeout 6` or stop them with `Ctrl-C`.
 
 | # | Challenge | Difficulty | Starter |
 |---:|---|---|---|
-| 53 | Java Varargs - Simple Addition | Easy | [VarargsAddition.java](08-advanced/VarargsAddition.java) |
-| 54 | Java Reflection - Attributes | Easy | [ReflectionMethodNames.java](08-advanced/ReflectionMethodNames.java) |
+| 53 | Varargs - Simple Addition | Easy | [VarargsAddition.java](08-advanced/VarargsAddition.java) |
+| 54 | Reflection - Attributes | Easy | [ReflectionMethodNames.java](08-advanced/ReflectionMethodNames.java) |
 | 55 | Can You Access? | Medium | [PrivateMemberAccess.java](08-advanced/PrivateMemberAccess.java) |
 | 56 | Prime Checker | Medium | [OverloadedPrimeChecker.java](08-advanced/OverloadedPrimeChecker.java) |
-| 57 | Java Factory Pattern | Easy | [FoodFactoryPattern.java](08-advanced/FoodFactoryPattern.java) |
-| 58 | Java Singleton Pattern | Easy | [SingletonPattern.java](08-advanced/SingletonPattern.java) |
-| 59 | Java Visitor Pattern | Medium | [TreeVisitorPattern.java](08-advanced/TreeVisitorPattern.java) |
-| 60 | Java Annotations | Medium | [BudgetAnnotations.java](08-advanced/BudgetAnnotations.java) |
+| 57 | Factory Pattern | Easy | [FoodFactoryPattern.java](08-advanced/FoodFactoryPattern.java) |
+| 58 | Singleton Pattern | Easy | [SingletonPattern.java](08-advanced/SingletonPattern.java) |
+| 59 | Visitor Pattern | Medium | [TreeVisitorPattern.java](08-advanced/TreeVisitorPattern.java) |
+| 60 | Annotations | Medium | [BudgetAnnotations.java](08-advanced/BudgetAnnotations.java) |
 | 61 | Covariant Return Types | Easy | [CovariantFlowerReturn.java](08-advanced/CovariantFlowerReturn.java) |
-| 62 | Java Lambda Expressions | Medium | [LambdaPredicates.java](08-advanced/LambdaPredicates.java) |
-| 63 | Java MD5 | Medium | [Md5Digest.java](08-advanced/Md5Digest.java) |
-| 64 | Java SHA-256 | Medium | [Sha256Digest.java](08-advanced/Sha256Digest.java) |
+| 62 | Lambda Expressions | Medium | [LambdaPredicates.java](08-advanced/LambdaPredicates.java) |
+| 63 | MD5 | Medium | [Md5Digest.java](08-advanced/Md5Digest.java) |
+| 64 | SHA-256 | Medium | [Sha256Digest.java](08-advanced/Sha256Digest.java) |
 
 ### Stream API
 
@@ -235,7 +235,7 @@ you can predict and explain its behavior.
 | Subdomain | Labs | Complete |
 |---|---:|---:|
 | Introduction | 13 | 13/13 |
-| Strings | 11 | 1/11 |
+| Strings | 11 | 4/11 |
 | BigNumber | 3 | 0/3 |
 | Data Structures | 15 | 0/15 |
 | Object-Oriented Programming | 8 | 0/8 |
@@ -243,7 +243,7 @@ you can predict and explain its behavior.
 | Threads and Concurrency | 8 | 0/8 |
 | Advanced | 12 | 0/12 |
 | Stream API | 18 | 0/18 |
-| **Total** | **90** | **14/90** |
+| **Total** | **90** | **17/90** |
 
 ## Revision references
 
@@ -266,3 +266,4 @@ revisiting.
 | 12 — Java Date and Time | Java 8 date and time API | [Baeldung — Introduction to the Java 8 Date/Time API](https://www.baeldung.com/java-8-date-time-intro) | 2026-09-04 |
 | 12 — Java Date and Time | History of Java date and time APIs | [Baeldung — Java Date and Time History](https://www.baeldung.com/java-date-time-history) | 2026-09-04 |
 | 14 — Java Strings Introduction | `String.substring` bounds and the sign returned by `compareTo` | [Java 21 API — `java.lang.String`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html#substring(int)) | 2026-09-04 |
+| 17 — String Reverse | Two-pointer palindrome scan vs reverse-and-compare | [Java 21 API — `StringBuilder.reverse`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/StringBuilder.html#reverse()) | 2026-09-04 |
