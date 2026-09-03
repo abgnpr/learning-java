@@ -19,35 +19,24 @@ public final class StdinStdoutTwo {
     }
 
     static String summarizeRecord(String input) {
-        // useLocale(ROOT): Scanner's number parsers read separators from the
-        // DEFAULT locale. Under de-DE, '.' is the grouping separator, so "19.5"
-        // is a malformed group (groups must be 3 digits) -> InputMismatchException.
-        // ROOT pins '.' as the decimal point, so the parse depends on the input
-        // only, not on the machine. Machine data formats -> ROOT; text shown to a
-        // person -> that person's locale.
+        // Scanner reads numbers in the default locale; ROOT makes '.' mean a
+        // decimal point even on a machine such as de-DE. Input format, not host
+        // settings, must decide whether "19.5" parses.
         try (Scanner in = new Scanner(input).useLocale(Locale.ROOT)) {
             int i = in.nextInt();
 
-            // Trap: a double holds ~17 significant digits, so nextDouble() on
-            // "2.6749999999999999999" (20 digits) already rounds it to 2.675 --
-            // then HALF_UP correctly gives 2.68 instead of the wanted 2.67. The
-            // precision is gone before setScale ever runs.
+            // Do not parse through double: it rounds before HALF_UP sees the
+            // input. BigDecimal keeps the decimal text exact.
             //     double d = in.nextDouble();
             //     BigDecimal bd = new BigDecimal(Double.toString(d));
-            // BigDecimal keeps every digit of the text, so rounding sees the real
-            // value. (new BigDecimal(double) is also wrong -- it captures the
-            // exact binary value; build from a String.)
             BigDecimal bd = in.nextBigDecimal();
 
             // HALF_UP because .5 must round away from zero. String.format("%.2f")
             // would use HALF_EVEN and turn 0.125 into 0.12, not 0.13.
             bd = bd.setScale(2, RoundingMode.HALF_UP);
 
-            // Token methods (nextInt/nextBigDecimal/next) stop at the end of the
-            // token, leaving the rest of that line -- including '\n' -- unread.
-            // nextLine() does not skip leading whitespace, so without this flush
-            // it returns "" instead of the label. Back-to-back token calls hide
-            // the problem because they skip leading whitespace themselves.
+            // Token reads leave their line break behind; consume it before the
+            // following nextLine(), which otherwise returns the empty remainder.
             in.nextLine();
 
             // nextLine(), not next(): the label may contain spaces.
@@ -57,9 +46,8 @@ public final class StdinStdoutTwo {
             String s = l + " | " + String.valueOf(i) + " | " + String.valueOf(bd);
             return s;
         } catch (Exception e) {
-            // Wrap rather than rethrow: a throw from here escapes before
-            // checkEquals is entered (Java evaluates arguments first), so the
-            // test's label never prints. Attaching the input names the culprit.
+            // Add the input: argument evaluation can throw before checkEquals()
+            // gets a chance to print its label.
             throw new IllegalStateException("failed parsing input:\n<" + input + ">", e);
         }
     }
@@ -71,6 +59,8 @@ public final class StdinStdoutTwo {
                 summarizeRecord("12\n3.13\nTimeothy Tim\n"), "ordinary record");
         checkEquals("tea | -4 | 0.13",
                 summarizeRecord("-4\n0.125\ntea\n"), "rounding and negative integer");
+        checkEquals("negative half | -1 | -0.13",
+                summarizeRecord("-1\n-0.125\nnegative half\n"), "negative half-up rounding");
         checkEquals("two words | 0 | -8.00",
                 summarizeRecord("0\n-8\ntwo words"), "label containing a space");
         checkEquals("precision | 7 | 2.67",

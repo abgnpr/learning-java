@@ -234,8 +234,8 @@ you can predict and explain its behavior.
 
 | Subdomain | Labs | Complete |
 |---|---:|---:|
-| Introduction | 13 | 9/13 |
-| Strings | 11 | 0/11 |
+| Introduction | 13 | 13/13 |
+| Strings | 11 | 1/11 |
 | BigNumber | 3 | 0/3 |
 | Data Structures | 15 | 0/15 |
 | Object-Oriented Programming | 8 | 0/8 |
@@ -243,7 +243,7 @@ you can predict and explain its behavior.
 | Threads and Concurrency | 8 | 0/8 |
 | Advanced | 12 | 0/12 |
 | Stream API | 18 | 0/18 |
-| **Total** | **90** | **9/90** |
+| **Total** | **90** | **14/90** |
 
 ## Revision references
 
@@ -263,3 +263,6 @@ revisiting.
 | 07 — Java Loops II | Stateless lambdas: why a captured accumulator is the wrong way to carry state | [Baeldung — Lambda Expressions and Functional Interfaces: Tips and Best Practices](https://www.baeldung.com/java-8-lambda-expressions-tips) | 2026-09-02 |
 | 09 — Java End-of-file | `readLine()` returning `null` as the EOF signal, and the assign-inside-the-condition loop it forces | [Java 21 API — `java.io.BufferedReader`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/io/BufferedReader.html) | 2026-09-03 |
 | 09 — Java End-of-file | Choosing between `Scanner` and `BufferedReader`: lookahead vs raw reads, buffer size, checked vs unchecked exceptions | [Baeldung — BufferedReader vs Console vs Scanner in Java](https://www.baeldung.com/bufferedreader-vs-console-vs-scanner-in-java) | 2026-09-03 |
+| 12 — Java Date and Time | Java 8 date and time API | [Baeldung — Introduction to the Java 8 Date/Time API](https://www.baeldung.com/java-8-date-time-intro) | 2026-09-04 |
+| 12 — Java Date and Time | History of Java date and time APIs | [Baeldung — Java Date and Time History](https://www.baeldung.com/java-date-time-history) | 2026-09-04 |
+| 14 — Java Strings Introduction | `String.substring` bounds and the sign returned by `compareTo` | [Java 21 API — `java.lang.String`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html#substring(int)) | 2026-09-04 |

@@ -1,3 +1,4 @@
+
 /*
  * Challenge 13: Java Currency Formatter
  * Difficulty: Easy
@@ -7,6 +8,7 @@
  * Run: java CurrencyFormatter.java
  */
 import java.math.BigDecimal;
+import java.text.NumberFormat;
 import java.util.Locale;
 
 public final class CurrencyFormatter {
@@ -14,12 +16,15 @@ public final class CurrencyFormatter {
     }
 
     static String formatCurrency(BigDecimal amount, Locale locale) {
-        throw new UnsupportedOperationException("TODO: use locale-aware currency formatting");
+        var numberFormat = NumberFormat.getCurrencyInstance(locale);
+        return numberFormat.format(amount);
     }
 
     public static void main(String[] args) {
+        checkEquals("$0.00", formatCurrency(BigDecimal.ZERO, Locale.US), "US zero amount");
         checkEquals("$1,234.50", formatCurrency(new BigDecimal("1234.50"), Locale.US), "US amount");
         checkEquals("£1,234.50", formatCurrency(new BigDecimal("1234.50"), Locale.UK), "UK amount");
+        checkEquals("1.234,50 €", formatCurrency(new BigDecimal("1234.50"), Locale.GERMANY), "German amount");
         checkEquals("-$42.00", formatCurrency(new BigDecimal("-42"), Locale.US), "negative amount");
         if (failures > 0) {
             throw new AssertionError("Challenge 13: " + failures + " check(s) failed.");

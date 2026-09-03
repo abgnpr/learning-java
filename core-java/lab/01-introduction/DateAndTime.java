@@ -1,3 +1,6 @@
+
+import java.time.LocalDate;
+
 /*
  * Challenge 12: Java Date and Time
  * Difficulty: Easy
@@ -6,12 +9,14 @@
  * Complete: static String dayOfWeek(int year, int month, int day)
  * Run: java DateAndTime.java
  */
+
 public final class DateAndTime {
     private DateAndTime() {
     }
 
     static String dayOfWeek(int year, int month, int day) {
-        throw new UnsupportedOperationException("TODO: calculate the weekday with java.time");
+        final var date = LocalDate.of(year, month, day);
+        return date.getDayOfWeek().toString();
     }
 
     public static void main(String[] args) {

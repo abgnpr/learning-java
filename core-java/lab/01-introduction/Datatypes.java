@@ -33,18 +33,9 @@ public final class Datatypes {
         } 
         */
 
-        //
-        // Note what the comparisons cannot replace: the parse itself is still
-        // the out-of-range test. Nothing above long can be held to compare in
-        // the first place, so "9223372036854775808" has to arrive as a thrown
-        // NumberFormatException either way. That is why widening the guards is
-        // not an option -- BigInteger would be the next step, not a wider type.
-        //
-        // What it does buy is one throw/catch instead of up to four. Filling in
-        // a stack trace dominates the cost of a parse, so exceptions-as-control-
-        // flow is the fair criticism of the way below. It stays the way below
-        // because four parseX calls say "smallest type that holds this" more
-        // directly than eight boundary comparisons, and this is not a hot path.
+        // A value beyond long still has to fail while parsing; only BigInteger
+        // can represent it for comparison. Parsing each type is less efficient
+        // than parsing once, but states the "smallest type that fits" rule plainly.
 
         // ask-each-type way
         try {
@@ -71,10 +62,16 @@ public final class Datatypes {
     }
 
     public static void main(String[] args) {
+        checkEquals("byte", smallestIntegralType("-128"), "byte lower boundary");
         checkEquals("byte", smallestIntegralType("127"), "byte upper boundary");
+        checkEquals("short", smallestIntegralType("-129"), "first value below byte");
         checkEquals("short", smallestIntegralType("128"), "first value above byte");
+        checkEquals("short", smallestIntegralType("-32768"), "short lower boundary");
         checkEquals("int", smallestIntegralType("-40000"), "negative int value");
+        checkEquals("int", smallestIntegralType("-2147483648"), "int lower boundary");
         checkEquals("long", smallestIntegralType("2147483648"), "first value above int");
+        checkEquals("long", smallestIntegralType("-9223372036854775808"), "long lower boundary");
+        checkEquals("out-of-range", smallestIntegralType("-9223372036854775809"), "below long");
         checkEquals("out-of-range", smallestIntegralType("9223372036854775808"), "above long");
         if (failures > 0) {
             throw new AssertionError("Challenge 08: " + failures + " check(s) failed.");
