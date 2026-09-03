@@ -33,6 +33,9 @@ public final class FilterMapPipeline {
         checkEquals(List.of("ADA", "GRACE"), activeUserNames(users), "filter, normalize, and sort");
         checkEquals(List.of(), activeUserNames(List.of()), "empty input");
         checkUnmodifiable(activeUserNames(users), "result must be unmodifiable");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 65: " + failures + " check(s) failed.");
+        }
         System.out.println("Challenge 65 passed.");
     }
 
@@ -45,11 +48,16 @@ public final class FilterMapPipeline {
         }
     }
 
+    private static int failures = 0;
+
     private static void checkEquals(Object expected, Object actual, String label) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(label
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + label + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + label
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

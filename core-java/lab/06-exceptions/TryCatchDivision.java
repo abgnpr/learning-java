@@ -22,14 +22,22 @@ public class TryCatchDivision {
                 "division by zero");
         checkEquals(InputMismatchException.class.getName(), evaluate("ten 3"),
                 "non-integer input");
-        System.out.println("Challenge 51 passed!");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 51: " + failures + " check(s) failed.");
+        }
+        System.out.println("Challenge 51 passed.");
     }
 
+    private static int failures = 0;
+
     private static void checkEquals(String expected, String actual, String message) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(message
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + message + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + message
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

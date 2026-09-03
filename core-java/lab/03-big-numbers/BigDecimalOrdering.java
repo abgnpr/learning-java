@@ -36,14 +36,22 @@ public class BigDecimalOrdering {
             sortNumericallyDescending(List.of("9007199254740992", "9007199254740993")),
             "values that double cannot distinguish"
         );
-        System.out.println("Challenge 25 passed");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 25: " + failures + " check(s) failed.");
+        }
+        System.out.println("Challenge 25 passed.");
     }
 
+    private static int failures = 0;
+
     static void checkEquals(Object expected, Object actual, String label) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(label
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + label + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + label
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

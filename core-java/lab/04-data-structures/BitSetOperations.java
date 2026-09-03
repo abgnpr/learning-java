@@ -46,18 +46,26 @@ public class BitSetOperations {
             execute(3, List.of(op("FLIP", 1, 0), op("FLIP", 1, 0), op("OR", 2, 1))),
             "flip twice"
         );
-        System.out.println("Challenge 41 passed");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 41: " + failures + " check(s) failed.");
+        }
+        System.out.println("Challenge 41 passed.");
     }
 
     static Operation op(String command, int left, int right) {
         return new Operation(command, left, right);
     }
 
+    private static int failures = 0;
+
     static void checkEquals(Object expected, Object actual, String label) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(label
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + label + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + label
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

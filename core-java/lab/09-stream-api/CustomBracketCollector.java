@@ -28,14 +28,22 @@ public final class CustomBracketCollector {
                 List.of("a", "b", "c", "d", "e").parallelStream().collect(bracketedJoining()),
                 "parallel combination");
         checkEquals("<>", List.<String>of().stream().collect(bracketedJoining()), "empty stream");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 80: " + failures + " check(s) failed.");
+        }
         System.out.println("Challenge 80 passed.");
     }
 
+    private static int failures = 0;
+
     private static void checkEquals(Object expected, Object actual, String label) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(label
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + label + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + label
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

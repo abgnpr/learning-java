@@ -39,6 +39,9 @@ public final class GroupingSales {
         checkEquals(expected, totalsByDepartment(sales), "department totals");
         checkEquals(new TreeMap<>(), totalsByDepartment(List.of()), "empty input");
         checkTrue(totalsByDepartment(sales) instanceof TreeMap, "result type is TreeMap");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 76: " + failures + " check(s) failed.");
+        }
         System.out.println("Challenge 76 passed.");
     }
 
@@ -48,11 +51,16 @@ public final class GroupingSales {
         }
     }
 
+    private static int failures = 0;
+
     private static void checkEquals(Object expected, Object actual, String label) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(label
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + label + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + label
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

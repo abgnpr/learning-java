@@ -21,14 +21,22 @@ public final class DuplicateWords {
         checkEquals("red blue RED", removeAdjacentDuplicates("red blue blue RED red"), "separate runs");
         checkEquals("one two three", removeAdjacentDuplicates("one two three"), "no duplicates");
         checkEquals("Echo", removeAdjacentDuplicates("Echo ECHO echo"), "whole input is one run");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 22: " + failures + " check(s) failed.");
+        }
         System.out.println("Challenge 22 passed.");
     }
 
+    private static int failures = 0;
+
     private static void checkEquals(String expected, String actual, String label) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(label
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + label + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + label
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

@@ -24,14 +24,22 @@ public final class StringsIntroduction {
         checkEquals(new Summary(8, true, "Java Code"), analyze("java", "code"), "first sorts after");
         checkEquals(new Summary(10, false, "Hello World"), analyze("hello", "world"), "first sorts before");
         checkEquals(new Summary(2, true, "A B"), analyze("a", "B"), "case-sensitive ordering");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 14: " + failures + " check(s) failed.");
+        }
         System.out.println("Challenge 14 passed.");
     }
 
+    private static int failures = 0;
+
     private static void checkEquals(Object expected, Object actual, String label) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(label
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + label + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + label
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

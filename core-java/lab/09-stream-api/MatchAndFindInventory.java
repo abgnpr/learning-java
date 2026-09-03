@@ -37,14 +37,22 @@ public final class MatchAndFindInventory {
                 "negative stock is invalid but not out of stock");
         checkEquals(new InventoryCheck(true, false, Optional.empty()), inspect(List.of()),
                 "match identities on an empty stream");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 71: " + failures + " check(s) failed.");
+        }
         System.out.println("Challenge 71 passed.");
     }
 
+    private static int failures = 0;
+
     private static void checkEquals(Object expected, Object actual, String label) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(label
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + label + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + label
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

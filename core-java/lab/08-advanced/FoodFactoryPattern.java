@@ -38,7 +38,7 @@ public class FoodFactoryPattern {
         checkType(Pizza.class, "Pizza", factory.createFood("pizza"), "pizza order");
         checkType(Cake.class, "Cake", factory.createFood("CAKE"), "case-insensitive order");
         checkType(Pizza.class, "Pizza", factory.createFood("  Pizza  "), "trimmed order");
-        System.out.println("Challenge 57 passed!");
+        System.out.println("Challenge 57 passed.");
     }
 
     private static void checkType(Class<?> expectedClass, String expectedType,

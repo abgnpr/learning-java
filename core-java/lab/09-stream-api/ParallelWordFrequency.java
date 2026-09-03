@@ -34,6 +34,9 @@ public final class ParallelWordFrequency {
         checkEquals(4, actual.size(), "distinct word count");
         checkTrue(actual instanceof ConcurrentMap, "result implements ConcurrentMap");
         checkEquals(0, frequencies(List.of()).size(), "empty input");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 82: " + failures + " check(s) failed.");
+        }
         System.out.println("Challenge 82 passed.");
     }
 
@@ -43,11 +46,16 @@ public final class ParallelWordFrequency {
         }
     }
 
+    private static int failures = 0;
+
     private static void checkEquals(Object expected, Object actual, String label) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(label
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + label + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + label
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

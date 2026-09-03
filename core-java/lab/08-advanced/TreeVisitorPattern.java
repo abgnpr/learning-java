@@ -119,14 +119,22 @@ public class TreeVisitorPattern {
         checkEquals(10, tree.accept(new SumVisitor()), "sum visitor");
         checkEquals(3, tree.accept(new ValueCountVisitor()), "count visitor");
         checkEquals("root[2,right[3,5]]", tree.accept(new RenderVisitor()), "render visitor");
-        System.out.println("Challenge 59 passed!");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 59: " + failures + " check(s) failed.");
+        }
+        System.out.println("Challenge 59 passed.");
     }
 
+    private static int failures = 0;
+
     private static void checkEquals(Object expected, Object actual, String message) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(message
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + message + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + message
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

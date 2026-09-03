@@ -20,14 +20,22 @@ public class Md5Digest {
         checkEquals("9e107d9d372bb6826bd81d3542a419d6",
                 md5Hex("The quick brown fox jumps over the lazy dog"), "sentence input");
         checkEquals("07117fe4a1ebd544965dc19573183da2", md5Hex("café"), "UTF-8 input");
-        System.out.println("Challenge 63 passed!");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 63: " + failures + " check(s) failed.");
+        }
+        System.out.println("Challenge 63 passed.");
     }
 
+    private static int failures = 0;
+
     private static void checkEquals(String expected, String actual, String message) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(message
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + message + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + message
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

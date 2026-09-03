@@ -18,7 +18,7 @@ public class OneDimensionalArray {
         checkArray(new int[] { }, copyIntoArray(List.of()), "empty input");
         checkArray(new int[] { 7 }, copyIntoArray(List.of(7)), "one value");
         checkArray(new int[] { 1, -2, 3, 0 }, copyIntoArray(List.of(1, -2, 3, 0)), "ordered values");
-        System.out.println("Challenge 28 passed");
+        System.out.println("Challenge 28 passed.");
     }
 
     static void checkArray(int[] expected, int[] actual, String label) {

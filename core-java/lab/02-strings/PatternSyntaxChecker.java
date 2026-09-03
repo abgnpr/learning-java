@@ -20,14 +20,22 @@ public final class PatternSyntaxChecker {
         checkEquals(true, isValidRegex("(cat|dog){2}"), "group and quantifier");
         checkEquals(false, isValidRegex("[unterminated"), "open character class");
         checkEquals(false, isValidRegex("*bad"), "orphan quantifier");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 20: " + failures + " check(s) failed.");
+        }
         System.out.println("Challenge 20 passed.");
     }
 
+    private static int failures = 0;
+
     private static void checkEquals(boolean expected, boolean actual, String label) {
-        if (expected != actual) {
-            throw new AssertionError(label
+        if (expected == actual) {
+            System.out.println("PASS " + label + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + label
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

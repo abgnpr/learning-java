@@ -20,7 +20,10 @@ public class GenericArrayPrinter {
         checkEquals(lines("1", "2", "3"), render(new Integer[] { 1, 2, 3 }), "integer array");
         checkEquals(lines("Hello", "World"), render(new String[] { "Hello", "World" }), "string array");
         checkEquals(lines("A", "z"), render(new Character[] { 'A', 'z' }), "character array");
-        System.out.println("Challenge 37 passed");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 37: " + failures + " check(s) failed.");
+        }
+        System.out.println("Challenge 37 passed.");
     }
 
     static <T> String render(T[] values) {
@@ -35,11 +38,16 @@ public class GenericArrayPrinter {
         return String.join(System.lineSeparator(), values) + System.lineSeparator();
     }
 
+    private static int failures = 0;
+
     static void checkEquals(Object expected, Object actual, String label) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(label
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + label + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + label
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

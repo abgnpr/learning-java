@@ -23,14 +23,22 @@ public final class StringTokens {
         checkEquals(List.of("cats", "dogs"), tokenize("  42 cats + 7 dogs  "), "digits and spaces");
         checkEquals(List.of(), tokenize("--- 123 ---"), "no words");
         checkEquals(List.of("naïve", "café"), tokenize("naïve/café"), "Unicode letters");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 19: " + failures + " check(s) failed.");
+        }
         System.out.println("Challenge 19 passed.");
     }
 
+    private static int failures = 0;
+
     private static void checkEquals(Object expected, Object actual, String label) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(label
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + label + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + label
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

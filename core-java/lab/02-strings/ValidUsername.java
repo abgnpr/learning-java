@@ -22,14 +22,22 @@ public final class ValidUsername {
         checkEquals(false, isValidUsername("ab12"), "too short");
         checkEquals(false, isValidUsername("name-with-dash"), "invalid punctuation");
         checkEquals(false, isValidUsername("abcdefghijklmnopqrs"), "too long");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 23: " + failures + " check(s) failed.");
+        }
         System.out.println("Challenge 23 passed.");
     }
 
+    private static int failures = 0;
+
     private static void checkEquals(boolean expected, boolean actual, String label) {
-        if (expected != actual) {
-            throw new AssertionError(label
+        if (expected == actual) {
+            System.out.println("PASS " + label + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + label
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

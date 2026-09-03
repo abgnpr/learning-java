@@ -40,20 +40,31 @@ public class SingletonPattern {
         checkEquals("shared", second.getMessage(), "singleton state must be shared");
         check(Modifier.isPrivate(Singleton.class.getDeclaredConstructor().getModifiers()),
                 "constructor must remain private");
-        System.out.println("Challenge 58 passed!");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 58: " + failures + " check(s) failed.");
+        }
+        System.out.println("Challenge 58 passed.");
     }
 
+    private static int failures = 0;
+
     private static void check(boolean condition, String message) {
-        if (!condition) {
-            throw new AssertionError(message);
+        if (condition) {
+            System.out.println("PASS " + message);
+            return;
         }
+        failures++;
+        System.out.println("FAIL " + message);
     }
 
     private static void checkEquals(String expected, String actual, String message) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(message
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + message + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + message
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

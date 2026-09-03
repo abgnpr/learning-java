@@ -11,7 +11,7 @@ public final class IntToString {
     }
 
     static String toDecimalString(int value) {
-        throw new UnsupportedOperationException("TODO: convert the integer to text");
+        return String.valueOf(value);
     }
 
     public static void main(String[] args) {

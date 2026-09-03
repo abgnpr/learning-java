@@ -48,14 +48,22 @@ public class ReflectionMethodNames {
         checkEquals(List.of("ownMethod"), declaredMethodNames(ChildFixture.class),
                 "declared methods exclude inherited methods");
         checkEquals(List.of(), declaredMethodNames(EmptyFixture.class), "class with no methods");
-        System.out.println("Challenge 54 passed!");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 54: " + failures + " check(s) failed.");
+        }
+        System.out.println("Challenge 54 passed.");
     }
 
+    private static int failures = 0;
+
     private static void checkEquals(List<String> expected, List<String> actual, String message) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(message
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + message + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + message
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

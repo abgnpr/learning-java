@@ -43,20 +43,31 @@ public class CovariantFlowerReturn {
         Region polymorphic = new WestBengal();
         checkEquals("Jasmine", polymorphic.nationalFlower().name(),
                 "covariant result through base reference");
-        System.out.println("Challenge 61 passed!");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 61: " + failures + " check(s) failed.");
+        }
+        System.out.println("Challenge 61 passed.");
     }
 
+    private static int failures = 0;
+
     private static void check(boolean condition, String message) {
-        if (!condition) {
-            throw new AssertionError(message);
+        if (condition) {
+            System.out.println("PASS " + message);
+            return;
         }
+        failures++;
+        System.out.println("FAIL " + message);
     }
 
     private static void checkEquals(Object expected, Object actual, String message) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(message
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + message + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + message
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

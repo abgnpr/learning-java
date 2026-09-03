@@ -32,18 +32,26 @@ public class BigIntegerArithmetic {
             calculate(BigInteger.ZERO, new BigInteger("999999999999999999999999")),
             "zero operand"
         );
-        System.out.println("Challenge 27 passed");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 27: " + failures + " check(s) failed.");
+        }
+        System.out.println("Challenge 27 passed.");
     }
 
     static ArithmeticResult result(String sum, String product) {
         return new ArithmeticResult(new BigInteger(sum), new BigInteger(product));
     }
 
+    private static int failures = 0;
+
     static void checkEquals(Object expected, Object actual, String label) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(label
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + label + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + label
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

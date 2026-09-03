@@ -40,14 +40,22 @@ public class InstanceofTypeCounter {
         checkEquals(new Counts(1, 0, 0),
                 countTypes(List.of(new Person(), new Student())),
                 "plain people are not counted as a subtype");
-        System.out.println("Challenge 49 passed!");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 49: " + failures + " check(s) failed.");
+        }
+        System.out.println("Challenge 49 passed.");
     }
 
+    private static int failures = 0;
+
     private static void checkEquals(Counts expected, Counts actual, String message) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(message
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + message + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + message
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

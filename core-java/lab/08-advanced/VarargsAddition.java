@@ -17,14 +17,22 @@ public class VarargsAddition {
         checkEquals("1+2=3", add(1, 2), "two addends");
         checkEquals("1+2+3+4+5=15", add(1, 2, 3, 4, 5), "five addends");
         checkEquals("10+-4+0=6", add(10, -4, 0), "mixed-sign addends");
-        System.out.println("Challenge 53 passed!");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 53: " + failures + " check(s) failed.");
+        }
+        System.out.println("Challenge 53 passed.");
     }
 
+    private static int failures = 0;
+
     private static void checkEquals(String expected, String actual, String message) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(message
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + message + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + message
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

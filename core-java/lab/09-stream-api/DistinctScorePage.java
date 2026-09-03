@@ -27,6 +27,9 @@ public final class DistinctScorePage {
         checkEquals(List.of(), page(scores, 20, 2), "offset beyond result");
         expectIllegalArgument(() -> page(scores, -1, 2), "negative offset");
         expectIllegalArgument(() -> page(scores, 0, -1), "negative size");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 67: " + failures + " check(s) failed.");
+        }
         System.out.println("Challenge 67 passed.");
     }
 
@@ -39,11 +42,16 @@ public final class DistinctScorePage {
         }
     }
 
+    private static int failures = 0;
+
     private static void checkEquals(Object expected, Object actual, String label) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(label
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + label + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + label
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

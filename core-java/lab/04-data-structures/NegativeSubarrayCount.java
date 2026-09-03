@@ -16,14 +16,22 @@ public class NegativeSubarrayCount {
         checkEquals(9L, countNegativeSubarrays(new int[] { 1, -2, 4, -5, 1 }), "mixed sample");
         checkEquals(0L, countNegativeSubarrays(new int[] { 1, 2, 3 }), "no negative sum");
         checkEquals(3L, countNegativeSubarrays(new int[] { -1, -1 }), "all slices are negative");
-        System.out.println("Challenge 30 passed");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 30: " + failures + " check(s) failed.");
+        }
+        System.out.println("Challenge 30 passed.");
     }
 
+    private static int failures = 0;
+
     static void checkEquals(long expected, long actual, String label) {
-        if (expected != actual) {
-            throw new AssertionError(label
+        if (expected == actual) {
+            System.out.println("PASS " + label + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + label
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

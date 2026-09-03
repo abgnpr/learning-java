@@ -25,7 +25,10 @@ public class PowerExceptionRules {
                 "negative base");
         expectCheckedMessage("n or p should not be negative.", () -> calculator.power(2, -3),
                 "negative exponent");
-        System.out.println("Challenge 52 passed!");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 52: " + failures + " check(s) failed.");
+        }
+        System.out.println("Challenge 52 passed.");
     }
 
     @FunctionalInterface
@@ -54,11 +57,16 @@ public class PowerExceptionRules {
         }
     }
 
+    private static int failures = 0;
+
     private static void checkEquals(long expected, long actual, String message) {
-        if (expected != actual) {
-            throw new AssertionError(message
+        if (expected == actual) {
+            System.out.println("PASS " + message + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + message
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

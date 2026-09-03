@@ -21,14 +21,22 @@ public class LeapGame {
         check(false, canEscape(1, new int[] { 0, 1, 0 }), "blocked immediately");
         check(true, canEscape(3, new int[] { 0, 1, 0, 0, 1, 0, 1 }),
             "escape route requires a backward move");
-        System.out.println("Challenge 32 passed");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 32: " + failures + " check(s) failed.");
+        }
+        System.out.println("Challenge 32 passed.");
     }
 
+    private static int failures = 0;
+
     static void check(boolean expected, boolean actual, String label) {
-        if (expected != actual) {
-            throw new AssertionError(label
+        if (expected == actual) {
+            System.out.println("PASS " + label + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + label
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

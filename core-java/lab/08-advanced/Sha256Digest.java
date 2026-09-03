@@ -23,14 +23,22 @@ public class Sha256Digest {
                 sha256Hex("The quick brown fox jumps over the lazy dog"), "sentence input");
         checkEquals("850f7dc43910ff890f8879c0ed26fe697c93a067ad93a7d50f466a7028a9bf4e",
                 sha256Hex("café"), "UTF-8 input");
-        System.out.println("Challenge 64 passed!");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 64: " + failures + " check(s) failed.");
+        }
+        System.out.println("Challenge 64 passed.");
     }
 
+    private static int failures = 0;
+
     private static void checkEquals(String expected, String actual, String message) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(message
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + message + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + message
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

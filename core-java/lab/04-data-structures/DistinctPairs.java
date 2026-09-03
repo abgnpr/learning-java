@@ -32,14 +32,22 @@ public class DistinctPairs {
             "pair order matters"
         );
         checkEquals(List.of(), runningDistinctCounts(List.of()), "empty input");
-        System.out.println("Challenge 36 passed");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 36: " + failures + " check(s) failed.");
+        }
+        System.out.println("Challenge 36 passed.");
     }
 
+    private static int failures = 0;
+
     static void checkEquals(Object expected, Object actual, String label) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(label
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + label + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + label
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

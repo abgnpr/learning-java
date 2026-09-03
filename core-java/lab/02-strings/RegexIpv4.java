@@ -22,14 +22,22 @@ public final class RegexIpv4 {
         checkEquals(false, isValidIpv4("256.1.1.1"), "octet above 255");
         checkEquals(false, isValidIpv4("1.2.3"), "too few octets");
         checkEquals(false, isValidIpv4("01.2.3.4"), "leading zero");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 21: " + failures + " check(s) failed.");
+        }
         System.out.println("Challenge 21 passed.");
     }
 
+    private static int failures = 0;
+
     private static void checkEquals(boolean expected, boolean actual, String label) {
-        if (expected != actual) {
-            throw new AssertionError(label
+        if (expected == actual) {
+            System.out.println("PASS " + label + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + label
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

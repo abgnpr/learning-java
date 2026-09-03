@@ -30,14 +30,22 @@ public class ArrayListQueries {
             answerQueries(rows, List.of(new Query(3, 1), new Query(3, 4))),
             "mixed queries"
         );
-        System.out.println("Challenge 31 passed");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 31: " + failures + " check(s) failed.");
+        }
+        System.out.println("Challenge 31 passed.");
     }
 
+    private static int failures = 0;
+
     static void checkEquals(Object expected, Object actual, String label) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(label
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + label + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + label
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

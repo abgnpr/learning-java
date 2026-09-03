@@ -24,14 +24,22 @@ public final class TakeDropWhileReadings {
                 "drop warm-up values and stop at breach");
         checkEquals(List.of(), stableWindow(List.of(-3, -1, 20, 2), 10), "breach immediately after warm-up");
         checkEquals(List.of(1, 2), stableWindow(List.of(1, 2), 10), "no warm-up or breach");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 70: " + failures + " check(s) failed.");
+        }
         System.out.println("Challenge 70 passed.");
     }
 
+    private static int failures = 0;
+
     private static void checkEquals(Object expected, Object actual, String label) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(label
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + label + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + label
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

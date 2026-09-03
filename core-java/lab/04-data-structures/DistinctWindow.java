@@ -17,14 +17,22 @@ public class DistinctWindow {
         checkEquals(3, maxDistinctInWindow(new int[] { 5, 3, 5, 2, 3, 2 }, 3), "mixed windows");
         checkEquals(1, maxDistinctInWindow(new int[] { 7, 7, 7, 7 }, 2), "all duplicates");
         checkEquals(3, maxDistinctInWindow(new int[] { 1, 2, 3 }, 3), "whole array window");
-        System.out.println("Challenge 40 passed");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 40: " + failures + " check(s) failed.");
+        }
+        System.out.println("Challenge 40 passed.");
     }
 
+    private static int failures = 0;
+
     static void checkEquals(int expected, int actual, String label) {
-        if (expected != actual) {
-            throw new AssertionError(label
+        if (expected == actual) {
+            System.out.println("PASS " + label + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + label
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

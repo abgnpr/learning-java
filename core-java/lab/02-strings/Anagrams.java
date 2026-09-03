@@ -20,14 +20,22 @@ public final class Anagrams {
         checkEquals(true, areAnagrams("Java", "avaJ"), "same multiplicities");
         checkEquals(false, areAnagrams("abc!", "cab"), "punctuation is significant");
         checkEquals(false, areAnagrams("aab", "abb"), "different multiplicities");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 18: " + failures + " check(s) failed.");
+        }
         System.out.println("Challenge 18 passed.");
     }
 
+    private static int failures = 0;
+
     private static void checkEquals(boolean expected, boolean actual, String label) {
-        if (expected != actual) {
-            throw new AssertionError(label
+        if (expected == actual) {
+            System.out.println("PASS " + label + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + label
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

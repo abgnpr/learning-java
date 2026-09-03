@@ -23,7 +23,10 @@ public class ArithmeticInheritance {
         checkEquals(7, invokeAdd(new Adder(), 2, 5), "positive operands");
         checkEquals(-3, invokeAdd(new Adder(), -8, 5), "mixed-sign operands");
         checkEquals(0, invokeAdd(new Adder(), 0, 0), "zero operands");
-        System.out.println("Challenge 44 passed!");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 44: " + failures + " check(s) failed.");
+        }
+        System.out.println("Challenge 44 passed.");
     }
 
     private static int invokeAdd(Object target, int left, int right)
@@ -32,17 +35,25 @@ public class ArithmeticInheritance {
                 .invoke(target, left, right);
     }
 
+    private static int failures = 0;
+
     private static void check(boolean condition, String message) {
-        if (!condition) {
-            throw new AssertionError(message);
+        if (condition) {
+            System.out.println("PASS " + message);
+            return;
         }
+        failures++;
+        System.out.println("FAIL " + message);
     }
 
     private static void checkEquals(int expected, int actual, String message) {
-        if (expected != actual) {
-            throw new AssertionError(message
+        if (expected == actual) {
+            System.out.println("PASS " + message + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + message
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

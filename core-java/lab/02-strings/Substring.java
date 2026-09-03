@@ -19,14 +19,22 @@ public final class Substring {
         checkEquals("cyclo", slice("encyclopedia", 2, 7), "middle slice");
         checkEquals("Java", slice("Java", 0, 4), "whole string");
         checkEquals("", slice("abc", 2, 2), "empty slice");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 15: " + failures + " check(s) failed.");
+        }
         System.out.println("Challenge 15 passed.");
     }
 
+    private static int failures = 0;
+
     private static void checkEquals(String expected, String actual, String label) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(label
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + label + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + label
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

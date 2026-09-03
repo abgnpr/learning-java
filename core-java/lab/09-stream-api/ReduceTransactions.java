@@ -38,14 +38,22 @@ public final class ReduceTransactions {
         checkEquals(new Totals(3, new BigDecimal("12.00")), total(Stream.of(values).parallel()),
                 "parallel total");
         checkEquals(new Totals(0, BigDecimal.ZERO), total(Stream.empty()), "identity for empty stream");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 73: " + failures + " check(s) failed.");
+        }
         System.out.println("Challenge 73 passed.");
     }
 
+    private static int failures = 0;
+
     private static void checkEquals(Object expected, Object actual, String label) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(label
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + label + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + label
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

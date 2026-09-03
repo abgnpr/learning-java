@@ -35,14 +35,22 @@ public class SportsMethodOverriding {
         checkEquals("Soccer", sport.name(), "overridden name via base reference");
         checkEquals(11, sport.teamSize(), "soccer team size via dynamic dispatch");
         checkEquals(11, new Soccer().teamSize(), "soccer team size via subtype reference");
-        System.out.println("Challenge 47 passed!");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 47: " + failures + " check(s) failed.");
+        }
+        System.out.println("Challenge 47 passed.");
     }
 
+    private static int failures = 0;
+
     private static void checkEquals(Object expected, Object actual, String message) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(message
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + message + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + message
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

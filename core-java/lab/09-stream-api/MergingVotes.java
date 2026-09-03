@@ -36,6 +36,9 @@ public final class MergingVotes {
                 new Vote("Grace", -1), new Vote("Linus", 0))), "merged totals");
         checkEquals(new TreeMap<>(), totals(List.of()), "empty input");
         checkTrue(totals(List.of(new Vote("Ada", 1))) instanceof TreeMap, "result type is TreeMap");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 78: " + failures + " check(s) failed.");
+        }
         System.out.println("Challenge 78 passed.");
     }
 
@@ -45,11 +48,16 @@ public final class MergingVotes {
         }
     }
 
+    private static int failures = 0;
+
     private static void checkEquals(Object expected, Object actual, String label) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(label
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + label + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + label
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

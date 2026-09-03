@@ -32,14 +32,22 @@ public class OverloadedPrimeChecker {
         checkEquals("2", checker.checkPrime(1, 2, 4), "one prime among three values");
         checkEquals("5 7 11", checker.checkPrime(5, 7, 8, 9, 11),
                 "three primes among five values");
-        System.out.println("Challenge 56 passed!");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 56: " + failures + " check(s) failed.");
+        }
+        System.out.println("Challenge 56 passed.");
     }
 
+    private static int failures = 0;
+
     private static void checkEquals(String expected, String actual, String message) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(message
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + message + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + message
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

@@ -49,7 +49,10 @@ public class PlayerRankingComparator {
             sorted(List.of(new Player("solo", 0))),
             "single player"
         );
-        System.out.println("Challenge 38 passed");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 38: " + failures + " check(s) failed.");
+        }
+        System.out.println("Challenge 38 passed.");
     }
 
     static List<Player> sorted(List<Player> players) {
@@ -58,11 +61,16 @@ public class PlayerRankingComparator {
         return copy;
     }
 
+    private static int failures = 0;
+
     static void checkEquals(Object expected, Object actual, String label) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(label
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + label + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + label
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

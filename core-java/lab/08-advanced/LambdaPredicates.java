@@ -46,7 +46,10 @@ public class LambdaPredicates {
         checkLambda(palindrome, "palindrome operation");
         checkEquals(true, palindrome.test(898), "898 is a palindrome");
         checkEquals(false, palindrome.test(123), "123 is not a palindrome");
-        System.out.println("Challenge 62 passed!");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 62: " + failures + " check(s) failed.");
+        }
+        System.out.println("Challenge 62 passed.");
     }
 
     private static void checkLambda(IntOperation operation, String message) {
@@ -54,17 +57,25 @@ public class LambdaPredicates {
                 message + " must be implemented by a lambda");
     }
 
+    private static int failures = 0;
+
     private static void check(boolean condition, String message) {
-        if (!condition) {
-            throw new AssertionError(message);
+        if (condition) {
+            System.out.println("PASS " + message);
+            return;
         }
+        failures++;
+        System.out.println("FAIL " + message);
     }
 
     private static void checkEquals(boolean expected, boolean actual, String message) {
-        if (expected != actual) {
-            throw new AssertionError(message
+        if (expected == actual) {
+            System.out.println("PASS " + message + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + message
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

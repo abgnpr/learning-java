@@ -26,14 +26,22 @@ public class LargeNumberPrimality {
             new BigInteger("510423550381407695195061911147652317181")),
             "composite beyond long"
         );
-        System.out.println("Challenge 26 passed");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 26: " + failures + " check(s) failed.");
+        }
+        System.out.println("Challenge 26 passed.");
     }
 
+    private static int failures = 0;
+
     static void check(boolean expected, boolean actual, String label) {
-        if (expected != actual) {
-            throw new AssertionError(label
+        if (expected == actual) {
+            System.out.println("PASS " + label + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + label
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

@@ -49,14 +49,22 @@ public class BudgetAnnotations {
                 "senior over limit");
         checkEquals("Budget Limit Over", messageFor(member, "GUEST", 1),
                 "unknown role");
-        System.out.println("Challenge 60 passed!");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 60: " + failures + " check(s) failed.");
+        }
+        System.out.println("Challenge 60 passed.");
     }
 
+    private static int failures = 0;
+
     private static void checkEquals(String expected, String actual, String message) {
-        if (!expected.equals(actual)) {
-            throw new AssertionError(message
+        if (java.util.Objects.equals(expected, actual)) {
+            System.out.println("PASS " + message + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + message
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

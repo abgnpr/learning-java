@@ -24,14 +24,22 @@ public class DivisorSumInterface {
         checkEquals(1, calculator.divisorSum(1), "divisors of 1");
         checkEquals(12, calculator.divisorSum(6), "divisors of 6");
         checkEquals(56, calculator.divisorSum(28), "divisors of 28");
-        System.out.println("Challenge 46 passed!");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 46: " + failures + " check(s) failed.");
+        }
+        System.out.println("Challenge 46 passed.");
     }
 
+    private static int failures = 0;
+
     private static void checkEquals(int expected, int actual, String message) {
-        if (expected != actual) {
-            throw new AssertionError(message
+        if (expected == actual) {
+            System.out.println("PASS " + message + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + message
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }

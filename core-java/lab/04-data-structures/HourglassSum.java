@@ -34,14 +34,22 @@ public class HourglassSum {
             { 0, 0, 0, 2, 0, 0 },
             { 0, 0, 1, 2, 4, 0 }
         }), "multiple candidates");
-        System.out.println("Challenge 29 passed");
+        if (failures > 0) {
+            throw new AssertionError("Challenge 29: " + failures + " check(s) failed.");
+        }
+        System.out.println("Challenge 29 passed.");
     }
 
+    private static int failures = 0;
+
     static void checkEquals(int expected, int actual, String label) {
-        if (expected != actual) {
-            throw new AssertionError(label
+        if (expected == actual) {
+            System.out.println("PASS " + label + ": " + "<" + actual + ">");
+            return;
+        }
+        failures++;
+        System.out.println("FAIL " + label
                     + ":\n  expected: <" + expected + ">"
                     + "\n    actual: <" + actual + ">");
-        }
     }
 }
