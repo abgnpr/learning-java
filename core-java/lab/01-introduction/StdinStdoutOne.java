@@ -18,21 +18,25 @@ public final class StdinStdoutOne {
     static String echoIntegers(String input) {
 
         // classic way
-        // if (input.isBlank()) {
-        // return "";
-        // }
-        // String[] result = input.strip().split("\\s+");
-        // for (int i = 0; i < result.length; i++) {
-        // result[i] = String.valueOf(Integer.parseInt(result[i]));
-        // }
-        // return String.join("\n", result);
+        /*         
+        if (input.isBlank()) {
+            return "";
+        }
+        String[] result = input.strip().split("\\s+");
+        for (int i = 0; i < result.length; i++) {
+            result[i] = String.valueOf(Integer.parseInt(result[i]));
+        }
+        return String.join("\n", result);
+        */
 
         // streams way
-        // return Arrays.stream(input.strip().split("\\s+"))
-        // .filter(s -> !s.isEmpty())
-        // .map(Integer::parseInt)
-        // .map(String::valueOf)
-        // .collect(Collectors.joining("\n"));
+        /*   
+        return Arrays.stream(input.strip().split("\\s+"))
+                .filter(s -> !s.isEmpty())
+                .map(Integer::parseInt)
+                .map(String::valueOf)
+                .collect(Collectors.joining("\n")); 
+        */
 
         // best way
         if (input.isBlank()) {
