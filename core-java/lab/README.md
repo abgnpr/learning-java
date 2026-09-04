@@ -268,3 +268,5 @@ revisiting.
 | 14 — Java Strings Introduction | `String.substring` bounds and the sign returned by `compareTo` | [Java 21 API — `java.lang.String`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html#substring(int)) | 2026-09-04 |
 | 17 — String Reverse | Two-pointer palindrome scan vs reverse-and-compare | [Java 21 API — `StringBuilder.reverse`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/StringBuilder.html#reverse()) | 2026-09-04 |
 | 18 — Anagrams | Frequency maps: `Map.merge` for accumulation and `Map.equals` for matching keys and multiplicities | [Java 21 API — `Map`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Map.html) | 2026-09-04 |
+| 18 — Anagrams | Sorting characters before comparison | [Baeldung — Sorting in Java](https://www.baeldung.com/java-sorting) | 2026-09-04 |
+| 18 — Anagrams | Whitespace removal with `replaceAll` | [Baeldung — Removing Whitespace from a String in Java](https://www.baeldung.com/java-string-remove-whitespace) | 2026-09-04 |
