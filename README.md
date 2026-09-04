@@ -1,4 +1,4 @@
-# learning-java
+# Learning Java
 
 Interview preparation notes for Java, Spring Boot and Kafka —
 rapid-fire answers, study material, and hands-on labs.
