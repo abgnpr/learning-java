@@ -234,85 +234,85 @@ section 07 uses station numbers S1–S8 and has a separate
 
 ### Introduction
 
-| # | Challenge | Difficulty | Starter |
-|---:|---|---|---|
-| 01 | Welcome to Java! | Easy | [WelcomeToJava.java](01-introduction/WelcomeToJava.java) |
-| 02 | Stdin and Stdout I | Easy | [StdinStdoutOne.java](01-introduction/StdinStdoutOne.java) |
-| 03 | If-Else | Easy | [IfElse.java](01-introduction/IfElse.java) |
-| 04 | Stdin and Stdout II | Easy | [StdinStdoutTwo.java](01-introduction/StdinStdoutTwo.java) |
-| 05 | Output Formatting | Easy | [OutputFormatting.java](01-introduction/OutputFormatting.java) |
-| 06 | Loops I | Easy | [LoopsOne.java](01-introduction/LoopsOne.java) |
-| 07 | Loops II | Easy | [LoopsTwo.java](01-introduction/LoopsTwo.java) |
-| 08 | Datatypes | Easy | [Datatypes.java](01-introduction/Datatypes.java) |
-| 09 | End-of-file | Easy | [EndOfFile.java](01-introduction/EndOfFile.java) |
-| 10 | Static Initializer Block | Easy | [StaticInitializerBlock.java](01-introduction/StaticInitializerBlock.java) |
-| 11 | Int to String | Easy | [IntToString.java](01-introduction/IntToString.java) |
-| 12 | Date and Time | Easy | [DateAndTime.java](01-introduction/DateAndTime.java) |
-| 13 | Currency Formatter | Easy | [CurrencyFormatter.java](01-introduction/CurrencyFormatter.java) |
+| # | Challenge | Difficulty | Starter | Done |
+|---:|---|---|---|:---:|
+| 01 | Welcome to Java! | Easy | [WelcomeToJava.java](01-introduction/WelcomeToJava.java) | ✅ |
+| 02 | Stdin and Stdout I | Easy | [StdinStdoutOne.java](01-introduction/StdinStdoutOne.java) | ✅ |
+| 03 | If-Else | Easy | [IfElse.java](01-introduction/IfElse.java) | ✅ |
+| 04 | Stdin and Stdout II | Easy | [StdinStdoutTwo.java](01-introduction/StdinStdoutTwo.java) | ✅ |
+| 05 | Output Formatting | Easy | [OutputFormatting.java](01-introduction/OutputFormatting.java) | ✅ |
+| 06 | Loops I | Easy | [LoopsOne.java](01-introduction/LoopsOne.java) | ✅ |
+| 07 | Loops II | Easy | [LoopsTwo.java](01-introduction/LoopsTwo.java) | ✅ |
+| 08 | Datatypes | Easy | [Datatypes.java](01-introduction/Datatypes.java) | ✅ |
+| 09 | End-of-file | Easy | [EndOfFile.java](01-introduction/EndOfFile.java) | ✅ |
+| 10 | Static Initializer Block | Easy | [StaticInitializerBlock.java](01-introduction/StaticInitializerBlock.java) | ✅ |
+| 11 | Int to String | Easy | [IntToString.java](01-introduction/IntToString.java) | ✅ |
+| 12 | Date and Time | Easy | [DateAndTime.java](01-introduction/DateAndTime.java) | ✅ |
+| 13 | Currency Formatter | Easy | [CurrencyFormatter.java](01-introduction/CurrencyFormatter.java) | ✅ |
 
 ### Strings
 
-| # | Challenge | Difficulty | Starter |
-|---:|---|---|---|
-| 14 | Strings Introduction | Easy | [StringsIntroduction.java](02-strings/StringsIntroduction.java) |
-| 15 | Substring | Easy | [Substring.java](02-strings/Substring.java) |
-| 16 | Substring Comparisons | Easy | [SubstringComparisons.java](02-strings/SubstringComparisons.java) |
-| 17 | String Reverse | Easy | [StringReverse.java](02-strings/StringReverse.java) |
-| 18 | Anagrams | Easy | [Anagrams.java](02-strings/Anagrams.java) |
-| 19 | String Tokens | Easy | [StringTokens.java](02-strings/StringTokens.java) |
-| 20 | Pattern Syntax Checker | Easy | [PatternSyntaxChecker.java](02-strings/PatternSyntaxChecker.java) |
-| 21 | Regex | Medium | [RegexIpv4.java](02-strings/RegexIpv4.java) |
-| 22 | Regex 2 - Duplicate Words | Medium | [DuplicateWords.java](02-strings/DuplicateWords.java) |
-| 23 | Valid Username Regular Expression | Easy | [ValidUsername.java](02-strings/ValidUsername.java) |
-| 24 | Tag Content Extractor | Medium | [TagContentExtractor.java](02-strings/TagContentExtractor.java) |
+| # | Challenge | Difficulty | Starter | Done |
+|---:|---|---|---|:---:|
+| 14 | Strings Introduction | Easy | [StringsIntroduction.java](02-strings/StringsIntroduction.java) | ✅ |
+| 15 | Substring | Easy | [Substring.java](02-strings/Substring.java) | ✅ |
+| 16 | Substring Comparisons | Easy | [SubstringComparisons.java](02-strings/SubstringComparisons.java) | ✅ |
+| 17 | String Reverse | Easy | [StringReverse.java](02-strings/StringReverse.java) | ✅ |
+| 18 | Anagrams | Easy | [Anagrams.java](02-strings/Anagrams.java) | ✅ |
+| 19 | String Tokens | Easy | [StringTokens.java](02-strings/StringTokens.java) | ✅ |
+| 20 | Pattern Syntax Checker | Easy | [PatternSyntaxChecker.java](02-strings/PatternSyntaxChecker.java) | ✅ |
+| 21 | Regex | Medium | [RegexIpv4.java](02-strings/RegexIpv4.java) | ✅ |
+| 22 | Regex 2 - Duplicate Words | Medium | [DuplicateWords.java](02-strings/DuplicateWords.java) | ✅ |
+| 23 | Valid Username Regular Expression | Easy | [ValidUsername.java](02-strings/ValidUsername.java) | ✅ |
+| 24 | Tag Content Extractor | Medium | [TagContentExtractor.java](02-strings/TagContentExtractor.java) | ⬜ |
 
 ### BigNumber
 
-| # | Challenge | Difficulty | Starter |
-|---:|---|---|---|
-| 25 | BigDecimal | Medium | [BigDecimalOrdering.java](03-big-numbers/BigDecimalOrdering.java) |
-| 26 | Primality Test | Easy | [LargeNumberPrimality.java](03-big-numbers/LargeNumberPrimality.java) |
-| 27 | BigInteger | Easy | [BigIntegerArithmetic.java](03-big-numbers/BigIntegerArithmetic.java) |
+| # | Challenge | Difficulty | Starter | Done |
+|---:|---|---|---|:---:|
+| 25 | BigDecimal | Medium | [BigDecimalOrdering.java](03-big-numbers/BigDecimalOrdering.java) | ⬜ |
+| 26 | Primality Test | Easy | [LargeNumberPrimality.java](03-big-numbers/LargeNumberPrimality.java) | ⬜ |
+| 27 | BigInteger | Easy | [BigIntegerArithmetic.java](03-big-numbers/BigIntegerArithmetic.java) | ⬜ |
 
 ### Data Structures
 
-| # | Challenge | Difficulty | Starter |
-|---:|---|---|---|
-| 28 | 1D Array | Easy | [OneDimensionalArray.java](04-data-structures/OneDimensionalArray.java) |
-| 29 | 2D Array | Easy | [HourglassSum.java](04-data-structures/HourglassSum.java) |
-| 30 | Subarray | Easy | [NegativeSubarrayCount.java](04-data-structures/NegativeSubarrayCount.java) |
-| 31 | Arraylist | Easy | [ArrayListQueries.java](04-data-structures/ArrayListQueries.java) |
-| 32 | 1D Array (Part 2) | Medium | [LeapGame.java](04-data-structures/LeapGame.java) |
-| 33 | List | Easy | [ListOperations.java](04-data-structures/ListOperations.java) |
-| 34 | Map | Easy | [PhoneBookLookup.java](04-data-structures/PhoneBookLookup.java) |
-| 35 | Stack | Medium | [BalancedBrackets.java](04-data-structures/BalancedBrackets.java) |
-| 36 | Hashset | Easy | [DistinctPairs.java](04-data-structures/DistinctPairs.java) |
-| 37 | Generics | Easy | [GenericArrayPrinter.java](04-data-structures/GenericArrayPrinter.java) |
-| 38 | Comparator | Medium | [PlayerRankingComparator.java](04-data-structures/PlayerRankingComparator.java) |
-| 39 | Sort | Easy | [StudentSort.java](04-data-structures/StudentSort.java) |
-| 40 | Dequeue | Medium | [DistinctWindow.java](04-data-structures/DistinctWindow.java) |
-| 41 | BitSet | Easy | [BitSetOperations.java](04-data-structures/BitSetOperations.java) |
-| 42 | Priority Queue | Medium | [StudentPriorityQueue.java](04-data-structures/StudentPriorityQueue.java) |
+| # | Challenge | Difficulty | Starter | Done |
+|---:|---|---|---|:---:|
+| 28 | 1D Array | Easy | [OneDimensionalArray.java](04-data-structures/OneDimensionalArray.java) | ⬜ |
+| 29 | 2D Array | Easy | [HourglassSum.java](04-data-structures/HourglassSum.java) | ⬜ |
+| 30 | Subarray | Easy | [NegativeSubarrayCount.java](04-data-structures/NegativeSubarrayCount.java) | ⬜ |
+| 31 | Arraylist | Easy | [ArrayListQueries.java](04-data-structures/ArrayListQueries.java) | ⬜ |
+| 32 | 1D Array (Part 2) | Medium | [LeapGame.java](04-data-structures/LeapGame.java) | ⬜ |
+| 33 | List | Easy | [ListOperations.java](04-data-structures/ListOperations.java) | ⬜ |
+| 34 | Map | Easy | [PhoneBookLookup.java](04-data-structures/PhoneBookLookup.java) | ⬜ |
+| 35 | Stack | Medium | [BalancedBrackets.java](04-data-structures/BalancedBrackets.java) | ⬜ |
+| 36 | Hashset | Easy | [DistinctPairs.java](04-data-structures/DistinctPairs.java) | ⬜ |
+| 37 | Generics | Easy | [GenericArrayPrinter.java](04-data-structures/GenericArrayPrinter.java) | ⬜ |
+| 38 | Comparator | Medium | [PlayerRankingComparator.java](04-data-structures/PlayerRankingComparator.java) | ⬜ |
+| 39 | Sort | Easy | [StudentSort.java](04-data-structures/StudentSort.java) | ⬜ |
+| 40 | Dequeue | Medium | [DistinctWindow.java](04-data-structures/DistinctWindow.java) | ⬜ |
+| 41 | BitSet | Easy | [BitSetOperations.java](04-data-structures/BitSetOperations.java) | ⬜ |
+| 42 | Priority Queue | Medium | [StudentPriorityQueue.java](04-data-structures/StudentPriorityQueue.java) | ⬜ |
 
 ### Object-Oriented Programming
 
-| # | Challenge | Difficulty | Starter |
-|---:|---|---|---|
-| 43 | Inheritance I | Easy | [InheritanceBasics.java](05-oop/InheritanceBasics.java) |
-| 44 | Inheritance II | Easy | [ArithmeticInheritance.java](05-oop/ArithmeticInheritance.java) |
-| 45 | Abstract Class | Easy | [AbstractBook.java](05-oop/AbstractBook.java) |
-| 46 | Interface | Easy | [DivisorSumInterface.java](05-oop/DivisorSumInterface.java) |
-| 47 | Method Overriding | Easy | [SportsMethodOverriding.java](05-oop/SportsMethodOverriding.java) |
-| 48 | Method Overriding 2 (Super Keyword) | Easy | [SuperKeywordOverride.java](05-oop/SuperKeywordOverride.java) |
-| 49 | Instanceof keyword | Easy | [InstanceofTypeCounter.java](05-oop/InstanceofTypeCounter.java) |
-| 50 | Iterator | Easy | [IteratorAfterMarker.java](05-oop/IteratorAfterMarker.java) |
+| # | Challenge | Difficulty | Starter | Done |
+|---:|---|---|---|:---:|
+| 43 | Inheritance I | Easy | [InheritanceBasics.java](05-oop/InheritanceBasics.java) | ⬜ |
+| 44 | Inheritance II | Easy | [ArithmeticInheritance.java](05-oop/ArithmeticInheritance.java) | ⬜ |
+| 45 | Abstract Class | Easy | [AbstractBook.java](05-oop/AbstractBook.java) | ⬜ |
+| 46 | Interface | Easy | [DivisorSumInterface.java](05-oop/DivisorSumInterface.java) | ⬜ |
+| 47 | Method Overriding | Easy | [SportsMethodOverriding.java](05-oop/SportsMethodOverriding.java) | ⬜ |
+| 48 | Method Overriding 2 (Super Keyword) | Easy | [SuperKeywordOverride.java](05-oop/SuperKeywordOverride.java) | ⬜ |
+| 49 | Instanceof keyword | Easy | [InstanceofTypeCounter.java](05-oop/InstanceofTypeCounter.java) | ⬜ |
+| 50 | Iterator | Easy | [IteratorAfterMarker.java](05-oop/IteratorAfterMarker.java) | ⬜ |
 
 ### Exception Handling
 
-| # | Challenge | Difficulty | Starter |
-|---:|---|---|---|
-| 51 | Exception Handling (Try-catch) | Easy | [TryCatchDivision.java](06-exceptions/TryCatchDivision.java) |
-| 52 | Exception Handling | Easy | [PowerExceptionRules.java](06-exceptions/PowerExceptionRules.java) |
+| # | Challenge | Difficulty | Starter | Done |
+|---:|---|---|---|:---:|
+| 51 | Exception Handling (Try-catch) | Easy | [TryCatchDivision.java](06-exceptions/TryCatchDivision.java) | ⬜ |
+| 52 | Exception Handling | Easy | [PowerExceptionRules.java](06-exceptions/PowerExceptionRules.java) | ⬜ |
 
 ### Threads and Concurrency
 
@@ -320,70 +320,72 @@ These stations are demonstrations rather than TODO-based challenges. Predict
 the behavior, run the source, then explain the result. S3 and S5 intentionally
 hang; guard them with `timeout 6` or stop them with `Ctrl-C`.
 
-| Station | Topic | Source |
-|---:|---|---|
-| S1 | `start()` vs `run()` | [StartVsRun.java](07-threads/StartVsRun.java) |
-| S2 | Lost update | [LostUpdate.java](07-threads/LostUpdate.java) |
-| S3 | Visibility and `volatile` | [Visibility.java](07-threads/Visibility.java) |
-| S4 | `wait()` vs `sleep()` | [WaitVsSleep.java](07-threads/WaitVsSleep.java) |
-| S5 | Deadlock | [Deadlock.java](07-threads/Deadlock.java) |
-| S6 | Thread-pool reuse | [PoolReuse.java](07-threads/PoolReuse.java) |
-| S7 | Producer/consumer | [ProducerConsumer.java](07-threads/ProducerConsumer.java) |
-| S8 | Virtual threads | [VirtualThreads.java](07-threads/VirtualThreads.java) |
+| Station | Topic | Source | Done |
+|---:|---|---|:---:|
+| S1 | `start()` vs `run()` | [StartVsRun.java](07-threads/StartVsRun.java) | ⬜ |
+| S2 | Lost update | [LostUpdate.java](07-threads/LostUpdate.java) | ⬜ |
+| S3 | Visibility and `volatile` | [Visibility.java](07-threads/Visibility.java) | ⬜ |
+| S4 | `wait()` vs `sleep()` | [WaitVsSleep.java](07-threads/WaitVsSleep.java) | ⬜ |
+| S5 | Deadlock | [Deadlock.java](07-threads/Deadlock.java) | ⬜ |
+| S6 | Thread-pool reuse | [PoolReuse.java](07-threads/PoolReuse.java) | ⬜ |
+| S7 | Producer/consumer | [ProducerConsumer.java](07-threads/ProducerConsumer.java) | ⬜ |
+| S8 | Virtual threads | [VirtualThreads.java](07-threads/VirtualThreads.java) | ⬜ |
 
 ### Advanced
 
-| # | Challenge | Difficulty | Starter |
-|---:|---|---|---|
-| 53 | Varargs - Simple Addition | Easy | [VarargsAddition.java](08-advanced/VarargsAddition.java) |
-| 54 | Reflection - Attributes | Easy | [ReflectionMethodNames.java](08-advanced/ReflectionMethodNames.java) |
-| 55 | Can You Access? | Medium | [PrivateMemberAccess.java](08-advanced/PrivateMemberAccess.java) |
-| 56 | Prime Checker | Medium | [OverloadedPrimeChecker.java](08-advanced/OverloadedPrimeChecker.java) |
-| 57 | Factory Pattern | Easy | [FoodFactoryPattern.java](08-advanced/FoodFactoryPattern.java) |
-| 58 | Singleton Pattern | Easy | [SingletonPattern.java](08-advanced/SingletonPattern.java) |
-| 59 | Visitor Pattern | Medium | [TreeVisitorPattern.java](08-advanced/TreeVisitorPattern.java) |
-| 60 | Annotations | Medium | [BudgetAnnotations.java](08-advanced/BudgetAnnotations.java) |
-| 61 | Covariant Return Types | Easy | [CovariantFlowerReturn.java](08-advanced/CovariantFlowerReturn.java) |
-| 62 | Lambda Expressions | Medium | [LambdaPredicates.java](08-advanced/LambdaPredicates.java) |
-| 63 | MD5 | Medium | [Md5Digest.java](08-advanced/Md5Digest.java) |
-| 64 | SHA-256 | Medium | [Sha256Digest.java](08-advanced/Sha256Digest.java) |
+| # | Challenge | Difficulty | Starter | Done |
+|---:|---|---|---|:---:|
+| 53 | Varargs - Simple Addition | Easy | [VarargsAddition.java](08-advanced/VarargsAddition.java) | ⬜ |
+| 54 | Reflection - Attributes | Easy | [ReflectionMethodNames.java](08-advanced/ReflectionMethodNames.java) | ⬜ |
+| 55 | Can You Access? | Medium | [PrivateMemberAccess.java](08-advanced/PrivateMemberAccess.java) | ⬜ |
+| 56 | Prime Checker | Medium | [OverloadedPrimeChecker.java](08-advanced/OverloadedPrimeChecker.java) | ⬜ |
+| 57 | Factory Pattern | Easy | [FoodFactoryPattern.java](08-advanced/FoodFactoryPattern.java) | ⬜ |
+| 58 | Singleton Pattern | Easy | [SingletonPattern.java](08-advanced/SingletonPattern.java) | ⬜ |
+| 59 | Visitor Pattern | Medium | [TreeVisitorPattern.java](08-advanced/TreeVisitorPattern.java) | ⬜ |
+| 60 | Annotations | Medium | [BudgetAnnotations.java](08-advanced/BudgetAnnotations.java) | ⬜ |
+| 61 | Covariant Return Types | Easy | [CovariantFlowerReturn.java](08-advanced/CovariantFlowerReturn.java) | ⬜ |
+| 62 | Lambda Expressions | Medium | [LambdaPredicates.java](08-advanced/LambdaPredicates.java) | ⬜ |
+| 63 | MD5 | Medium | [Md5Digest.java](08-advanced/Md5Digest.java) | ⬜ |
+| 64 | SHA-256 | Medium | [Sha256Digest.java](08-advanced/Sha256Digest.java) | ⬜ |
 
 ### Stream API
 
 The [section guide](09-stream-api/README.md) explains the stream mental model,
 learning order, and review checkpoints.
 
-| # | Challenge | Difficulty | Starter |
-|---:|---|---|---|
-| 65 | Filter and Map Pipeline | Easy | [FilterMapPipeline.java](09-stream-api/FilterMapPipeline.java) |
-| 66 | Laziness and Short-Circuiting | Easy | [LazyFirstMatch.java](09-stream-api/LazyFirstMatch.java) |
-| 67 | Distinct, Sorted, Skip, and Limit | Easy | [DistinctScorePage.java](09-stream-api/DistinctScorePage.java) |
-| 68 | Flatten Nested Data | Easy | [FlatMapWords.java](09-stream-api/FlatMapWords.java) |
-| 69 | One-to-Many Mapping with `mapMulti` | Medium | [MapMultiRanges.java](09-stream-api/MapMultiRanges.java) |
-| 70 | Prefix Operations | Easy | [TakeDropWhileReadings.java](09-stream-api/TakeDropWhileReadings.java) |
-| 71 | Matching and Finding | Easy | [MatchAndFindInventory.java](09-stream-api/MatchAndFindInventory.java) |
-| 72 | Optional in a Stream Pipeline | Medium | [OptionalEmailPipeline.java](09-stream-api/OptionalEmailPipeline.java) |
-| 73 | Three-Argument Reduction | Medium | [ReduceTransactions.java](09-stream-api/ReduceTransactions.java) |
-| 74 | Primitive Streams and Statistics | Easy | [PrimitiveStreamStatistics.java](09-stream-api/PrimitiveStreamStatistics.java) |
-| 75 | Joining Collector | Easy | [JoiningCollector.java](09-stream-api/JoiningCollector.java) |
-| 76 | Grouping with a Downstream Collector | Medium | [GroupingSales.java](09-stream-api/GroupingSales.java) |
-| 77 | Partitioning with Downstream Mapping | Medium | [PartitionPeople.java](09-stream-api/PartitionPeople.java) |
-| 78 | Building Maps with Duplicate Keys | Medium | [MergingVotes.java](09-stream-api/MergingVotes.java) |
-| 79 | Teeing Collector | Medium | [TeeingRange.java](09-stream-api/TeeingRange.java) |
-| 80 | Build a Custom Collector | Hard | [CustomBracketCollector.java](09-stream-api/CustomBracketCollector.java) |
-| 81 | Infinite Stream Sources | Medium | [InfiniteStreamBounds.java](09-stream-api/InfiniteStreamBounds.java) |
-| 82 | Parallel Collection Without Shared Mutation | Hard | [ParallelWordFrequency.java](09-stream-api/ParallelWordFrequency.java) |
+| # | Challenge | Difficulty | Starter | Done |
+|---:|---|---|---|:---:|
+| 65 | Filter and Map Pipeline | Easy | [FilterMapPipeline.java](09-stream-api/FilterMapPipeline.java) | ⬜ |
+| 66 | Laziness and Short-Circuiting | Easy | [LazyFirstMatch.java](09-stream-api/LazyFirstMatch.java) | ⬜ |
+| 67 | Distinct, Sorted, Skip, and Limit | Easy | [DistinctScorePage.java](09-stream-api/DistinctScorePage.java) | ⬜ |
+| 68 | Flatten Nested Data | Easy | [FlatMapWords.java](09-stream-api/FlatMapWords.java) | ⬜ |
+| 69 | One-to-Many Mapping with `mapMulti` | Medium | [MapMultiRanges.java](09-stream-api/MapMultiRanges.java) | ⬜ |
+| 70 | Prefix Operations | Easy | [TakeDropWhileReadings.java](09-stream-api/TakeDropWhileReadings.java) | ⬜ |
+| 71 | Matching and Finding | Easy | [MatchAndFindInventory.java](09-stream-api/MatchAndFindInventory.java) | ⬜ |
+| 72 | Optional in a Stream Pipeline | Medium | [OptionalEmailPipeline.java](09-stream-api/OptionalEmailPipeline.java) | ⬜ |
+| 73 | Three-Argument Reduction | Medium | [ReduceTransactions.java](09-stream-api/ReduceTransactions.java) | ⬜ |
+| 74 | Primitive Streams and Statistics | Easy | [PrimitiveStreamStatistics.java](09-stream-api/PrimitiveStreamStatistics.java) | ⬜ |
+| 75 | Joining Collector | Easy | [JoiningCollector.java](09-stream-api/JoiningCollector.java) | ⬜ |
+| 76 | Grouping with a Downstream Collector | Medium | [GroupingSales.java](09-stream-api/GroupingSales.java) | ⬜ |
+| 77 | Partitioning with Downstream Mapping | Medium | [PartitionPeople.java](09-stream-api/PartitionPeople.java) | ⬜ |
+| 78 | Building Maps with Duplicate Keys | Medium | [MergingVotes.java](09-stream-api/MergingVotes.java) | ⬜ |
+| 79 | Teeing Collector | Medium | [TeeingRange.java](09-stream-api/TeeingRange.java) | ⬜ |
+| 80 | Build a Custom Collector | Hard | [CustomBracketCollector.java](09-stream-api/CustomBracketCollector.java) | ⬜ |
+| 81 | Infinite Stream Sources | Medium | [InfiniteStreamBounds.java](09-stream-api/InfiniteStreamBounds.java) | ⬜ |
+| 82 | Parallel Collection Without Shared Mutation | Hard | [ParallelWordFrequency.java](09-stream-api/ParallelWordFrequency.java) | ⬜ |
 
 ## Scorecard
 
 Mark a challenge only after its checks pass and you can explain the core
 concept without reading the implementation. Mark a concurrency station after
-you can predict and explain its behavior.
+you can predict and explain its behavior. The `Done` column in each Track
+table carries the same marks per lab — ✅ complete, ⬜ outstanding — and the
+per-subdomain counts below are their totals.
 
 | Subdomain | Labs | Complete |
 |---|---:|---:|
 | Introduction | 13 | 13/13 |
-| Strings | 11 | 9/11 |
+| Strings | 11 | 10/11 |
 | BigNumber | 3 | 0/3 |
 | Data Structures | 15 | 0/15 |
 | Object-Oriented Programming | 8 | 0/8 |
@@ -391,7 +393,7 @@ you can predict and explain its behavior.
 | Threads and Concurrency | 8 | 0/8 |
 | Advanced | 12 | 0/12 |
 | Stream API | 18 | 0/18 |
-| **Total** | **90** | **22/90** |
+| **Total** | **90** | **23/90** |
 
 ## Revision references
 
