@@ -1,5 +1,18 @@
 # Core Java labs ☕🧪
 
+<div align="center">
+
+## `23 / 90` labs complete
+
+`████████░░░░░░░░░░░░░░░░░░░░░░` **26%**
+
+**13/13** Introduction · **10/11** Strings · **0/3** BigNumber · **0/15** Data Structures · **0/8** OOP<br>
+**0/2** Exceptions · **0/8** Threads · **0/12** Advanced · **0/18** Stream API
+
+</div>
+
+---
+
 This directory contains 90 runnable Java labs arranged as a learning path:
 82 self-testing challenge starters and eight concurrency stations. Each lab
 uses only the Java 21 standard library. The task descriptions are
@@ -381,6 +394,12 @@ concept without reading the implementation. Mark a concurrency station after
 you can predict and explain its behavior. The `Done` column in each Track
 table carries the same marks per lab — ✅ complete, ⬜ outstanding — and the
 per-subdomain counts below are their totals.
+
+`python3 tools/lab-scoreboard.py`, run from the repo root, rewrites the
+scoreboard, the `Done` marks and this table from the starters themselves: a lab
+is outstanding while it still carries its `UnsupportedOperationException` or
+`TODO` seam. The eight concurrency stations have no such seam, so their marks
+are hand-kept and the script preserves them. Exit 1 means the README changed.
 
 | Subdomain | Labs | Complete |
 |---|---:|---:|

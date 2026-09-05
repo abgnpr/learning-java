@@ -122,6 +122,14 @@ flanked them each become a hyphen). Links inside code fences and
 inline backticks are examples and get skipped; external `http(s)`
 links aren't ours to verify.
 
+**Lab counts are generated, not typed.** `python3
+tools/lab-scoreboard.py` rewrites `core-java/lab/README.md`'s
+scoreboard, per-row ✅/⬜ marks and Scorecard from the starter files —
+a lab is outstanding while it still carries its
+`UnsupportedOperationException` or `TODO` seam. Run it after finishing
+a lab instead of editing the three places by hand; that drift is how
+Strings sat at a stale 8/11. Exit 1 means the README changed.
+
 **Mermaid diagrams: write them, don't render them.** Emit the
 mermaid block and ask Skipper to eyeball it. Do NOT shell out to
 `mmdc`/npx to render an SVG and then read the SVG back — it burns
