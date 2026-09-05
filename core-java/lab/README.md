@@ -235,7 +235,7 @@ you can predict and explain its behavior.
 | Subdomain | Labs | Complete |
 |---|---:|---:|
 | Introduction | 13 | 13/13 |
-| Strings | 11 | 5/11 |
+| Strings | 11 | 6/11 |
 | BigNumber | 3 | 0/3 |
 | Data Structures | 15 | 0/15 |
 | Object-Oriented Programming | 8 | 0/8 |
@@ -243,7 +243,7 @@ you can predict and explain its behavior.
 | Threads and Concurrency | 8 | 0/8 |
 | Advanced | 12 | 0/12 |
 | Stream API | 18 | 0/18 |
-| **Total** | **90** | **18/90** |
+| **Total** | **90** | **19/90** |
 
 ## Revision references
 
@@ -269,4 +269,6 @@ revisiting.
 | 17 — String Reverse | Two-pointer palindrome scan vs reverse-and-compare | [Java 21 API — `StringBuilder.reverse`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/StringBuilder.html#reverse()) | 2026-09-04 |
 | 18 — Anagrams | Frequency maps: `Map.merge` for accumulation and `Map.equals` for matching keys and multiplicities | [Java 21 API — `Map`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Map.html) | 2026-09-04 |
 | 18 — Anagrams | Sorting characters before comparison | [Baeldung — Sorting in Java](https://www.baeldung.com/java-sorting) | 2026-09-04 |
+| 20 — Pattern Syntax Checker | `PatternSyntaxException` as `Pattern.compile`'s only syntax failure, and why it is unchecked | [Java 21 API — `java.util.regex.PatternSyntaxException`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/regex/PatternSyntaxException.html) | 2026-09-05 |
+| 20 — Pattern Syntax Checker | Catching narrowly: which `Throwable`s a predicate should absorb and which must escape | [Baeldung — Exception Handling in Java](https://www.baeldung.com/java-exceptions) | 2026-09-05 |
 | 18 — Anagrams | Whitespace removal with `replaceAll` | [Baeldung — Removing Whitespace from a String in Java](https://www.baeldung.com/java-string-remove-whitespace) | 2026-09-04 |
