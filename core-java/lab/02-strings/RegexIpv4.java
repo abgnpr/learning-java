@@ -11,13 +11,65 @@ import java.util.regex.Pattern;
  * Run: java RegexIpv4.java
  */
 public final class RegexIpv4 {
+    /*
+     * One octet is 25[0-5] | 2[0-4][0-9] | 1[0-9][0-9] | [1-9]?[0-9], and the
+     * branch order is load-bearing: alternation is first-match-wins, not
+     * longest-match-wins, so the widest branch has to come last. Put
+     * [1-9]?[0-9] first and "255" matches on its "25" prefix, leaving a stray
+     * "5" for the next \. to choke on.
+     *
+     * [1-9]?[0-9] is also what rejects leading zeros, and it is NOT the same as
+     * [0-9]{1,2} — both accept 0-99, but only this one refuses "01", because a
+     * two-digit match must start with 1-9. That is the entire no-leading-zero
+     * rule; there is no separate guard for it.
+     *
+     * The 4th octet is spelled out instead of folding the group into {4}: the
+     * group is "octet + dot" and repeats three times, because the last octet
+     * has no dot after it.
+     */
     private static final Pattern PATTERN = Pattern.compile(
-            "^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])$");
+            "((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])");
 
     private RegexIpv4() {
     }
 
     static boolean isValidIpv4(String candidate) {
+
+        // the anchored-find way — the bug this started as
+        /*
+        // with ^...$ wrapped around the pattern:
+        var matcher = PATTERN.matcher(candidate);
+        int matches = 0;
+        while (matcher.find()) {
+            matches++;
+        }
+        return matches == 1;
+        */
+        // Two faults. Counting hits from an anchored pattern is a yes/no
+        // question asked as arithmetic — anchored at ^, it can only ever hit
+        // once. And Java's $ matches before a FINAL line terminator, so
+        // "1.2.3.4\n" matched its first line and the method returned true.
+
+        // matches() requires the whole region to match, so that trailing \n is
+        // left unconsumed and the match fails. It also makes ^ and $ redundant,
+        // which is why they are gone: the anchors were not merely noise, they
+        // were what hid the newline hole.
+        //
+        // The three Matcher entry points, since picking the wrong one is how
+        // validators leak:
+        //   matches()     whole region must match. The validator's default.
+        //   lookingAt()   must match from the start, trailing junk allowed.
+        //   find()        matches anywhere, and repeat calls walk every hit.
+        //                 A validator using it needs its own anchors.
+        //
+        // And the anchors themselves, which are NOT interchangeable:
+        //   ^  \A   start — but ^ also follows every \n under MULTILINE.
+        //   $       end, EXCEPT it also matches before one final terminator.
+        //   \z      true end of input. No exemption. What ^...$ should have
+        //           been here.
+        //   \Z      end, but before a final terminator — the $ trap, spelled.
+        // So "1.2.3.4\n" satisfies ...$ and fails ...\z. That one exemption
+        // is the whole bug above.
         return PATTERN.matcher(candidate).matches();
     }
 

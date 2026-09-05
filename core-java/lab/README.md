@@ -383,7 +383,7 @@ you can predict and explain its behavior.
 | Subdomain | Labs | Complete |
 |---|---:|---:|
 | Introduction | 13 | 13/13 |
-| Strings | 11 | 6/11 |
+| Strings | 11 | 7/11 |
 | BigNumber | 3 | 0/3 |
 | Data Structures | 15 | 0/15 |
 | Object-Oriented Programming | 8 | 0/8 |
@@ -391,7 +391,7 @@ you can predict and explain its behavior.
 | Threads and Concurrency | 8 | 0/8 |
 | Advanced | 12 | 0/12 |
 | Stream API | 18 | 0/18 |
-| **Total** | **90** | **19/90** |
+| **Total** | **90** | **20/90** |
 
 ## Revision references
 
@@ -407,8 +407,8 @@ revisiting.
 | 05 — Java Output Formatting | `Formatter` conversions: width vs precision, the `-` and `0` flags | [Java 21 API — `java.util.Formatter`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Formatter.html) | 2026-09-02 |
 | 06 — Java Loops I | Primitive streams: `mapToObj` as the crossing to `Stream<T>`, and why `Collector`s need it | [Baeldung — Primitive Type Streams in Java](https://www.baeldung.com/java-8-primitive-streams) | 2026-09-02 |
 | 07 — Java Loops II | `iterate()` + `limit()`: laziness and bounding an infinite source | [Baeldung — Java and Infinite Streams](https://www.baeldung.com/java-inifinite-streams) | 2026-09-02 |
-| 08 — Java Datatypes | `parseByte` and the `MIN_VALUE`/`MAX_VALUE` constants: what a wrapper's range contract guarantees, and that a failed parse throws rather than saturating | [Java 21 API — `java.lang.Byte`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Byte.html) | 2026-09-03 |
 | 07 — Java Loops II | Stateless lambdas: why a captured accumulator is the wrong way to carry state | [Baeldung — Lambda Expressions and Functional Interfaces: Tips and Best Practices](https://www.baeldung.com/java-8-lambda-expressions-tips) | 2026-09-02 |
+| 08 — Java Datatypes | `parseByte` and the `MIN_VALUE`/`MAX_VALUE` constants: what a wrapper's range contract guarantees, and that a failed parse throws rather than saturating | [Java 21 API — `java.lang.Byte`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Byte.html) | 2026-09-03 |
 | 09 — Java End-of-file | `readLine()` returning `null` as the EOF signal, and the assign-inside-the-condition loop it forces | [Java 21 API — `java.io.BufferedReader`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/io/BufferedReader.html) | 2026-09-03 |
 | 09 — Java End-of-file | Choosing between `Scanner` and `BufferedReader`: lookahead vs raw reads, buffer size, checked vs unchecked exceptions | [Baeldung — BufferedReader vs Console vs Scanner in Java](https://www.baeldung.com/bufferedreader-vs-console-vs-scanner-in-java) | 2026-09-03 |
 | 12 — Java Date and Time | Java 8 date and time API | [Baeldung — Introduction to the Java 8 Date/Time API](https://www.baeldung.com/java-8-date-time-intro) | 2026-09-04 |
@@ -417,6 +417,8 @@ revisiting.
 | 17 — String Reverse | Two-pointer palindrome scan vs reverse-and-compare | [Java 21 API — `StringBuilder.reverse`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/StringBuilder.html#reverse()) | 2026-09-04 |
 | 18 — Anagrams | Frequency maps: `Map.merge` for accumulation and `Map.equals` for matching keys and multiplicities | [Java 21 API — `Map`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Map.html) | 2026-09-04 |
 | 18 — Anagrams | Sorting characters before comparison | [Baeldung — Sorting in Java](https://www.baeldung.com/java-sorting) | 2026-09-04 |
+| 18 — Anagrams | Whitespace removal with `replaceAll` | [Baeldung — Removing Whitespace from a String in Java](https://www.baeldung.com/java-string-remove-whitespace) | 2026-09-04 |
 | 20 — Pattern Syntax Checker | `PatternSyntaxException` as `Pattern.compile`'s only syntax failure, and why it is unchecked | [Java 21 API — `java.util.regex.PatternSyntaxException`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/regex/PatternSyntaxException.html) | 2026-09-05 |
 | 20 — Pattern Syntax Checker | Catching narrowly: which `Throwable`s a predicate should absorb and which must escape | [Baeldung — Exception Handling in Java](https://www.baeldung.com/java-exceptions) | 2026-09-05 |
-| 18 — Anagrams | Whitespace removal with `replaceAll` | [Baeldung — Removing Whitespace from a String in Java](https://www.baeldung.com/java-string-remove-whitespace) | 2026-09-04 |
+| 21 — Java Regex | Anchors and line terminators: `^`/`$` under MULTILINE, and why `$` matches before a final terminator while `\z` does not | [Java 21 API — `java.util.regex.Pattern`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/regex/Pattern.html) | 2026-09-05 |
+| 21 — Java Regex | `matches()` vs `lookingAt()` vs `find()`: which region each must cover, and why a validator built on `find()` needs its own anchors | [Java 21 API — `java.util.regex.Matcher`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/regex/Matcher.html) | 2026-09-05 |
