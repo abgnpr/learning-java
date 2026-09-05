@@ -383,7 +383,7 @@ you can predict and explain its behavior.
 | Subdomain | Labs | Complete |
 |---|---:|---:|
 | Introduction | 13 | 13/13 |
-| Strings | 11 | 7/11 |
+| Strings | 11 | 8/11 |
 | BigNumber | 3 | 0/3 |
 | Data Structures | 15 | 0/15 |
 | Object-Oriented Programming | 8 | 0/8 |
@@ -391,7 +391,7 @@ you can predict and explain its behavior.
 | Threads and Concurrency | 8 | 0/8 |
 | Advanced | 12 | 0/12 |
 | Stream API | 18 | 0/18 |
-| **Total** | **90** | **20/90** |
+| **Total** | **90** | **21/90** |
 
 ## Revision references
 
@@ -422,3 +422,7 @@ revisiting.
 | 20 — Pattern Syntax Checker | Catching narrowly: which `Throwable`s a predicate should absorb and which must escape | [Baeldung — Exception Handling in Java](https://www.baeldung.com/java-exceptions) | 2026-09-05 |
 | 21 — Java Regex | Anchors and line terminators: `^`/`$` under MULTILINE, and why `$` matches before a final terminator while `\z` does not | [Java 21 API — `java.util.regex.Pattern`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/regex/Pattern.html) | 2026-09-05 |
 | 21 — Java Regex | `matches()` vs `lookingAt()` vs `find()`: which region each must cover, and why a validator built on `find()` needs its own anchors | [Java 21 API — `java.util.regex.Matcher`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/regex/Matcher.html) | 2026-09-05 |
+| 22 — Java Regex 2 | Back-references: `\1` matches the captured *text*, not the pattern again, and `$1` is the same group in the replacement | [Java 21 API — `java.util.regex.Pattern`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/regex/Pattern.html) | 2026-09-05 |
+| 22 — Java Regex 2 | `\b` as a zero-width boundary, and why a back-reference without one matches a prefix (`go` inside `gone`) | [Java 21 API — `java.util.regex.Pattern`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/regex/Pattern.html) | 2026-09-05 |
+| 22 — Java Regex 2 | Inline flags: `(?i)` scope to the enclosing group, `(?i:X)` and `(?-i)`, and why `String.replaceAll` needs them | [Java 21 API — `java.util.regex.Pattern`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/regex/Pattern.html) | 2026-09-05 |
+| 22 — Java Regex 2 | Catastrophic backtracking: why a quantifier nested in a quantified group goes exponential, and why the *failing* input is the slow one | [OWASP — Regular expression Denial of Service (ReDoS)](https://owasp.org/www-community/attacks/Regular_expression_Denial_of_Service_-_ReDoS) | 2026-09-05 |
