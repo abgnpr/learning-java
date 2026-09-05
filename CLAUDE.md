@@ -140,6 +140,11 @@ are fine as plain section links (`[§4](#4-…)`), not as prose about
 where the reader is in the file. Changelogs go in the commit
 message or the chat reply; the drill sheet stays clean.
 
+**Commit on `main`; never branch unless asked.** This repo is
+trunk-based — a drill is finished by committing straight to `main`.
+"Commit" means commit, not branch-then-commit, and not a PR. Create a
+branch only when Skipper asks for one by name.
+
 ## Laws (inherited)
 
 Readiness is earned · truth only (never claim beyond the recon
