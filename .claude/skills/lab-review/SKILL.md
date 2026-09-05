@@ -116,5 +116,13 @@ If a kit table in the root `CLAUDE.md` tracks this lab's count, update it too.
 ## Scope
 
 Stay inside the challenge file and the lab README. Don't refactor the
-`checkEquals` helper, weaken an acceptance check, or restructure the lab.
-Don't commit unless asked.
+`check`/`show`/`report` harness, weaken an acceptance check, or restructure
+the lab. Don't commit unless asked.
+
+The harness block is standardized across challenges and documented under "The
+harness block" in the lab README. A file still carrying the older
+`checkEquals(expected, actual, label)` form may be migrated to it while
+reviewing that file — copy the block verbatim, rewrite each case as
+`check(label, input, expected, actual)`, and end `main` with
+`report("Challenge NN")`. Preserve every existing case and its expected value;
+migrating is a mechanical rewrite, never a change to what is asserted.

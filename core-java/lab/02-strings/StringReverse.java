@@ -45,28 +45,92 @@ public final class StringReverse {
      */
 
     public static void main(String[] args) {
-        checkEquals(true, isPalindrome("level"), "odd-length palindrome");
-        checkEquals(true, isPalindrome("abba"), "even-length palindrome");
-        checkEquals(true, isPalindrome(""), "empty string");
-        checkEquals(false, isPalindrome("Level"), "case-sensitive mismatch");
-        checkEquals(false, isPalindrome("a!ba"), "punctuation is not ignored");
-        checkEquals(false, isPalindrome("abca"), "non-palindrome");
-        if (failures > 0) {
-            throw new AssertionError("Challenge 17: " + failures + " check(s) failed.");
-        }
-        System.out.println("Challenge 17 passed.");
+        check("odd-length palindrome", "level", true, isPalindrome("level"));
+        check("even-length palindrome", "abba", true, isPalindrome("abba"));
+        check("empty string", "", true, isPalindrome(""));
+        check("case-sensitive mismatch", "Level", false, isPalindrome("Level"));
+        check("punctuation is not ignored", "a!ba", false, isPalindrome("a!ba"));
+        check("non-palindrome", "abca", false, isPalindrome("abca"));
+        report("Challenge 17");
     }
 
+    // ---- test harness (identical in every challenge; not part of the exercise) ----
+
+    private static int passes = 0;
     private static int failures = 0;
 
-    private static void checkEquals(boolean expected, boolean actual, String label) {
-        if (expected == actual) {
-            System.out.println("PASS " + label + ": " + "<" + actual + ">");
-            return;
+    /** Records one case. Prints input, expected and actual so a failure is diagnosable. */
+    private static void check(String label, Object input, Object expected, Object actual) {
+        boolean ok = java.util.Objects.deepEquals(expected, actual);
+        if (ok) {
+            passes++;
+        } else {
+            failures++;
         }
-        failures++;
-        System.out.println("FAIL " + label
-                + ":\n  expected: <" + expected + ">"
-                + "\n    actual: <" + actual + ">");
+        System.out.println((ok ? "PASS  " : "FAIL  ") + label);
+        if (input != null) {
+            System.out.println("      input:    " + show(input));
+        }
+        System.out.println("      expected: " + show(expected));
+        System.out.println("      actual:   " + show(actual));
+    }
+
+    /** Records a case whose contract is a condition rather than a value. */
+    private static void checkThat(String label, Object input, boolean condition) {
+        if (condition) {
+            passes++;
+        } else {
+            failures++;
+        }
+        System.out.println((condition ? "PASS  " : "FAIL  ") + label);
+        if (input != null) {
+            System.out.println("      input:    " + show(input));
+        }
+        System.out.println("      expected: " + "condition holds");
+        System.out.println("      actual:   " + (condition ? "holds" : "does not hold"));
+    }
+
+    /**
+     * Renders a value on one line so line breaks and trailing spaces stay visible:
+     * every line is wrapped in <> and the breaks between them are shown as \n.
+     * Non-strings carry their type, so <12> the text and 12 the int never look alike.
+     */
+    private static String show(Object value) {
+        if (value == null) {
+            return "null";
+        }
+        if (value instanceof Object[] array) {
+            return java.util.Arrays.deepToString(array);
+        }
+        if (value.getClass().isArray()) {
+            return java.util.Arrays.deepToString(new Object[] { value })
+                    .replaceAll("^\\[|\\]$", "");
+        }
+        if (!(value instanceof String s)) {
+            return value + " (" + value.getClass().getSimpleName() + ")";
+        }
+        if (s.isEmpty()) {
+            return "<> (empty)";
+        }
+        // -1 keeps the trailing empty field, so a value ending in \n still shows it.
+        String[] lines = s.split("\n", -1);
+        var sb = new StringBuilder();
+        for (int i = 0; i < lines.length; i++) {
+            if (i > 0) {
+                sb.append("\\n");
+            }
+            sb.append('<').append(lines[i].replace("\r", "\\r")).append('>');
+        }
+        return sb.toString();
+    }
+
+    /** Prints the tally and fails the run if any case failed. */
+    private static void report(String challenge) {
+        System.out.println("----");
+        System.out.println(challenge + ": " + passes + " passed, " + failures + " failed.");
+        if (failures > 0) {
+            throw new AssertionError(challenge + ": " + failures + " check(s) failed.");
+        }
+        System.out.println(challenge + " passed.");
     }
 }

@@ -37,6 +37,154 @@ An untouched starter throws `UnsupportedOperationException` or fails a
 structural check. A completed challenge prints its completion line after every
 embedded check succeeds.
 
+### Reading the output
+
+Every case prints its input alongside both values, so a failure is diagnosable
+without a debugger or an external judge:
+
+```
+FAIL  ordinary address
+      input:    <192.168.1.10>
+      expected: true (Boolean)
+      actual:   false (Boolean)
+PASS  upper boundaries
+      input:    <255.255.255.255>
+      expected: true (Boolean)
+      actual:   true (Boolean)
+----
+Challenge 21: 4 passed, 2 failed.
+```
+
+`show` renders each value so that near-misses cannot hide:
+
+| Value | Prints as | Why it matters |
+|---|---|---|
+| `"ab"` | `<ab>` | the `<>` fence exposes leading and trailing spaces |
+| `""` | `<> (empty)` | an empty string is visible rather than blank |
+| `"a\nb"` | `<a>\n<b>` | line breaks stay on one output line |
+| `12` | `12 (Integer)` | the text `"12"` and the int `12` never look alike |
+| `null` | `null` | absent values do not vanish into concatenation |
+| `int[]{1,2}` | `[1, 2]` | elements, not an identity hash |
+
+The run ends with a tally, and any failure throws an `AssertionError`, so a
+non-zero exit still signals a broken challenge to a script.
+
+A case whose input carries no information — a no-argument call such as
+`greeting()` — omits the `input:` line rather than printing an empty one.
+
+### The harness block
+
+Each file carries its own copy of the harness below `main`, because the
+single-file source launcher compiles one file and cannot see a shared helper
+class: `java 02-strings/RegexIpv4.java` would not resolve it. The block is
+byte-identical in all 82 challenges and is not part of any exercise — copy it
+verbatim into a new challenge:
+
+```java
+// ---- test harness (identical in every challenge; not part of the exercise) ----
+
+private static int passes = 0;
+private static int failures = 0;
+
+/** Records one case. Prints input, expected and actual so a failure is diagnosable. */
+private static void check(String label, Object input, Object expected, Object actual) {
+    boolean ok = java.util.Objects.deepEquals(expected, actual);
+    if (ok) {
+        passes++;
+    } else {
+        failures++;
+    }
+    System.out.println((ok ? "PASS  " : "FAIL  ") + label);
+    if (input != null) {
+        System.out.println("      input:    " + show(input));
+    }
+    System.out.println("      expected: " + show(expected));
+    System.out.println("      actual:   " + show(actual));
+}
+
+/** Records a case whose contract is a condition rather than a value. */
+private static void checkThat(String label, Object input, boolean condition) {
+    if (condition) {
+        passes++;
+    } else {
+        failures++;
+    }
+    System.out.println((condition ? "PASS  " : "FAIL  ") + label);
+    if (input != null) {
+        System.out.println("      input:    " + show(input));
+    }
+    System.out.println("      expected: " + "condition holds");
+    System.out.println("      actual:   " + (condition ? "holds" : "does not hold"));
+}
+
+/**
+ * Renders a value on one line so line breaks and trailing spaces stay visible:
+ * every line is wrapped in <> and the breaks between them are shown as \n.
+ * Non-strings carry their type, so <12> the text and 12 the int never look alike.
+ */
+private static String show(Object value) {
+    if (value == null) {
+        return "null";
+    }
+    if (value instanceof Object[] array) {
+        return java.util.Arrays.deepToString(array);
+    }
+    if (value.getClass().isArray()) {
+        return java.util.Arrays.deepToString(new Object[] { value })
+                .replaceAll("^\\[|\\]$", "");
+    }
+    if (!(value instanceof String s)) {
+        return value + " (" + value.getClass().getSimpleName() + ")";
+    }
+    if (s.isEmpty()) {
+        return "<> (empty)";
+    }
+    // -1 keeps the trailing empty field, so a value ending in \n still shows it.
+    String[] lines = s.split("\n", -1);
+    var sb = new StringBuilder();
+    for (int i = 0; i < lines.length; i++) {
+        if (i > 0) {
+            sb.append("\\n");
+        }
+        sb.append('<').append(lines[i].replace("\r", "\\r")).append('>');
+    }
+    return sb.toString();
+}
+
+/** Prints the tally and fails the run if any case failed. */
+private static void report(String challenge) {
+    System.out.println("----");
+    System.out.println(challenge + ": " + passes + " passed, " + failures + " failed.");
+    if (failures > 0) {
+        throw new AssertionError(challenge + ": " + failures + " check(s) failed.");
+    }
+    System.out.println(challenge + " passed.");
+}
+```
+
+`main` then reads as one line per case — label, input, expected, actual — and
+closes with `report`:
+
+```java
+public static void main(String[] args) {
+    check("ordinary address", "192.168.1.10", true, isValidIpv4("192.168.1.10"));
+    check("too few octets", "1.2.3", false, isValidIpv4("1.2.3"));
+    report("Challenge 21");
+}
+```
+
+`deepEquals` compares nested and primitive arrays element-wise and treats two
+nulls as equal, so one `check` covers booleans, numbers, strings, collections
+and arrays. Where a case takes several arguments, pass a readable description
+as the input — `check("merge", "[1,2] + [3]", expected, merge(a, b))`.
+
+Use `checkThat` for a contract that is a condition rather than a value — that
+a result is unmodifiable, or of a particular runtime type:
+
+```java
+checkThat("result type is TreeMap", "sales", totalsByDepartment(sales) instanceof TreeMap);
+```
+
 Compile all 82 challenge starters without writing class files into the
 repository:
 

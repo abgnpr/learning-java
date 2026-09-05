@@ -62,34 +62,62 @@ public final class Datatypes {
     }
 
     public static void main(String[] args) {
-        checkEquals("byte", smallestIntegralType("-128"), "byte lower boundary");
-        checkEquals("byte", smallestIntegralType("127"), "byte upper boundary");
-        checkEquals("short", smallestIntegralType("-129"), "first value below byte");
-        checkEquals("short", smallestIntegralType("128"), "first value above byte");
-        checkEquals("short", smallestIntegralType("-32768"), "short lower boundary");
-        checkEquals("int", smallestIntegralType("-40000"), "negative int value");
-        checkEquals("int", smallestIntegralType("-2147483648"), "int lower boundary");
-        checkEquals("long", smallestIntegralType("2147483648"), "first value above int");
-        checkEquals("long", smallestIntegralType("-9223372036854775808"), "long lower boundary");
-        checkEquals("out-of-range", smallestIntegralType("-9223372036854775809"), "below long");
-        checkEquals("out-of-range", smallestIntegralType("9223372036854775808"), "above long");
-        if (failures > 0) {
-            throw new AssertionError("Challenge 08: " + failures + " check(s) failed.");
-        }
-        System.out.println("Challenge 08 passed.");
+        check("byte lower boundary", "-128", "byte", smallestIntegralType("-128"));
+        check("byte upper boundary", "127", "byte", smallestIntegralType("127"));
+        check("first value below byte", "-129", "short", smallestIntegralType("-129"));
+        check("first value above byte", "128", "short", smallestIntegralType("128"));
+        check("short lower boundary", "-32768", "short", smallestIntegralType("-32768"));
+        check("negative int value", "-40000", "int", smallestIntegralType("-40000"));
+        check("int lower boundary", "-2147483648", "int", smallestIntegralType("-2147483648"));
+        check("first value above int", "2147483648", "long", smallestIntegralType("2147483648"));
+        check("long lower boundary", "-9223372036854775808", "long", smallestIntegralType("-9223372036854775808"));
+        check("below long", "-9223372036854775809", "out-of-range", smallestIntegralType("-9223372036854775809"));
+        check("above long", "9223372036854775808", "out-of-range", smallestIntegralType("9223372036854775808"));
+        report("Challenge 08");
     }
 
+
+
+    /**
+     * Renders a value on one line so line breaks and trailing spaces stay visible:
+     * every line is wrapped in <> and the breaks between them are shown as \n.
+     * Non-strings carry their type, so <12> the text and 12 the int never look alike.
+     */
+
+    // ---- test harness (identical in every challenge; not part of the exercise) ----
+
+    private static int passes = 0;
     private static int failures = 0;
 
-    private static void checkEquals(Object expected, Object actual, String label) {
-        if (java.util.Objects.equals(expected, actual)) {
-            System.out.println("PASS " + label + ": " + show(actual));
-            return;
+    /** Records one case. Prints input, expected and actual so a failure is diagnosable. */
+    private static void check(String label, Object input, Object expected, Object actual) {
+        boolean ok = java.util.Objects.deepEquals(expected, actual);
+        if (ok) {
+            passes++;
+        } else {
+            failures++;
         }
-        failures++;
-        System.out.println("FAIL " + label
-                + "\n  expected: " + show(expected)
-                + "\n    actual: " + show(actual));
+        System.out.println((ok ? "PASS  " : "FAIL  ") + label);
+        if (input != null) {
+            System.out.println("      input:    " + show(input));
+        }
+        System.out.println("      expected: " + show(expected));
+        System.out.println("      actual:   " + show(actual));
+    }
+
+    /** Records a case whose contract is a condition rather than a value. */
+    private static void checkThat(String label, Object input, boolean condition) {
+        if (condition) {
+            passes++;
+        } else {
+            failures++;
+        }
+        System.out.println((condition ? "PASS  " : "FAIL  ") + label);
+        if (input != null) {
+            System.out.println("      input:    " + show(input));
+        }
+        System.out.println("      expected: " + "condition holds");
+        System.out.println("      actual:   " + (condition ? "holds" : "does not hold"));
     }
 
     /**
@@ -103,6 +131,10 @@ public final class Datatypes {
         }
         if (value instanceof Object[] array) {
             return java.util.Arrays.deepToString(array);
+        }
+        if (value.getClass().isArray()) {
+            return java.util.Arrays.deepToString(new Object[] { value })
+                    .replaceAll("^\\[|\\]$", "");
         }
         if (!(value instanceof String s)) {
             return value + " (" + value.getClass().getSimpleName() + ")";
@@ -120,5 +152,15 @@ public final class Datatypes {
             sb.append('<').append(lines[i].replace("\r", "\\r")).append('>');
         }
         return sb.toString();
+    }
+
+    /** Prints the tally and fails the run if any case failed. */
+    private static void report(String challenge) {
+        System.out.println("----");
+        System.out.println(challenge + ": " + passes + " passed, " + failures + " failed.");
+        if (failures > 0) {
+            throw new AssertionError(challenge + ": " + failures + " check(s) failed.");
+        }
+        System.out.println(challenge + " passed.");
     }
 }

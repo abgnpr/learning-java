@@ -46,57 +46,72 @@ public final class StdinStdoutTwo {
             String s = l + " | " + String.valueOf(i) + " | " + String.valueOf(bd);
             return s;
         } catch (Exception e) {
-            // Add the input: argument evaluation can throw before checkEquals()
+            // Add the input: argument evaluation can throw before check()
             // gets a chance to print its label.
             throw new IllegalStateException("failed parsing input:\n<" + input + ">", e);
         }
     }
 
     public static void main(String[] args) {
-        checkEquals("Ada Lovelace | 12 | 19.50",
-                summarizeRecord("12\n19.5\nAda Lovelace\n"), "ordinary record");
-        checkEquals("Timeothy Tim | 12 | 3.13",
-                summarizeRecord("12\n3.13\nTimeothy Tim\n"), "ordinary record");
-        checkEquals("tea | -4 | 0.13",
-                summarizeRecord("-4\n0.125\ntea\n"), "rounding and negative integer");
-        checkEquals("negative half | -1 | -0.13",
-                summarizeRecord("-1\n-0.125\nnegative half\n"), "negative half-up rounding");
-        checkEquals("two words | 0 | -8.00",
-                summarizeRecord("0\n-8\ntwo words"), "label containing a space");
-        checkEquals("precision | 7 | 2.67",
-                summarizeRecord("7\n2.6749999999999999999\nprecision\n"),
-                "decimal precision before rounding");
+        check("ordinary record", "12\n19.5\nAda Lovelace\n", "Ada Lovelace | 12 | 19.50", summarizeRecord("12\n19.5\nAda Lovelace\n"));
+        check("ordinary record", "12\n3.13\nTimeothy Tim\n", "Timeothy Tim | 12 | 3.13", summarizeRecord("12\n3.13\nTimeothy Tim\n"));
+        check("rounding and negative integer", "-4\n0.125\ntea\n", "tea | -4 | 0.13", summarizeRecord("-4\n0.125\ntea\n"));
+        check("negative half-up rounding", "-1\n-0.125\nnegative half\n", "negative half | -1 | -0.13", summarizeRecord("-1\n-0.125\nnegative half\n"));
+        check("label containing a space", "0\n-8\ntwo words", "two words | 0 | -8.00", summarizeRecord("0\n-8\ntwo words"));
+        check("decimal precision before rounding", "7\n2.6749999999999999999\nprecision\n", "precision | 7 | 2.67", summarizeRecord("7\n2.6749999999999999999\nprecision\n"));
 
         Locale originalLocale = Locale.getDefault();
         try {
             Locale.setDefault(Locale.GERMANY);
-            checkEquals("locale | 5 | 19.50",
-                    summarizeRecord("5\n19.5\nlocale\n"),
-                    "dot-decimal input under a comma-decimal locale");
+            check("dot-decimal input under a comma-decimal locale", "5\n19.5\nlocale\n", "locale | 5 | 19.50", summarizeRecord("5\n19.5\nlocale\n"));
         } finally {
             Locale.setDefault(originalLocale);
         }
-
-        if (failures > 0) {
-
-            throw new AssertionError("Challenge 04: " + failures + " check(s) failed.");
-
-        }
-
-        System.out.println("Challenge 04 passed.");
+        report("Challenge 04");
     }
 
+
+
+    /**
+     * Renders a value on one line so line breaks and trailing spaces stay visible:
+     * every line is wrapped in <> and the breaks between them are shown as \n.
+     * Non-strings carry their type, so <12> the text and 12 the int never look alike.
+     */
+
+    // ---- test harness (identical in every challenge; not part of the exercise) ----
+
+    private static int passes = 0;
     private static int failures = 0;
 
-    private static void checkEquals(Object expected, Object actual, String label) {
-        if (java.util.Objects.equals(expected, actual)) {
-            System.out.println("PASS " + label + ": " + show(actual));
-            return;
+    /** Records one case. Prints input, expected and actual so a failure is diagnosable. */
+    private static void check(String label, Object input, Object expected, Object actual) {
+        boolean ok = java.util.Objects.deepEquals(expected, actual);
+        if (ok) {
+            passes++;
+        } else {
+            failures++;
         }
-        failures++;
-        System.out.println("FAIL " + label
-                + "\n  expected: " + show(expected)
-                + "\n    actual: " + show(actual));
+        System.out.println((ok ? "PASS  " : "FAIL  ") + label);
+        if (input != null) {
+            System.out.println("      input:    " + show(input));
+        }
+        System.out.println("      expected: " + show(expected));
+        System.out.println("      actual:   " + show(actual));
+    }
+
+    /** Records a case whose contract is a condition rather than a value. */
+    private static void checkThat(String label, Object input, boolean condition) {
+        if (condition) {
+            passes++;
+        } else {
+            failures++;
+        }
+        System.out.println((condition ? "PASS  " : "FAIL  ") + label);
+        if (input != null) {
+            System.out.println("      input:    " + show(input));
+        }
+        System.out.println("      expected: " + "condition holds");
+        System.out.println("      actual:   " + (condition ? "holds" : "does not hold"));
     }
 
     /**
@@ -110,6 +125,10 @@ public final class StdinStdoutTwo {
         }
         if (value instanceof Object[] array) {
             return java.util.Arrays.deepToString(array);
+        }
+        if (value.getClass().isArray()) {
+            return java.util.Arrays.deepToString(new Object[] { value })
+                    .replaceAll("^\\[|\\]$", "");
         }
         if (!(value instanceof String s)) {
             return value + " (" + value.getClass().getSimpleName() + ")";
@@ -127,5 +146,15 @@ public final class StdinStdoutTwo {
             sb.append('<').append(lines[i].replace("\r", "\\r")).append('>');
         }
         return sb.toString();
+    }
+
+    /** Prints the tally and fails the run if any case failed. */
+    private static void report(String challenge) {
+        System.out.println("----");
+        System.out.println(challenge + ": " + passes + " passed, " + failures + " failed.");
+        if (failures > 0) {
+            throw new AssertionError(challenge + ": " + failures + " check(s) failed.");
+        }
+        System.out.println(challenge + " passed.");
     }
 }

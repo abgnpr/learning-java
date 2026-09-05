@@ -17,41 +17,93 @@ public class BigIntegerArithmetic {
     }
 
     public static void main(String[] args) {
-        checkEquals(
-            result("42", "360"),
-            calculate(new BigInteger("12"), new BigInteger("30")),
-            "ordinary values"
-        );
-        checkEquals(
-            result("12345678901234567900", "123456789012345678900"),
-            calculate(new BigInteger("12345678901234567890"), BigInteger.TEN),
-            "beyond long range"
-        );
-        checkEquals(
-            result("999999999999999999999999", "0"),
-            calculate(BigInteger.ZERO, new BigInteger("999999999999999999999999")),
-            "zero operand"
-        );
-        if (failures > 0) {
-            throw new AssertionError("Challenge 27: " + failures + " check(s) failed.");
-        }
-        System.out.println("Challenge 27 passed.");
+        check("ordinary values", "new BigInteger(\"12\"), new BigInteger(\"30\")", result("42", "360"), calculate(new BigInteger("12"), new BigInteger("30")));
+        check("beyond long range", "new BigInteger(\"12345678901234567890\"), BigInteger.TEN", result("12345678901234567900", "123456789012345678900"), calculate(new BigInteger("12345678901234567890"), BigInteger.TEN));
+        check("zero operand", "BigInteger.ZERO, new BigInteger(\"999999999999999999999999\")", result("999999999999999999999999", "0"), calculate(BigInteger.ZERO, new BigInteger("999999999999999999999999")));
+        report("Challenge 27");
     }
 
     static ArithmeticResult result(String sum, String product) {
         return new ArithmeticResult(new BigInteger(sum), new BigInteger(product));
     }
 
+    // ---- test harness (identical in every challenge; not part of the exercise) ----
+
+    private static int passes = 0;
     private static int failures = 0;
 
-    static void checkEquals(Object expected, Object actual, String label) {
-        if (java.util.Objects.equals(expected, actual)) {
-            System.out.println("PASS " + label + ": " + "<" + actual + ">");
-            return;
+    /** Records one case. Prints input, expected and actual so a failure is diagnosable. */
+    private static void check(String label, Object input, Object expected, Object actual) {
+        boolean ok = java.util.Objects.deepEquals(expected, actual);
+        if (ok) {
+            passes++;
+        } else {
+            failures++;
         }
-        failures++;
-        System.out.println("FAIL " + label
-                    + ":\n  expected: <" + expected + ">"
-                    + "\n    actual: <" + actual + ">");
+        System.out.println((ok ? "PASS  " : "FAIL  ") + label);
+        if (input != null) {
+            System.out.println("      input:    " + show(input));
+        }
+        System.out.println("      expected: " + show(expected));
+        System.out.println("      actual:   " + show(actual));
+    }
+
+    /** Records a case whose contract is a condition rather than a value. */
+    private static void checkThat(String label, Object input, boolean condition) {
+        if (condition) {
+            passes++;
+        } else {
+            failures++;
+        }
+        System.out.println((condition ? "PASS  " : "FAIL  ") + label);
+        if (input != null) {
+            System.out.println("      input:    " + show(input));
+        }
+        System.out.println("      expected: " + "condition holds");
+        System.out.println("      actual:   " + (condition ? "holds" : "does not hold"));
+    }
+
+    /**
+     * Renders a value on one line so line breaks and trailing spaces stay visible:
+     * every line is wrapped in <> and the breaks between them are shown as \n.
+     * Non-strings carry their type, so <12> the text and 12 the int never look alike.
+     */
+    private static String show(Object value) {
+        if (value == null) {
+            return "null";
+        }
+        if (value instanceof Object[] array) {
+            return java.util.Arrays.deepToString(array);
+        }
+        if (value.getClass().isArray()) {
+            return java.util.Arrays.deepToString(new Object[] { value })
+                    .replaceAll("^\\[|\\]$", "");
+        }
+        if (!(value instanceof String s)) {
+            return value + " (" + value.getClass().getSimpleName() + ")";
+        }
+        if (s.isEmpty()) {
+            return "<> (empty)";
+        }
+        // -1 keeps the trailing empty field, so a value ending in \n still shows it.
+        String[] lines = s.split("\n", -1);
+        var sb = new StringBuilder();
+        for (int i = 0; i < lines.length; i++) {
+            if (i > 0) {
+                sb.append("\\n");
+            }
+            sb.append('<').append(lines[i].replace("\r", "\\r")).append('>');
+        }
+        return sb.toString();
+    }
+
+    /** Prints the tally and fails the run if any case failed. */
+    private static void report(String challenge) {
+        System.out.println("----");
+        System.out.println(challenge + ": " + passes + " passed, " + failures + " failed.");
+        if (failures > 0) {
+            throw new AssertionError(challenge + ": " + failures + " check(s) failed.");
+        }
+        System.out.println(challenge + " passed.");
     }
 }
