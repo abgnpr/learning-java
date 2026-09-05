@@ -31,7 +31,7 @@ SECTIONS = [
 HEADING_TO_SUBDOMAIN = {"Advanced": "Advanced", "Introduction": "Introduction"}
 
 BAR_WIDTH = 30
-SECTION_BAR_WIDTH = 22
+SECTION_BAR_WIDTH = 36
 
 
 def solved(path):
@@ -78,13 +78,16 @@ def main():
     pairs = [(short, counts.get(head, (0, 0))) for head, short, _ in SECTIONS]
     name_w = max(len(s) for s, _ in pairs)
     frac_w = max(len(f"{d}/{t}") for _, (d, t) in pairs)
+    biggest = max(t for _, (_, t) in pairs) or 1
     rows = []
     for short, (d, t) in pairs:
-        fill = round(d / t * SECTION_BAR_WIDTH) if t else 0
-        rows.append(
-            f"{short.ljust(name_w)}  {'█' * fill}{'░' * (SECTION_BAR_WIDTH - fill)}  "
-            f"{f'{d}/{t}'.rjust(frac_w)}"
-        )
+        # Track length is proportional to the labs the subdomain holds, so the
+        # chart shows remaining work and not just percentages; the filled part
+        # is progress within that track.
+        track = max(1, round(t / biggest * SECTION_BAR_WIDTH))
+        fill = round(d / t * track) if t else 0
+        bar_cell = f"{short.ljust(name_w)}  {'█' * fill}{'░' * (track - fill)}"
+        rows.append(f"{bar_cell.ljust(name_w + 2 + SECTION_BAR_WIDTH)}  {f'{d}/{t}'.rjust(frac_w)}")
     chart = "\n".join(rows)
 
     board = (
