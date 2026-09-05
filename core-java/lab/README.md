@@ -383,7 +383,7 @@ you can predict and explain its behavior.
 | Subdomain | Labs | Complete |
 |---|---:|---:|
 | Introduction | 13 | 13/13 |
-| Strings | 11 | 8/11 |
+| Strings | 11 | 9/11 |
 | BigNumber | 3 | 0/3 |
 | Data Structures | 15 | 0/15 |
 | Object-Oriented Programming | 8 | 0/8 |
@@ -391,7 +391,7 @@ you can predict and explain its behavior.
 | Threads and Concurrency | 8 | 0/8 |
 | Advanced | 12 | 0/12 |
 | Stream API | 18 | 0/18 |
-| **Total** | **90** | **21/90** |
+| **Total** | **90** | **22/90** |
 
 ## Revision references
 
@@ -426,3 +426,6 @@ revisiting.
 | 22 — Java Regex 2 | `\b` as a zero-width boundary, and why a back-reference without one matches a prefix (`go` inside `gone`) | [Java 21 API — `java.util.regex.Pattern`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/regex/Pattern.html) | 2026-09-05 |
 | 22 — Java Regex 2 | Inline flags: `(?i)` scope to the enclosing group, `(?i:X)` and `(?-i)`, and why `String.replaceAll` needs them | [Java 21 API — `java.util.regex.Pattern`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/regex/Pattern.html) | 2026-09-05 |
 | 22 — Java Regex 2 | Catastrophic backtracking: why a quantifier nested in a quantified group goes exponential, and why the *failing* input is the slow one | [OWASP — Regular expression Denial of Service (ReDoS)](https://owasp.org/www-community/attacks/Regular_expression_Denial_of_Service_-_ReDoS) | 2026-09-05 |
+| 23 — Valid Username Regular Expression | Predefined vs POSIX vs Unicode classes: `\w` is ASCII until `UNICODE_CHARACTER_CLASS` widens it, while `\p{L}` is Unicode already | [Java 21 API — `java.util.regex.Pattern`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/regex/Pattern.html) | 2026-09-05 |
+| 23 — Valid Username Regular Expression | Character-class ranges span code points, not alphabets — why `[A-z]` admits `` [ \ ] ^ _ ` `` | [Baeldung — Regular Expressions in Java](https://www.baeldung.com/regular-expressions-java) | 2026-09-05 |
+| 23 — Valid Username Regular Expression | Compiling a `Pattern` once as a constant: immutable and thread-safe, unlike the `Matcher` it creates | [Baeldung — An Overview of Regular Expressions Performance in Java](https://www.baeldung.com/java-regex-performance) | 2026-09-05 |
