@@ -31,6 +31,7 @@ SECTIONS = [
 HEADING_TO_SUBDOMAIN = {"Advanced": "Advanced", "Introduction": "Introduction"}
 
 BAR_WIDTH = 30
+SECTION_BAR_WIDTH = 22
 
 
 def solved(path):
@@ -75,18 +76,28 @@ def main():
             print(f"warning: {heading} has {got} rows, expected {expected}", file=sys.stderr)
 
     pairs = [(short, counts.get(head, (0, 0))) for head, short, _ in SECTIONS]
-    half = 5
-    line1 = " · ".join(f"**{d}/{t}** {s}" for s, (d, t) in pairs[:half])
-    line2 = " · ".join(f"**{d}/{t}** {s}" for s, (d, t) in pairs[half:])
+    name_w = max(len(s) for s, _ in pairs)
+    frac_w = max(len(f"{d}/{t}") for _, (d, t) in pairs)
+    rows = []
+    for short, (d, t) in pairs:
+        fill = round(d / t * SECTION_BAR_WIDTH) if t else 0
+        rows.append(
+            f"{short.ljust(name_w)}  {'█' * fill}{'░' * (SECTION_BAR_WIDTH - fill)}  "
+            f"{f'{d}/{t}'.rjust(frac_w)}"
+        )
+    chart = "\n".join(rows)
 
     board = (
         f'<div align="center">\n\n'
         f"## `{total_done} / {total_all}` labs complete\n\n"
         f"`{bar}` **{pct}%**\n\n"
-        f"{line1}<br>\n{line2}\n\n"
-        f"</div>"
+        f"</div>\n\n"
+        f"```text\n{chart}\n```"
     )
-    text = re.sub(r'<div align="center">\n\n## `.*?</div>', board, text, count=1, flags=re.S)
+    text = re.sub(
+        r'<div align="center">\n\n## `.*?```text\n.*?\n```|<div align="center">\n\n## `.*?</div>',
+        lambda _: board, text, count=1, flags=re.S,
+    )
 
     # Scorecard rows and total
     for heading, _, _ in SECTIONS:
