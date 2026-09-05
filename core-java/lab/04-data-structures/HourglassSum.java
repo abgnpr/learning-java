@@ -8,32 +8,112 @@
  * Run: java HourglassSum.java
  */
 public class HourglassSum {
+    private static int _sum(int[][] grid, int i, int j) {
+        return grid[i][j] + grid[i][j + 1] + grid[i][j + 2]
+                + grid[i + 1][j + 1]
+                + grid[i + 2][j] + grid[i + 2][j + 1] + grid[i + 2][j + 2];
+    }
+
+    /*
+     * i and j are the hourglass's TOP-LEFT corner, so both must start at 0 —
+     * they are corners to try, not "inner" cells to walk. Starting at 1:
+     *
+     *     for (int i = 1; i < grid.length - 2; i++)
+     *         for (int j = 1; j < grid[i].length - 2; j++)
+     *
+     * silently drops the whole top row and left column of corners, and on a
+     * 3-row grid the condition is 1 < 1 — the body never runs at all and the
+     * seed leaks out as the answer. A plausible number, never an exception.
+     *
+     * Seeding from a real hourglass rather than 0 is the point: sums go
+     * negative, so `largestSum = 0` would return 0 for an all-negative grid —
+     * a value no hourglass has. Integer.MIN_VALUE works too and fails louder
+     * when nothing is scanned; 0 is the only wrong answer here.
+     */
     static int maxHourglassSum(int[][] grid) {
-        // TODO: Examine every 3-by-3 window without assuming sums are positive.
-        throw new UnsupportedOperationException("TODO: find the maximum hourglass");
+        int largestSum = _sum(grid, 0, 0);
+        // - 2 leaves room for the two rows/columns below and right that _sum
+        // reaches; i + 2 < grid.length is the same bound written to match it.
+        for (int i = 0; i < grid.length - 2; i++) {
+            for (int j = 0; j < grid[i].length - 2; j++) {
+                int sum = _sum(grid, i, j);
+                if (sum > largestSum) {
+                    largestSum = sum;
+                }
+            }
+        }
+        return largestSum;
     }
 
     public static void main(String[] args) {
-        check("single hourglass", "new int[][] { { 1, 2, 3 }, { 4, 5, 6 }, { 7, 8, 9 } }", 35, maxHourglassSum(new int[][] {
-            { 1, 2, 3 },
-            { 4, 5, 6 },
-            { 7, 8, 9 }
-        }));
+        check("single hourglass", "new int[][] { { 1, 2, 3 }, { 4, 5, 6 }, { 7, 8, 9 } }", 35,
+                maxHourglassSum(new int[][] {
+                        { 1, 2, 3 },
+                        { 4, 5, 6 },
+                        { 7, 8, 9 }
+                }));
 
-        check("all-negative grid", "new int[][] { { -1, -1, -1 }, { -1, -1, -1 }, { -1, -1, -1 } }", -7, maxHourglassSum(new int[][] {
-            { -1, -1, -1 },
-            { -1, -1, -1 },
-            { -1, -1, -1 }
-        }));
+        check("all-negative grid", "new int[][] { { -1, -1, -1 }, { -1, -1, -1 }, { -1, -1, -1 } }", -7,
+                maxHourglassSum(new int[][] {
+                        { -1, -1, -1 },
+                        { -1, -1, -1 },
+                        { -1, -1, -1 }
+                }));
 
-        check("multiple candidates", "new int[][] { { 1, 1, 1, 0, 0, 0 }, { 0, 1, 0, 0, 0, 0 }, { 1, 1, 1, 0, 0, 0 }, { 0, 0, 2, 4, 4, 0 }, { 0, 0, 0, 2, 0, 0 }, { 0, 0, 1, 2, 4, 0 } }", 19, maxHourglassSum(new int[][] {
-            { 1, 1, 1, 0, 0, 0 },
-            { 0, 1, 0, 0, 0, 0 },
-            { 1, 1, 1, 0, 0, 0 },
-            { 0, 0, 2, 4, 4, 0 },
-            { 0, 0, 0, 2, 0, 0 },
-            { 0, 0, 1, 2, 4, 0 }
-        }));
+        check("multiple candidates",
+                "new int[][] { { 1, 1, 1, 0, 0, 0 }, { 0, 1, 0, 0, 0, 0 }, { 1, 1, 1, 0, 0, 0 }, { 0, 0, 2, 4, 4, 0 }, { 0, 0, 0, 2, 0, 0 }, { 0, 0, 1, 2, 4, 0 } }",
+                19, maxHourglassSum(new int[][] {
+                        { 1, 1, 1, 0, 0, 0 },
+                        { 0, 1, 0, 0, 0, 0 },
+                        { 1, 1, 1, 0, 0, 0 },
+                        { 0, 0, 2, 4, 4, 0 },
+                        { 0, 0, 0, 2, 0, 0 },
+                        { 0, 0, 1, 2, 4, 0 }
+                }));
+
+        check("max in top row, not at column 0",
+                "new int[][] { { 0, 9, 9, 9 }, { 0, 0, 9, 0 }, { 0, 9, 9, 9 }, { 0, 0, 0, 0 } }",
+                63, maxHourglassSum(new int[][] {
+                        { 0, 9, 9, 9 },
+                        { 0, 0, 9, 0 },
+                        { 0, 9, 9, 9 },
+                        { 0, 0, 0, 0 }
+                }));
+
+        check("max in left column, not at row 0",
+                "new int[][] { { 0, 0, 0, 0 }, { 9, 9, 9, 0 }, { 0, 9, 0, 0 }, { 9, 9, 9, 0 } }",
+                63, maxHourglassSum(new int[][] {
+                        { 0, 0, 0, 0 },
+                        { 9, 9, 9, 0 },
+                        { 0, 9, 0, 0 },
+                        { 9, 9, 9, 0 }
+                }));
+
+        check("max at the bottom-right corner",
+                "new int[][] { { 0, 0, 0, 0 }, { 0, 0, 0, 0 }, { 0, 9, 9, 9 }, { 0, 0, 9, 0 }, { 0, 9, 9, 9 } }",
+                63, maxHourglassSum(new int[][] {
+                        { 0, 0, 0, 0 },
+                        { 0, 0, 0, 0 },
+                        { 0, 9, 9, 9 },
+                        { 0, 0, 9, 0 },
+                        { 0, 9, 9, 9 }
+                }));
+
+        check("non-square grid, wide", "new int[][] { { 1, 1, 1, 0, 5 }, { 0, 1, 0, 5, 0 }, { 1, 1, 1, 5, 5 } }",
+                22, maxHourglassSum(new int[][] {
+                        { 1, 1, 1, 0, 5 },
+                        { 0, 1, 0, 5, 0 },
+                        { 1, 1, 1, 5, 5 }
+                }));
+
+        check("all-negative, best is the least bad",
+                "new int[][] { { -9, -9, -9, -1, -1, -1 }, { -9, -9, -9, -9, -1, -9 }, { -9, -9, -9, -1, -1, -1 } }",
+                -7, maxHourglassSum(new int[][] {
+                        { -9, -9, -9, -1, -1, -1 },
+                        { -9, -9, -9, -9, -1, -9 },
+                        { -9, -9, -9, -1, -1, -1 }
+                }));
+
         report("Challenge 29");
     }
 

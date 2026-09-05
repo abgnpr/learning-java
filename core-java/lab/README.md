@@ -2,9 +2,9 @@
 
 <div align="center">
 
-## `25 / 90` labs complete
+## `26 / 90` labs complete
 
-`████████░░░░░░░░░░░░░░░░░░░░░░` **28%**
+`█████████░░░░░░░░░░░░░░░░░░░░░` **29%**
 
 </div>
 
@@ -12,7 +12,7 @@
 Introduction     ██████████████████████████            13/13
 Strings          ██████████████████████                11/11
 BigNumber        ░░░░░░                                  0/3
-Data Structures  ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░         1/15
+Data Structures  ████░░░░░░░░░░░░░░░░░░░░░░░░░░         2/15
 OOP              ░░░░░░░░░░░░░░░░                        0/8
 Exceptions       ░░░░                                    0/2
 Threads          ░░░░░░░░░░░░░░░░                        0/8
@@ -301,7 +301,7 @@ section 07 uses station numbers S1–S8 and has a separate
 | # | Challenge | Difficulty | Starter | Done |
 |---:|---|---|---|:---:|
 | 28 | 1D Array | Easy | [OneDimensionalArray.java](04-data-structures/OneDimensionalArray.java) | ✅ |
-| 29 | 2D Array | Easy | [HourglassSum.java](04-data-structures/HourglassSum.java) | ⬜ |
+| 29 | 2D Array | Easy | [HourglassSum.java](04-data-structures/HourglassSum.java) | ✅ |
 | 30 | Subarray | Easy | [NegativeSubarrayCount.java](04-data-structures/NegativeSubarrayCount.java) | ⬜ |
 | 31 | Arraylist | Easy | [ArrayListQueries.java](04-data-structures/ArrayListQueries.java) | ⬜ |
 | 32 | 1D Array (Part 2) | Medium | [LeapGame.java](04-data-structures/LeapGame.java) | ⬜ |
@@ -415,13 +415,13 @@ are hand-kept and the script preserves them. Exit 1 means the README changed.
 | Introduction | 13 | 13/13 |
 | Strings | 11 | 11/11 |
 | BigNumber | 3 | 0/3 |
-| Data Structures | 15 | 1/15 |
+| Data Structures | 15 | 2/15 |
 | Object-Oriented Programming | 8 | 0/8 |
 | Exception Handling | 2 | 0/2 |
 | Threads and Concurrency | 8 | 0/8 |
 | Advanced | 12 | 0/12 |
 | Stream API | 18 | 0/18 |
-| **Total** | **90** | **25/90** |
+| **Total** | **90** | **26/90** |
 
 ## Revision references
 
