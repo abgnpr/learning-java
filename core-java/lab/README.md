@@ -2,17 +2,17 @@
 
 <div align="center">
 
-## `23 / 90` labs complete
+## `25 / 90` labs complete
 
-`████████░░░░░░░░░░░░░░░░░░░░░░` **26%**
+`████████░░░░░░░░░░░░░░░░░░░░░░` **28%**
 
 </div>
 
 ```text
 Introduction     ██████████████████████████            13/13
-Strings          ████████████████████░░                10/11
+Strings          ██████████████████████                11/11
 BigNumber        ░░░░░░                                  0/3
-Data Structures  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░         0/15
+Data Structures  ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░         1/15
 OOP              ░░░░░░░░░░░░░░░░                        0/8
 Exceptions       ░░░░                                    0/2
 Threads          ░░░░░░░░░░░░░░░░                        0/8
@@ -286,7 +286,7 @@ section 07 uses station numbers S1–S8 and has a separate
 | 21 | Regex | Medium | [RegexIpv4.java](02-strings/RegexIpv4.java) | ✅ |
 | 22 | Regex 2 - Duplicate Words | Medium | [DuplicateWords.java](02-strings/DuplicateWords.java) | ✅ |
 | 23 | Valid Username Regular Expression | Easy | [ValidUsername.java](02-strings/ValidUsername.java) | ✅ |
-| 24 | Tag Content Extractor | Medium | [TagContentExtractor.java](02-strings/TagContentExtractor.java) | ⬜ |
+| 24 | Tag Content Extractor | Medium | [TagContentExtractor.java](02-strings/TagContentExtractor.java) | ✅ |
 
 ### BigNumber
 
@@ -300,7 +300,7 @@ section 07 uses station numbers S1–S8 and has a separate
 
 | # | Challenge | Difficulty | Starter | Done |
 |---:|---|---|---|:---:|
-| 28 | 1D Array | Easy | [OneDimensionalArray.java](04-data-structures/OneDimensionalArray.java) | ⬜ |
+| 28 | 1D Array | Easy | [OneDimensionalArray.java](04-data-structures/OneDimensionalArray.java) | ✅ |
 | 29 | 2D Array | Easy | [HourglassSum.java](04-data-structures/HourglassSum.java) | ⬜ |
 | 30 | Subarray | Easy | [NegativeSubarrayCount.java](04-data-structures/NegativeSubarrayCount.java) | ⬜ |
 | 31 | Arraylist | Easy | [ArrayListQueries.java](04-data-structures/ArrayListQueries.java) | ⬜ |
@@ -413,15 +413,15 @@ are hand-kept and the script preserves them. Exit 1 means the README changed.
 | Subdomain | Labs | Complete |
 |---|---:|---:|
 | Introduction | 13 | 13/13 |
-| Strings | 11 | 10/11 |
+| Strings | 11 | 11/11 |
 | BigNumber | 3 | 0/3 |
-| Data Structures | 15 | 0/15 |
+| Data Structures | 15 | 1/15 |
 | Object-Oriented Programming | 8 | 0/8 |
 | Exception Handling | 2 | 0/2 |
 | Threads and Concurrency | 8 | 0/8 |
 | Advanced | 12 | 0/12 |
 | Stream API | 18 | 0/18 |
-| **Total** | **90** | **23/90** |
+| **Total** | **90** | **25/90** |
 
 ## Revision references
 
@@ -459,3 +459,7 @@ revisiting.
 | 23 — Valid Username Regular Expression | Predefined vs POSIX vs Unicode classes: `\w` is ASCII until `UNICODE_CHARACTER_CLASS` widens it, while `\p{L}` is Unicode already | [Java 21 API — `java.util.regex.Pattern`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/regex/Pattern.html) | 2026-09-05 |
 | 23 — Valid Username Regular Expression | Character-class ranges span code points, not alphabets — why `[A-z]` admits `` [ \ ] ^ _ ` `` | [Baeldung — Regular Expressions in Java](https://www.baeldung.com/regular-expressions-java) | 2026-09-05 |
 | 23 — Valid Username Regular Expression | Compiling a `Pattern` once as a constant: immutable and thread-safe, unlike the `Matcher` it creates | [Baeldung — An Overview of Regular Expressions Performance in Java](https://www.baeldung.com/java-regex-performance) | 2026-09-05 |
+| 24 — Tag Content Extractor | Greedy vs reluctant vs possessive quantifiers, and why `.*?` stops where the *rest of the pattern* fits rather than at the next delimiter | [Java 21 API — `java.util.regex.Pattern`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/regex/Pattern.html) | 2026-09-06 |
+| 24 — Tag Content Extractor | Backreferences (`\1`) vs replacement references (`$1`), group numbering by opening paren, and named groups `(?<x>…)` / `\k<x>` | [Java 21 API — `java.util.regex.Matcher`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/regex/Matcher.html) | 2026-09-06 |
+| 28 — 1D Array | `mapToInt` as the `Stream<Integer>` → `IntStream` crossing that makes `toArray()` return `int[]` rather than `Integer[]` | [Java 21 API — `java.util.stream.IntStream`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/IntStream.html) | 2026-09-06 |
+| 28 — 1D Array | `RandomAccess` as the marker that decides whether indexed `get(i)` is O(1) or O(n) — why a `get`-loop degrades to O(n²) on a `LinkedList` | [Java 21 API — `java.util.RandomAccess`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/RandomAccess.html) | 2026-09-06 |

@@ -1,3 +1,4 @@
+
 /*
  * Challenge 28 — Java 1D Array (Easy)
  *
@@ -10,23 +11,73 @@ import java.util.List;
 
 public class OneDimensionalArray {
     static int[] copyIntoArray(List<Integer> values) {
-        // TODO: Allocate and populate the primitive array.
-        throw new UnsupportedOperationException("TODO: build the array");
+
+        // approach 1 — pre-Java 8
+        // Size the array up front: the length is known, so there is no growth
+        // step and no boxing beyond what the list already holds. get(i) reads
+        // an Integer and the assignment to int[] unboxes it — the same
+        // intValue() call approach 2 makes explicit, just implicit here.
+        // Indexed access assumes RandomAccess; on a LinkedList this degrades
+        // to O(n^2), where a for-each stays O(n).
+        /*
+        int[] copy = new int[values.size()];
+        for (int i = 0; i < values.size(); i++) {
+            copy[i] = values.get(i);
+        }
+        return copy;
+        */
+
+        // approach 2 — Java 8+
+        // mapToInt crosses from Stream<Integer> to IntStream, so toArray()
+        // returns int[] rather than Integer[]; without it there is no
+        // primitive array at the end. Integer::intValue names the unboxing
+        // instead of leaving it to an implicit conversion, and both forms
+        // throw NullPointerException on a null element.
+        return values.stream().mapToInt(Integer::intValue).toArray();
     }
 
     public static void main(String[] args) {
-        checkArray(new int[] { }, copyIntoArray(List.of()), "empty input");
-        checkArray(new int[] { 7 }, copyIntoArray(List.of(7)), "one value");
-        checkArray(new int[] { 1, -2, 3, 0 }, copyIntoArray(List.of(1, -2, 3, 0)), "ordered values");
+        checkArray(new int[] {}, copyIntoArray(List.of()), "empty input", "List.of()");
+        checkArray(new int[] { 7 }, copyIntoArray(List.of(7)), "one value", "List.of(7)");
+        checkArray(new int[] { 1, -2, 3, 0 }, copyIntoArray(List.of(1, -2, 3, 0)), "ordered values", "List.of(1, -2, 3, 0)");
+
+        // Order is the contract, so an already-sorted case cannot distinguish a
+        // faithful copy from one that sorts on the way through.
+        checkArray(new int[] { 5, 1, 4, 1, 5 }, copyIntoArray(List.of(5, 1, 4, 1, 5)), "unsorted order preserved", "List.of(5, 1, 4, 1, 5)");
+        checkArray(new int[] { 9, 9, 9 }, copyIntoArray(List.of(9, 9, 9)), "duplicates kept, not deduplicated", "List.of(9, 9, 9)");
+        checkArray(new int[] { 3, 2, 1 }, copyIntoArray(List.of(3, 2, 1)), "descending order preserved", "List.of(3, 2, 1)");
+
+        // Unboxing edges: the sentinel values and the caching boundary at 127.
+        checkArray(new int[] { 0 }, copyIntoArray(List.of(0)), "zero survives as a value", "List.of(0)");
+        checkArray(new int[] { Integer.MIN_VALUE, Integer.MAX_VALUE },
+                copyIntoArray(List.of(Integer.MIN_VALUE, Integer.MAX_VALUE)),
+                "int bounds unbox without overflow", "List.of(Integer.MIN_VALUE, Integer.MAX_VALUE)");
+        checkArray(new int[] { 127, 128, -128, -129 }, copyIntoArray(List.of(127, 128, -128, -129)),
+                "values either side of the Integer cache", "List.of(127, 128, -128, -129)");
+
+        // A fresh array each call: mutating the result must not affect a later one.
+        List<Integer> shared = List.of(1, 2, 3);
+        int[] first = copyIntoArray(shared);
+        first[0] = 99;
+        checkArray(new int[] { 1, 2, 3 }, copyIntoArray(shared), "result is independent of an earlier one", "List.of(1, 2, 3) copied twice");
+
+        // The source list is an input, not a workspace.
+        List<Integer> source = new java.util.ArrayList<>(List.of(4, 5, 6));
+        copyIntoArray(source);
+        check("source list left unmodified", "new ArrayList<>(List.of(4, 5, 6))", List.of(4, 5, 6), source);
+
+        // Length is carried over independently of content, past any small-input special case.
+        List<Integer> long100 = java.util.stream.IntStream.range(0, 100).boxed().toList();
+        int[] copied100 = copyIntoArray(long100);
+        checkThat("100 elements keep length and order",
+                "IntStream.range(0, 100)",
+                copied100.length == 100 && java.util.Arrays.equals(copied100, java.util.stream.IntStream.range(0, 100).toArray()));
+
         report("Challenge 28");
     }
 
-    static void checkArray(int[] expected, int[] actual, String label) {
-        if (!java.util.Arrays.equals(expected, actual)) {
-            throw new AssertionError(label
-                    + ":\n  expected: <" + java.util.Arrays.toString(expected) + ">"
-                    + "\n    actual: <" + java.util.Arrays.toString(actual) + ">");
-        }
+    static void checkArray(int[] expected, int[] actual, String label, Object input) {
+        check(label, input, expected, actual);
     }
 
     // ---- test harness (identical in every challenge; not part of the exercise) ----
