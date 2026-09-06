@@ -37,10 +37,20 @@ BAR_WIDTH = 30
 SECTION_BAR_WIDTH = 36
 
 
+HARNESS_MARKER = "---- test harness"
+
+
 def solved(path):
-    """A starter is solved once its marked seam is gone."""
+    """A starter is solved once its marked seam is gone.
+
+    Only the exercise region counts. The shared harness below the marker holds an
+    UnsupportedOperationException of its own -- isUnmodifiable() catches one to
+    prove a returned list rejects mutation -- and scanning it would leave every
+    challenge with an unmodifiable-result contract permanently outstanding.
+    """
     text = path.read_text(encoding="utf-8")
-    return "UnsupportedOperationException" not in text and "TODO" not in text
+    exercise = text.split(HARNESS_MARKER, 1)[0]
+    return "UnsupportedOperationException" not in exercise and "TODO" not in exercise
 
 
 def main():

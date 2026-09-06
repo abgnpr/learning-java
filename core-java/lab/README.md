@@ -2,9 +2,9 @@
 
 <div align="center">
 
-## `28 / 110` labs complete
+## `29 / 110` labs complete
 
-`████████░░░░░░░░░░░░░░░░░░░░░░` **25%**
+`████████░░░░░░░░░░░░░░░░░░░░░░` **26%**
 
 </div>
 
@@ -17,7 +17,7 @@ OOP                ░░░░░░░░░░░░░░░░             
 Exceptions         ░░░░                                    0/2
 Threads            ░░░░░░░░░░░░░░░░                        0/8
 Advanced           ░░░░░░░░░░░░░░░░░░░░░░░░               0/12
-Stream API         ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   0/18
+Stream API         ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   1/18
 Core Contracts     ░░░░░░░░░░                              0/5
 I/O + Time         ░░░░░░░░░░                              0/5
 Concurrency+Async  ░░░░░░░░░░░░░░                          0/7
@@ -390,7 +390,7 @@ learning order, and review checkpoints.
 
 | # | Challenge | Difficulty | Starter | Done |
 |---:|---|---|---|:---:|
-| 65 | Filter and Map Pipeline | Easy | [FilterMapPipeline.java](09-stream-api/FilterMapPipeline.java) | ⬜ |
+| 65 | Filter and Map Pipeline | Easy | [FilterMapPipeline.java](09-stream-api/FilterMapPipeline.java) | ✅ |
 | 66 | Laziness and Short-Circuiting | Easy | [LazyFirstMatch.java](09-stream-api/LazyFirstMatch.java) | ⬜ |
 | 67 | Distinct, Sorted, Skip, and Limit | Easy | [DistinctScorePage.java](09-stream-api/DistinctScorePage.java) | ⬜ |
 | 68 | Flatten Nested Data | Easy | [FlatMapWords.java](09-stream-api/FlatMapWords.java) | ⬜ |
@@ -474,11 +474,11 @@ are hand-kept and the script preserves them. Exit 1 means the README changed.
 | Exception Handling | 2 | 0/2 |
 | Threads and Concurrency | 8 | 0/8 |
 | Advanced | 12 | 0/12 |
-| Stream API | 18 | 0/18 |
+| Stream API | 18 | 1/18 |
 | Core Contracts | 5 | 0/5 |
 | I/O and Date/Time | 5 | 0/5 |
 | Concurrency and Async | 7 | 0/7 |
-| **Total** | **110** | **28/110** |
+| **Total** | **110** | **29/110** |
 
 ## Revision references
 
@@ -524,3 +524,6 @@ revisiting.
 | 30 — Java Subarray | Inversion counting: "count pairs satisfying a comparison" reduced through a prefix transform, brute force O(n²) vs divide-and-conquer O(n log n) | [Baeldung — Counting Inversions in an Array](https://www.baeldung.com/cs/counting-inversions-array) | 2026-09-06 |
 | 31 — Java Arraylist | Capacity vs size: `new ArrayList<>(n)` reserves room but leaves size 0, so `add` works and `set` throws — and growth from the default capacity 10 costs a reallocation plus full copy each time | [Java 21 API — `java.util.ArrayList`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/ArrayList.html) | 2026-09-06 |
 | 31 — Java Arraylist | `Arrays.asList` returns a fixed-size *view* sharing storage with the array — size n, `set` writes through, `add`/`remove` rejected — and its type is `Arrays$ArrayList`, not `java.util.ArrayList` | [Java 21 API — `java.util.Arrays`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Arrays.html#asList(T...)) | 2026-09-06 |
+| 65 — Filter and Map Pipeline | `toUpperCase(Locale.ROOT)` vs the no-arg overload: the default-locale form maps `"i"` to the dotted `"İ"` under a Turkish locale, so identical code produces different output per machine | [Java 21 API — `String.toUpperCase(Locale)`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html#toUpperCase(java.util.Locale)) | 2026-09-06 |
+| 65 — Filter and Map Pipeline | `isBlank()` and `strip()` both key off `Character.isWhitespace`, which excludes U+00A0 NO-BREAK SPACE — so a NBSP-only name is neither blank nor trimmable and survives as a one-character name | [Java 21 API — `String.isBlank()`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html#isBlank()) | 2026-09-06 |
+| 65 — Filter and Map Pipeline | `Stream.toList()` returns an unmodifiable list, where `collect(Collectors.toList())` returns a mutable `ArrayList` — the two are not interchangeable when the contract demands immutability | [Java 21 API — `Stream.toList()`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Stream.html#toList()) | 2026-09-06 |
