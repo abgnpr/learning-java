@@ -1,14 +1,15 @@
 # Core Java lab roadmap
 
-This roadmap owns the next additions to the runnable Java practice track. The
-existing numbered challenges remain the active solving path; these items are
-planned practice ground, not completion claims.
+This roadmap tracks delivered extensions and the remaining capstone direction.
+Items 1–3 are now runnable TODO-based challenges; they remain incomplete in
+the scorecard until the learner implements and explains them.
 
-## Next build order
+## Implemented extensions
 
 ### 1. Core contracts and language mechanics
 
-Add a `10-core-contracts` section with self-testing challenges for:
+Implemented in [`10-core-contracts`](10-core-contracts/) as challenges 83–87,
+with self-testing challenges for:
 
 - generic bounds, wildcards, PECS, type erasure, and heap-pollution traps;
 - `equals`, `hashCode`, `Comparable`, and comparator consistency;
@@ -18,7 +19,8 @@ Add a `10-core-contracts` section with self-testing challenges for:
 
 ### 2. I/O and date/time
 
-Add an `11-io-time` section with self-testing challenges for:
+Implemented in [`11-io-time`](11-io-time/) as challenges 88–92, with
+self-testing challenges for:
 
 - `Path` and `Files`, buffered text and binary I/O, and explicit charsets;
 - try-with-resources, ownership, suppressed exceptions, and large-file
@@ -28,9 +30,9 @@ Add an `11-io-time` section with self-testing challenges for:
 
 ### 3. Practical concurrency and asynchronous composition
 
-Keep the eight demonstrations in `07-threads` as the predict-run-explain
-foundation. Add a `12-concurrency-async` section of TODO-based challenges that
-require the learner to implement:
+The eight demonstrations in `07-threads` remain the predict-run-explain
+foundation. [`12-concurrency-async`](12-concurrency-async/) adds challenges
+93–99, which require the learner to implement:
 
 - interruption-aware tasks and cooperative cancellation;
 - `ExecutorService` shutdown, bounded queues, rejection, and timeouts;

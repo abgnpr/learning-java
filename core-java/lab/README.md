@@ -2,28 +2,31 @@
 
 <div align="center">
 
-## `28 / 93` labs complete
+## `28 / 110` labs complete
 
-`█████████░░░░░░░░░░░░░░░░░░░░░` **30%**
+`████████░░░░░░░░░░░░░░░░░░░░░░` **25%**
 
 </div>
 
 ```text
-Introduction     ██████████████████████████            13/13
-Strings          ██████████████████████                11/11
-BigNumber        ░░░░░░                                  0/3
-Data Structures  ████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░   4/18
-OOP              ░░░░░░░░░░░░░░░░                        0/8
-Exceptions       ░░░░                                    0/2
-Threads          ░░░░░░░░░░░░░░░░                        0/8
-Advanced         ░░░░░░░░░░░░░░░░░░░░░░░░               0/12
-Stream API       ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   0/18
+Introduction       ██████████████████████████            13/13
+Strings            ██████████████████████                11/11
+BigNumber          ░░░░░░                                  0/3
+Data Structures    ████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░   4/18
+OOP                ░░░░░░░░░░░░░░░░                        0/8
+Exceptions         ░░░░                                    0/2
+Threads            ░░░░░░░░░░░░░░░░                        0/8
+Advanced           ░░░░░░░░░░░░░░░░░░░░░░░░               0/12
+Stream API         ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   0/18
+Core Contracts     ░░░░░░░░░░                              0/5
+I/O + Time         ░░░░░░░░░░                              0/5
+Concurrency+Async  ░░░░░░░░░░░░░░                          0/7
 ```
 
 ---
 
-This directory contains 93 runnable Java labs arranged as a learning path:
-85 self-testing challenge starters and eight concurrency stations. Each lab
+This directory contains 110 runnable Java labs arranged as a learning path:
+102 self-testing challenge starters and eight concurrency stations. Each lab
 uses only the Java 21 standard library. The task descriptions are
 self-contained, original practice contracts; the challenge names and ordering
 form the curriculum map.
@@ -41,7 +44,10 @@ form the curriculum map.
 | 07 | Threads and concurrency | 8 |
 | 08 | Advanced Java | 12 |
 | 09 | Stream API | 18 |
-| | **Total** | **93** |
+| 10 | Core contracts and language mechanics | 5 |
+| 11 | I/O and date/time | 5 |
+| 12 | Practical concurrency and async | 7 |
+| | **Total** | **110** |
 
 `Scratchpad.java` is available for experiments and is not counted as a lab.
 
@@ -99,7 +105,7 @@ A case whose input carries no information — a no-argument call such as
 Each file carries its own copy of the harness below `main`, because the
 single-file source launcher compiles one file and cannot see a shared helper
 class: `java 02-strings/RegexIpv4.java` would not resolve it. The block is
-byte-identical in all 85 challenges and is not part of any exercise — copy it
+byte-identical in all 102 challenges and is not part of any exercise — copy it
 verbatim into a new challenge:
 
 ```java
@@ -207,7 +213,7 @@ a result is unmodifiable, or of a particular runtime type:
 checkThat("result type is TreeMap", "sales", totalsByDepartment(sales) instanceof TreeMap);
 ```
 
-Compile all 85 challenge starters without writing class files into the
+Compile all 102 challenge starters without writing class files into the
 repository:
 
 ```bash
@@ -250,9 +256,9 @@ Planned lab extensions and the payment-ledger capstone are scoped in the
 
 The order moves from syntax and standard input through collections and object
 design to concurrency, reflection, annotations, lambdas, cryptographic hashes,
-and the Stream API. Challenge numbers 01–82 cover sections 01–06 and 08–09;
-DS-A1–DS-A3 are advanced collection extensions; section 07 uses station
-numbers S1–S8 and has a separate
+the Stream API, core contracts, I/O/time, and practical asynchronous work.
+Challenge numbers 01–99 cover sections 01–06 and 08–12; DS-A1–DS-A3 are
+advanced collection extensions. Section 07 uses station numbers S1–S8 and has a separate
 [predict-run-explain guide](07-threads/README.md).
 
 ### Introduction
@@ -403,6 +409,47 @@ learning order, and review checkpoints.
 | 81 | Infinite Stream Sources | Medium | [InfiniteStreamBounds.java](09-stream-api/InfiniteStreamBounds.java) | ⬜ |
 | 82 | Parallel Collection Without Shared Mutation | Hard | [ParallelWordFrequency.java](09-stream-api/ParallelWordFrequency.java) | ⬜ |
 
+### Core Contracts
+
+The [section guide](10-core-contracts/README.md) connects each exercise to the
+language or collection contract it proves.
+
+| # | Challenge | Difficulty | Starter | Done |
+|---:|---|---|---|:---:|
+| 83 | Generic Variance and PECS | Hard | [GenericVariancePecs.java](10-core-contracts/GenericVariancePecs.java) | ⬜ |
+| 84 | Erasure-safe Generic Varargs | Hard | [ErasureSafeVarargs.java](10-core-contracts/ErasureSafeVarargs.java) | ⬜ |
+| 85 | Equality and Ordering Contract | Hard | [EqualityOrderingContract.java](10-core-contracts/EqualityOrderingContract.java) | ⬜ |
+| 86 | Immutable Record Snapshot | Hard | [ImmutableRecordSnapshot.java](10-core-contracts/ImmutableRecordSnapshot.java) | ⬜ |
+| 87 | Collection Choice Contracts | Medium | [CollectionChoiceContracts.java](10-core-contracts/CollectionChoiceContracts.java) | ⬜ |
+
+### I/O and Date/Time
+
+The [section guide](11-io-time/README.md) emphasizes explicit encodings,
+resource ownership, deterministic clocks, and named-zone transitions.
+
+| # | Challenge | Difficulty | Starter | Done |
+|---:|---|---|---|:---:|
+| 88 | Streaming Text File Analytics | Hard | [StreamingTextAnalytics.java](11-io-time/StreamingTextAnalytics.java) | ⬜ |
+| 89 | Buffered Binary Codec | Hard | [BufferedBinaryCodec.java](11-io-time/BufferedBinaryCodec.java) | ⬜ |
+| 90 | Resource Suppression and Ownership | Hard | [ResourceSuppressionOwnership.java](11-io-time/ResourceSuppressionOwnership.java) | ⬜ |
+| 91 | Clock-driven Temporal Snapshot | Medium | [ClockDrivenTime.java](11-io-time/ClockDrivenTime.java) | ⬜ |
+| 92 | Zoned Scheduling Across DST | Hard | [ZonedDstScheduling.java](11-io-time/ZonedDstScheduling.java) | ⬜ |
+
+### Concurrency and Async
+
+The [section guide](12-concurrency-async/README.md) follows the eight
+predict-run-explain stations with deterministic TODO-based implementations.
+
+| # | Challenge | Difficulty | Starter | Done |
+|---:|---|---|---|:---:|
+| 93 | Cooperative Cancellation | Hard | [CooperativeCancellation.java](12-concurrency-async/CooperativeCancellation.java) | ⬜ |
+| 94 | Bounded Executor Lifecycle | Hard | [BoundedExecutorLifecycle.java](12-concurrency-async/BoundedExecutorLifecycle.java) | ⬜ |
+| 95 | CompletableFuture Composition | Hard | [CompletableFutureComposition.java](12-concurrency-async/CompletableFutureComposition.java) | ⬜ |
+| 96 | Concurrent Metrics Publication | Hard | [ConcurrentMetricsPublication.java](12-concurrency-async/ConcurrentMetricsPublication.java) | ⬜ |
+| 97 | Condition-based Bounded Buffer | Hard | [ConditionBoundedBuffer.java](12-concurrency-async/ConditionBoundedBuffer.java) | ⬜ |
+| 98 | Semaphore Concurrency Gate | Hard | [SemaphoreConcurrencyGate.java](12-concurrency-async/SemaphoreConcurrencyGate.java) | ⬜ |
+| 99 | Virtual-thread Blocking Fan-out | Hard | [VirtualThreadFanout.java](12-concurrency-async/VirtualThreadFanout.java) | ⬜ |
+
 ## Scorecard
 
 Mark a challenge only after its checks pass and you can explain the core
@@ -428,7 +475,10 @@ are hand-kept and the script preserves them. Exit 1 means the README changed.
 | Threads and Concurrency | 8 | 0/8 |
 | Advanced | 12 | 0/12 |
 | Stream API | 18 | 0/18 |
-| **Total** | **93** | **28/93** |
+| Core Contracts | 5 | 0/5 |
+| I/O and Date/Time | 5 | 0/5 |
+| Concurrency and Async | 7 | 0/7 |
+| **Total** | **110** | **28/110** |
 
 ## Revision references
 
