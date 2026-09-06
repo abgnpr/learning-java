@@ -2,9 +2,9 @@
 
 <div align="center">
 
-## `28 / 90` labs complete
+## `28 / 93` labs complete
 
-`█████████░░░░░░░░░░░░░░░░░░░░░` **31%**
+`█████████░░░░░░░░░░░░░░░░░░░░░` **30%**
 
 </div>
 
@@ -12,7 +12,7 @@
 Introduction     ██████████████████████████            13/13
 Strings          ██████████████████████                11/11
 BigNumber        ░░░░░░                                  0/3
-Data Structures  ████████░░░░░░░░░░░░░░░░░░░░░░         4/15
+Data Structures  ████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░   4/18
 OOP              ░░░░░░░░░░░░░░░░                        0/8
 Exceptions       ░░░░                                    0/2
 Threads          ░░░░░░░░░░░░░░░░                        0/8
@@ -22,8 +22,8 @@ Stream API       ░░░░░░░░░░░░░░░░░░░░░
 
 ---
 
-This directory contains 90 runnable Java labs arranged as a learning path:
-82 self-testing challenge starters and eight concurrency stations. Each lab
+This directory contains 93 runnable Java labs arranged as a learning path:
+85 self-testing challenge starters and eight concurrency stations. Each lab
 uses only the Java 21 standard library. The task descriptions are
 self-contained, original practice contracts; the challenge names and ordering
 form the curriculum map.
@@ -35,13 +35,13 @@ form the curriculum map.
 | 01 | Introduction | 13 |
 | 02 | Strings and regular expressions | 11 |
 | 03 | Big numbers | 3 |
-| 04 | Data structures | 15 |
+| 04 | Data structures | 18 |
 | 05 | Object-oriented programming | 8 |
 | 06 | Exception handling | 2 |
 | 07 | Threads and concurrency | 8 |
 | 08 | Advanced Java | 12 |
 | 09 | Stream API | 18 |
-| | **Total** | **90** |
+| | **Total** | **93** |
 
 `Scratchpad.java` is available for experiments and is not counted as a lab.
 
@@ -99,7 +99,7 @@ A case whose input carries no information — a no-argument call such as
 Each file carries its own copy of the harness below `main`, because the
 single-file source launcher compiles one file and cannot see a shared helper
 class: `java 02-strings/RegexIpv4.java` would not resolve it. The block is
-byte-identical in all 82 challenges and is not part of any exercise — copy it
+byte-identical in all 85 challenges and is not part of any exercise — copy it
 verbatim into a new challenge:
 
 ```java
@@ -207,7 +207,7 @@ a result is unmodifiable, or of a particular runtime type:
 checkThat("result type is TreeMap", "sales", totalsByDepartment(sales) instanceof TreeMap);
 ```
 
-Compile all 82 challenge starters without writing class files into the
+Compile all 85 challenge starters without writing class files into the
 repository:
 
 ```bash
@@ -251,7 +251,8 @@ Planned lab extensions and the payment-ledger capstone are scoped in the
 The order moves from syntax and standard input through collections and object
 design to concurrency, reflection, annotations, lambdas, cryptographic hashes,
 and the Stream API. Challenge numbers 01–82 cover sections 01–06 and 08–09;
-section 07 uses station numbers S1–S8 and has a separate
+DS-A1–DS-A3 are advanced collection extensions; section 07 uses station
+numbers S1–S8 and has a separate
 [predict-run-explain guide](07-threads/README.md).
 
 ### Introduction
@@ -298,6 +299,9 @@ section 07 uses station numbers S1–S8 and has a separate
 
 ### Data Structures
 
+The [section guide](04-data-structures/README.md) adds an interview-focused
+advanced path after the numbered fundamentals.
+
 | # | Challenge | Difficulty | Starter | Done |
 |---:|---|---|---|:---:|
 | 28 | 1D Array | Easy | [OneDimensionalArray.java](04-data-structures/OneDimensionalArray.java) | ✅ |
@@ -315,6 +319,9 @@ section 07 uses station numbers S1–S8 and has a separate
 | 40 | Dequeue | Medium | [DistinctWindow.java](04-data-structures/DistinctWindow.java) | ⬜ |
 | 41 | BitSet | Easy | [BitSetOperations.java](04-data-structures/BitSetOperations.java) | ⬜ |
 | 42 | Priority Queue | Medium | [StudentPriorityQueue.java](04-data-structures/StudentPriorityQueue.java) | ⬜ |
+| DS-A1 | Access-order LRU Cache | Hard | [AccessOrderLruCache.java](04-data-structures/AccessOrderLruCache.java) | ⬜ |
+| DS-A2 | Navigable Time-series Lookup | Hard | [NavigableTimeSeries.java](04-data-structures/NavigableTimeSeries.java) | ⬜ |
+| DS-A3 | Hash Key Contract | Hard | [HashKeyContract.java](04-data-structures/HashKeyContract.java) | ⬜ |
 
 ### Object-Oriented Programming
 
@@ -415,13 +422,13 @@ are hand-kept and the script preserves them. Exit 1 means the README changed.
 | Introduction | 13 | 13/13 |
 | Strings | 11 | 11/11 |
 | BigNumber | 3 | 0/3 |
-| Data Structures | 15 | 4/15 |
+| Data Structures | 18 | 4/18 |
 | Object-Oriented Programming | 8 | 0/8 |
 | Exception Handling | 2 | 0/2 |
 | Threads and Concurrency | 8 | 0/8 |
 | Advanced | 12 | 0/12 |
 | Stream API | 18 | 0/18 |
-| **Total** | **90** | **28/90** |
+| **Total** | **93** | **28/93** |
 
 ## Revision references
 

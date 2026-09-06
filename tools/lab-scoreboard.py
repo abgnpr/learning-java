@@ -20,7 +20,7 @@ SECTIONS = [
     ("Introduction", "Introduction", 13),
     ("Strings", "Strings", 11),
     ("BigNumber", "BigNumber", 3),
-    ("Data Structures", "Data Structures", 15),
+    ("Data Structures", "Data Structures", 18),
     ("Object-Oriented Programming", "OOP", 8),
     ("Exception Handling", "Exceptions", 2),
     ("Threads and Concurrency", "Threads", 8),
