@@ -1,6 +1,6 @@
 ---
 name: lab-review
-description: Review a core-java lab challenge the user has just attempted — run its checks, critique the solution, annotate it with why-comments in the house style, and update the lab README's counts and revision references. Use after the user says they have solved, attempted, or finished a lab challenge or station, or asks to check/review their lab answer.
+description: Review a core-java lab challenge the user has just attempted — run its checks, critique the solution, annotate it with why-comments in the house style, tick its row in the PRIORITY.md checklist, and update the lab README's counts and revision references. Use after the user says they have solved, attempted, or finished a lab challenge or station, or asks to check/review their lab answer.
 ---
 
 # Lab review — the post-attempt drill
@@ -72,10 +72,10 @@ Fold any code changes you proposed in step 2 into that same line rather than
 asking about them separately. Then wait. A reply that names only the file
 ("this one only", "just Datatypes") is a scope answer, not a yes.
 
-Do not run step 5 either until annotation happens — the README records a
-completed drill, and the drill is not complete while the offer is open. If
-the user declines annotation outright, ask whether they still want the
-counts updated.
+Do not run steps 5 and 6 either until annotation happens — the checklist and
+README record a completed drill, and the drill is not complete while the offer
+is open. If the user declines annotation outright, ask whether they still want
+the tick and counts updated.
 
 ### 4. Annotate with why-comments
 
@@ -97,7 +97,17 @@ cost time, the API rule that is easy to get backwards. Not what the code does.
 
 Then re-run to confirm the file still passes.
 
-### 5. Update the lab README
+### 5. Tick the priority checklist
+
+`core-java/lab/PRIORITY.md` carries a **Done** column in its Tier 1 and Tier 2
+tables. If the reviewed lab has a row there, flip its `⬜` to `✅` — match on
+the challenge number or station id (`S3`, `DS-A1`, `85`), not the title.
+
+Only rows in those two tables are tracked; a lab from the read-don't-solve or
+skipped lists gets no tick. Leave every other line of the file alone, and never
+add a row for a lab the plan didn't schedule.
+
+### 6. Update the lab README
 
 In `core-java/lab/README.md`:
 
@@ -115,7 +125,8 @@ If a kit table in the root `CLAUDE.md` tracks this lab's count, update it too.
 
 ## Scope
 
-Stay inside the challenge file and the lab README. Don't refactor the
+Stay inside the challenge file, `PRIORITY.md`'s Done column and the lab
+README. Don't refactor the
 `check`/`show`/`report` harness, weaken an acceptance check, or restructure
 the lab. Don't commit unless asked.
 
