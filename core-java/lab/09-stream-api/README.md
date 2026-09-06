@@ -1,6 +1,6 @@
 # Stream API labs
 
-This section contains 18 self-testing challenges for the Java Stream API. Work
+This section contains 19 self-testing challenges for the Java Stream API. Work
 through them in order: each group adds a new part of the stream mental model,
 from building a lazy pipeline to designing reductions that remain correct in
 parallel.
@@ -56,6 +56,7 @@ source -> lazy intermediate operations -> terminal operation -> result
 | 80 | [Custom Collector](CustomBracketCollector.java) | supplier, accumulator, combiner, finisher |
 | 81 | [Infinite Stream Bounds](InfiniteStreamBounds.java) | `iterate`, `generate`, `limit` |
 | 82 | [Parallel Word Frequency](ParallelWordFrequency.java) | parallel streams, concurrent collection |
+| 111 | [Multi-Field Comparator Sorting](MultiFieldInventorySort.java) | comparator composition, mixed sort directions |
 
 ## Review checkpoints
 
@@ -70,6 +71,7 @@ After completing the section, be able to explain:
 7. Why duplicate keys require a merge policy with `toMap`.
 8. What makes a collector or reduction safe for parallel execution.
 9. Why `parallelStream()` is not automatically faster.
+10. How comparator order establishes tie-breakers, and how to reverse only one key.
 
 Compile this section without writing class files into the repository:
 

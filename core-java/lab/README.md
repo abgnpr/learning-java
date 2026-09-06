@@ -2,31 +2,31 @@
 
 <div align="center">
 
-## `32 / 110` labs complete
+## `35 / 111` labs complete
 
-`█████████░░░░░░░░░░░░░░░░░░░░░` **29%**
+`█████████░░░░░░░░░░░░░░░░░░░░░` **32%**
 
 </div>
 
 ```text
-Introduction       ██████████████████████████            13/13
-Strings            ██████████████████████                11/11
+Introduction       █████████████████████████             13/13
+Strings            █████████████████████                 11/11
 BigNumber          ░░░░░░                                  0/3
-Data Structures    ████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░   4/18
-OOP                ░░░░░░░░░░░░░░░░                        0/8
+Data Structures    ████████░░░░░░░░░░░░░░░░░░░░░░░░░░     4/18
+OOP                ░░░░░░░░░░░░░░░                         0/8
 Exceptions         ░░░░                                    0/2
-Threads            ░░░░░░░░░░░░░░░░                        0/8
-Advanced           ░░░░░░░░░░░░░░░░░░░░░░░░               0/12
-Stream API         ████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░   4/18
-Core Contracts     ░░░░░░░░░░                              0/5
-I/O + Time         ░░░░░░░░░░                              0/5
-Concurrency+Async  ░░░░░░░░░░░░░░                          0/7
+Threads            ░░░░░░░░░░░░░░░                         0/8
+Advanced           ░░░░░░░░░░░░░░░░░░░░░░░                0/12
+Stream API         █████████████░░░░░░░░░░░░░░░░░░░░░░░   7/19
+Core Contracts     ░░░░░░░░░                               0/5
+I/O + Time         ░░░░░░░░░                               0/5
+Concurrency+Async  ░░░░░░░░░░░░░                           0/7
 ```
 
 ---
 
-This directory contains 110 runnable Java labs arranged as a learning path:
-102 self-testing challenge starters and eight concurrency stations. Each lab
+This directory contains 111 runnable Java labs arranged as a learning path:
+103 self-testing challenge starters and eight concurrency stations. Each lab
 uses only the Java 21 standard library. The task descriptions are
 self-contained, original practice contracts; the challenge names and ordering
 form the curriculum map.
@@ -43,11 +43,11 @@ form the curriculum map.
 | 06 | Exception handling | 2 |
 | 07 | Threads and concurrency | 8 |
 | 08 | Advanced Java | 12 |
-| 09 | Stream API | 18 |
+| 09 | Stream API | 19 |
 | 10 | Core contracts and language mechanics | 5 |
 | 11 | I/O and date/time | 5 |
 | 12 | Practical concurrency and async | 7 |
-| | **Total** | **110** |
+| | **Total** | **111** |
 
 `Scratchpad.java` is available for experiments and is not counted as a lab.
 
@@ -396,18 +396,19 @@ learning order, and review checkpoints.
 | 68 | Flatten Nested Data | Easy | [FlatMapWords.java](09-stream-api/FlatMapWords.java) | ✅ |
 | 69 | One-to-Many Mapping with `mapMulti` | Medium | [MapMultiRanges.java](09-stream-api/MapMultiRanges.java) | ⬜ |
 | 70 | Prefix Operations | Easy | [TakeDropWhileReadings.java](09-stream-api/TakeDropWhileReadings.java) | ⬜ |
-| 71 | Matching and Finding | Easy | [MatchAndFindInventory.java](09-stream-api/MatchAndFindInventory.java) | ⬜ |
+| 71 | Matching and Finding | Easy | [MatchAndFindInventory.java](09-stream-api/MatchAndFindInventory.java) | ✅ |
 | 72 | Optional in a Stream Pipeline | Medium | [OptionalEmailPipeline.java](09-stream-api/OptionalEmailPipeline.java) | ⬜ |
-| 73 | Three-Argument Reduction | Medium | [ReduceTransactions.java](09-stream-api/ReduceTransactions.java) | ⬜ |
+| 73 | Three-Argument Reduction | Medium | [ReduceTransactions.java](09-stream-api/ReduceTransactions.java) | ✅ |
 | 74 | Primitive Streams and Statistics | Easy | [PrimitiveStreamStatistics.java](09-stream-api/PrimitiveStreamStatistics.java) | ⬜ |
 | 75 | Joining Collector | Easy | [JoiningCollector.java](09-stream-api/JoiningCollector.java) | ⬜ |
 | 76 | Grouping with a Downstream Collector | Medium | [GroupingSales.java](09-stream-api/GroupingSales.java) | ✅ |
-| 77 | Partitioning with Downstream Mapping | Medium | [PartitionPeople.java](09-stream-api/PartitionPeople.java) | ⬜ |
+| 77 | Partitioning with Downstream Mapping | Medium | [PartitionPeople.java](09-stream-api/PartitionPeople.java) | ✅ |
 | 78 | Building Maps with Duplicate Keys | Medium | [MergingVotes.java](09-stream-api/MergingVotes.java) | ✅ |
 | 79 | Teeing Collector | Medium | [TeeingRange.java](09-stream-api/TeeingRange.java) | ⬜ |
 | 80 | Build a Custom Collector | Hard | [CustomBracketCollector.java](09-stream-api/CustomBracketCollector.java) | ⬜ |
 | 81 | Infinite Stream Sources | Medium | [InfiniteStreamBounds.java](09-stream-api/InfiniteStreamBounds.java) | ⬜ |
 | 82 | Parallel Collection Without Shared Mutation | Hard | [ParallelWordFrequency.java](09-stream-api/ParallelWordFrequency.java) | ⬜ |
+| 111 | Multi-Field Comparator Sorting | Medium | [MultiFieldInventorySort.java](09-stream-api/MultiFieldInventorySort.java) | ⬜ |
 
 ### Core Contracts
 
@@ -474,11 +475,11 @@ are hand-kept and the script preserves them. Exit 1 means the README changed.
 | Exception Handling | 2 | 0/2 |
 | Threads and Concurrency | 8 | 0/8 |
 | Advanced | 12 | 0/12 |
-| Stream API | 18 | 4/18 |
+| Stream API | 19 | 7/19 |
 | Core Contracts | 5 | 0/5 |
 | I/O and Date/Time | 5 | 0/5 |
 | Concurrency and Async | 7 | 0/7 |
-| **Total** | **110** | **32/110** |
+| **Total** | **111** | **35/111** |
 
 ## Revision references
 
@@ -497,6 +498,7 @@ revisiting.
 | 07 — Java Loops II | Stateless lambdas: why a captured accumulator is the wrong way to carry state | [Baeldung — Lambda Expressions and Functional Interfaces: Tips and Best Practices](https://www.baeldung.com/java-8-lambda-expressions-tips) | 2026-09-02 |
 | 08 — Java Datatypes | `parseByte` and the `MIN_VALUE`/`MAX_VALUE` constants: what a wrapper's range contract guarantees, and that a failed parse throws rather than saturating | [Java 21 API — `java.lang.Byte`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/Byte.html) | 2026-09-03 |
 | 09 — Java End-of-file | `readLine()` returning `null` as the EOF signal, and the assign-inside-the-condition loop it forces | [Java 21 API — `java.io.BufferedReader`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/io/BufferedReader.html) | 2026-09-03 |
+| 71 — Matching and Finding | Short-circuit terminals: the `allMatch`/`anyMatch` empty-stream identities, and why `findFirst` throws on a null element instead of returning empty | [Java 21 API — `java.util.stream.Stream`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Stream.html) | 2026-09-07 |
 | 09 — Java End-of-file | Choosing between `Scanner` and `BufferedReader`: lookahead vs raw reads, buffer size, checked vs unchecked exceptions | [Baeldung — BufferedReader vs Console vs Scanner in Java](https://www.baeldung.com/bufferedreader-vs-console-vs-scanner-in-java) | 2026-09-03 |
 | 12 — Java Date and Time | Java 8 date and time API | [Baeldung — Introduction to the Java 8 Date/Time API](https://www.baeldung.com/java-8-date-time-intro) | 2026-09-04 |
 | 12 — Java Date and Time | History of Java date and time APIs | [Baeldung — Java Date and Time History](https://www.baeldung.com/java-date-time-history) | 2026-09-04 |
@@ -532,3 +534,5 @@ revisiting.
 | 78 — Building Maps with Duplicate Keys | `toMap`'s merge function is what makes a duplicate key legal — the two-arg overload throws `IllegalStateException` instead — and only the four-arg overload takes a map supplier | [Java 21 API — `Collectors.toMap`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Collectors.html#toMap(java.util.function.Function,java.util.function.Function,java.util.function.BinaryOperator,java.util.function.Supplier)) | 2026-09-07 |
 | 78 — Building Maps with Duplicate Keys | `toMap` merges through `Map::merge`, so a null value mapper result is an NPE; `groupingBy` has no duplicate-key concept at all and merges structurally | [Baeldung — Java 8 `Collectors.toMap`](https://www.baeldung.com/java-collectors-tomap) | 2026-09-07 |
 | 68 — Flatten Nested Data | Splitting drops trailing empty fields but keeps leading ones, so a line with leading whitespace yields an `""` token that must be filtered before it sorts to the front — and `flatMap` is what turns the per-line streams into one | [Java 21 API — `Pattern.splitAsStream`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/regex/Pattern.html#splitAsStream(java.lang.CharSequence)) | 2026-09-07 |
+| 77 — Partitioning with Downstream Mapping | `partitioningBy` fills a fixed two-slot structure and runs the downstream supplier for both halves up front, so both Boolean keys exist even for an empty stream — where `groupingBy` needs a `collectingAndThen` to promise the same | [Java 21 API — `Collectors.partitioningBy`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Collectors.html#partitioningBy(java.util.function.Predicate,java.util.stream.Collector)) | 2026-09-07 |
+| 77 — Partitioning with Downstream Mapping | `mapping` as a downstream collector: projecting after the element has been classified, so the predicate still sees the whole object | [Baeldung — Guide to Java `Collectors.partitioningBy`](https://www.baeldung.com/java-collectors-partitioningby) | 2026-09-07 |
