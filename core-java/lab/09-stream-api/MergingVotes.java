@@ -1,3 +1,4 @@
+
 /*
  * Challenge 78: Building Maps with Duplicate Keys
  * Difficulty: Medium
@@ -23,7 +24,49 @@ public final class MergingVotes {
     }
 
     static Map<String, Integer> totals(List<Vote> votes) {
-        throw new UnsupportedOperationException("TODO: collect votes and merge duplicate keys");
+        // approach 1 — groupingBy with reducing. Strictly worse than approach 3:
+        // three arguments to say what summingInt says in one, and it reduces in
+        // Integer, so every element unboxes to add and reboxes. summingInt
+        // accumulates in a primitive int and boxes once, at the end.
+        // return votes.stream().collect(
+        //         Collectors.groupingBy(
+        //                 Vote::candidate,
+        //                 TreeMap::new,
+        //                 Collectors.reducing(0, Vote::points, Integer::sum)));
+
+        // approach 2 — toMap. The intended solution: the challenge's required
+        // focus is toMap's key mapper, value mapper, merge function and map
+        // supplier, and approach 3 exercises none of the four.
+        // The merge function is the whole point: toMap builds
+        // entries one at a time, so a repeated candidate is a collision it must be
+        // told how to resolve. Drop Integer::sum and the two-arg overload throws
+        // IllegalStateException: Duplicate key (asserted in main).
+        // Only this four-arg overload takes a map supplier; the three-arg one
+        // cannot produce a TreeMap.
+        // Its other sharp edge: toMap merges via Map::merge, which NPEs on a null
+        // value. Unreachable here — points is an int — but it is the standard
+        // follow-up, and groupingBy has no such rule.
+        // return votes.stream().collect(
+        //         Collectors.toMap(
+        //                 Vote::candidate,
+        //                 Vote::points,
+        //                 Integer::sum,
+        //                 TreeMap::new));
+
+        // approach 3 — the better code, though not what the challenge drills.
+        // groupingBy has no duplicate-key concept at all: it
+        // classifies elements into groups and the downstream collector reduces
+        // each one, so merging is structural rather than a case to handle. That
+        // is why this reads as though the collision problem never existed, and
+        // summingInt names the operation instead of spelling it as arithmetic on
+        // collision. Prefer toMap when the merge is a *choice* rather than an
+        // aggregation — last-wins (a, b) -> b, first-wins, keep-the-larger; those
+        // are natural there and awkward here.
+        return votes.stream().collect(
+                Collectors.groupingBy(
+                        Vote::candidate,
+                        TreeMap::new,
+                        Collectors.summingInt(Vote::points)));
     }
 
     public static void main(String[] args) {
@@ -36,6 +79,39 @@ public final class MergingVotes {
                 new Vote("Grace", -1), new Vote("Linus", 0))));
         check("empty input", "List.of()", new TreeMap<>(), totals(List.of()));
         checkThat("result type is TreeMap", "\"Ada\", 1", totals(List.of(new Vote("Ada", 1))) instanceof TreeMap);
+
+        // Map.of(...) is a MapN and the actual is a TreeMap, so the printed types
+        // differ on every line below. Not a mismatch: deepEquals routes to
+        // AbstractMap.equals, which compares entries and ignores implementation.
+        check("single vote, merge never invoked", "\"Ada\", 4",
+                Map.of("Ada", 4), totals(List.of(new Vote("Ada", 4))));
+        check("one candidate, merge invoked n-1 times", "\"Ada\" x4",
+                Map.of("Ada", 10), totals(List.of(
+                        new Vote("Ada", 1), new Vote("Ada", 2),
+                        new Vote("Ada", 3), new Vote("Ada", 4))));
+        check("total falls below zero", "\"Ada\", -5, 2",
+                Map.of("Ada", -3), totals(List.of(new Vote("Ada", -5), new Vote("Ada", 2))));
+
+        // The TreeMap check above proves the type; only reading the keys back
+        // in order proves the contract the type was chosen for.
+        check("keys come back sorted, not in encounter order", "Zoe, Ada, Mia",
+                List.of("Ada", "Mia", "Zoe"),
+                List.copyOf(totals(List.of(
+                        new Vote("Zoe", 1), new Vote("Ada", 1), new Vote("Mia", 1))).keySet()));
+
+        // Pins the failure approach 3 sidesteps by construction: the two-arg toMap
+        // has no way to combine values, so a repeated key is an
+        // IllegalStateException. Built inline rather than through totals(), since
+        // totals() is by definition the version that cannot throw it.
+        boolean threw = false;
+        try {
+            List.of(new Vote("Ada", 1), new Vote("Ada", 2)).stream()
+                    .collect(Collectors.toMap(Vote::candidate, Vote::points));
+        } catch (IllegalStateException e) {
+            threw = true;
+        }
+        checkThat("toMap without a merge function rejects the duplicate key", "\"Ada\" x2", threw);
+
         report("Challenge 78");
     }
 

@@ -2,9 +2,9 @@
 
 <div align="center">
 
-## `30 / 110` labs complete
+## `31 / 110` labs complete
 
-`████████░░░░░░░░░░░░░░░░░░░░░░` **27%**
+`████████░░░░░░░░░░░░░░░░░░░░░░` **28%**
 
 </div>
 
@@ -17,7 +17,7 @@ OOP                ░░░░░░░░░░░░░░░░             
 Exceptions         ░░░░                                    0/2
 Threads            ░░░░░░░░░░░░░░░░                        0/8
 Advanced           ░░░░░░░░░░░░░░░░░░░░░░░░               0/12
-Stream API         ████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   2/18
+Stream API         ██████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   3/18
 Core Contracts     ░░░░░░░░░░                              0/5
 I/O + Time         ░░░░░░░░░░                              0/5
 Concurrency+Async  ░░░░░░░░░░░░░░                          0/7
@@ -403,7 +403,7 @@ learning order, and review checkpoints.
 | 75 | Joining Collector | Easy | [JoiningCollector.java](09-stream-api/JoiningCollector.java) | ⬜ |
 | 76 | Grouping with a Downstream Collector | Medium | [GroupingSales.java](09-stream-api/GroupingSales.java) | ✅ |
 | 77 | Partitioning with Downstream Mapping | Medium | [PartitionPeople.java](09-stream-api/PartitionPeople.java) | ⬜ |
-| 78 | Building Maps with Duplicate Keys | Medium | [MergingVotes.java](09-stream-api/MergingVotes.java) | ⬜ |
+| 78 | Building Maps with Duplicate Keys | Medium | [MergingVotes.java](09-stream-api/MergingVotes.java) | ✅ |
 | 79 | Teeing Collector | Medium | [TeeingRange.java](09-stream-api/TeeingRange.java) | ⬜ |
 | 80 | Build a Custom Collector | Hard | [CustomBracketCollector.java](09-stream-api/CustomBracketCollector.java) | ⬜ |
 | 81 | Infinite Stream Sources | Medium | [InfiniteStreamBounds.java](09-stream-api/InfiniteStreamBounds.java) | ⬜ |
@@ -474,11 +474,11 @@ are hand-kept and the script preserves them. Exit 1 means the README changed.
 | Exception Handling | 2 | 0/2 |
 | Threads and Concurrency | 8 | 0/8 |
 | Advanced | 12 | 0/12 |
-| Stream API | 18 | 2/18 |
+| Stream API | 18 | 3/18 |
 | Core Contracts | 5 | 0/5 |
 | I/O and Date/Time | 5 | 0/5 |
 | Concurrency and Async | 7 | 0/7 |
-| **Total** | **110** | **30/110** |
+| **Total** | **110** | **31/110** |
 
 ## Revision references
 
@@ -529,3 +529,5 @@ revisiting.
 | 65 — Filter and Map Pipeline | `Stream.toList()` returns an unmodifiable list, where `collect(Collectors.toList())` returns a mutable `ArrayList` — the two are not interchangeable when the contract demands immutability | [Java 21 API — `Stream.toList()`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Stream.html#toList()) | 2026-09-06 |
 | 76 — Grouping with a Downstream Collector | `groupingBy`'s three overloads: the map supplier is a bare `Supplier<M extends Map<K,D>>` in the middle slot, and the downstream is a `Collector` — never a method reference, since `Collector` has five abstract methods | [Baeldung — Guide to Java `groupingBy` Collector](https://www.baeldung.com/java-groupingby-collector) | 2026-09-06 |
 | 76 — Grouping with a Downstream Collector | `BigDecimal.equals` compares scale as well as value, so `0.00` is not equal to `ZERO` — and `add` takes the larger of the two scales, which is what makes `ZERO` a safe reducing identity | [Baeldung — `BigDecimal` `equals()` vs. `compareTo()`](https://www.baeldung.com/java-bigdecimal-equals-compareto-difference) | 2026-09-06 |
+| 78 — Building Maps with Duplicate Keys | `toMap`'s merge function is what makes a duplicate key legal — the two-arg overload throws `IllegalStateException` instead — and only the four-arg overload takes a map supplier | [Java 21 API — `Collectors.toMap`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Collectors.html#toMap(java.util.function.Function,java.util.function.Function,java.util.function.BinaryOperator,java.util.function.Supplier)) | 2026-09-07 |
+| 78 — Building Maps with Duplicate Keys | `toMap` merges through `Map::merge`, so a null value mapper result is an NPE; `groupingBy` has no duplicate-key concept at all and merges structurally | [Baeldung — Java 8 `Collectors.toMap`](https://www.baeldung.com/java-collectors-tomap) | 2026-09-07 |
