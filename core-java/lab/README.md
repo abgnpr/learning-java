@@ -2,9 +2,9 @@
 
 <div align="center">
 
-## `27 / 90` labs complete
+## `28 / 90` labs complete
 
-`█████████░░░░░░░░░░░░░░░░░░░░░` **30%**
+`█████████░░░░░░░░░░░░░░░░░░░░░` **31%**
 
 </div>
 
@@ -12,7 +12,7 @@
 Introduction     ██████████████████████████            13/13
 Strings          ██████████████████████                11/11
 BigNumber        ░░░░░░                                  0/3
-Data Structures  ██████░░░░░░░░░░░░░░░░░░░░░░░░         3/15
+Data Structures  ████████░░░░░░░░░░░░░░░░░░░░░░         4/15
 OOP              ░░░░░░░░░░░░░░░░                        0/8
 Exceptions       ░░░░                                    0/2
 Threads          ░░░░░░░░░░░░░░░░                        0/8
@@ -303,7 +303,7 @@ section 07 uses station numbers S1–S8 and has a separate
 | 28 | 1D Array | Easy | [OneDimensionalArray.java](04-data-structures/OneDimensionalArray.java) | ✅ |
 | 29 | 2D Array | Easy | [HourglassSum.java](04-data-structures/HourglassSum.java) | ✅ |
 | 30 | Subarray | Easy | [NegativeSubarrayCount.java](04-data-structures/NegativeSubarrayCount.java) | ✅ |
-| 31 | Arraylist | Easy | [ArrayListQueries.java](04-data-structures/ArrayListQueries.java) | ⬜ |
+| 31 | Arraylist | Easy | [ArrayListQueries.java](04-data-structures/ArrayListQueries.java) | ✅ |
 | 32 | 1D Array (Part 2) | Medium | [LeapGame.java](04-data-structures/LeapGame.java) | ⬜ |
 | 33 | List | Easy | [ListOperations.java](04-data-structures/ListOperations.java) | ⬜ |
 | 34 | Map | Easy | [PhoneBookLookup.java](04-data-structures/PhoneBookLookup.java) | ⬜ |
@@ -415,13 +415,13 @@ are hand-kept and the script preserves them. Exit 1 means the README changed.
 | Introduction | 13 | 13/13 |
 | Strings | 11 | 11/11 |
 | BigNumber | 3 | 0/3 |
-| Data Structures | 15 | 3/15 |
+| Data Structures | 15 | 4/15 |
 | Object-Oriented Programming | 8 | 0/8 |
 | Exception Handling | 2 | 0/2 |
 | Threads and Concurrency | 8 | 0/8 |
 | Advanced | 12 | 0/12 |
 | Stream API | 18 | 0/18 |
-| **Total** | **90** | **27/90** |
+| **Total** | **90** | **28/90** |
 
 ## Revision references
 
@@ -465,3 +465,5 @@ revisiting.
 | 28 — 1D Array | `RandomAccess` as the marker that decides whether indexed `get(i)` is O(1) or O(n) — why a `get`-loop degrades to O(n²) on a `LinkedList` | [Java 21 API — `java.util.RandomAccess`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/RandomAccess.html) | 2026-09-06 |
 | 30 — Java Subarray | Merge sort's divide-and-merge shape, and counting during the merge step | [Baeldung — Merge Sort in Java](https://www.baeldung.com/java-merge-sort) | 2026-09-06 |
 | 30 — Java Subarray | Inversion counting: "count pairs satisfying a comparison" reduced through a prefix transform, brute force O(n²) vs divide-and-conquer O(n log n) | [Baeldung — Counting Inversions in an Array](https://www.baeldung.com/cs/counting-inversions-array) | 2026-09-06 |
+| 31 — Java Arraylist | Capacity vs size: `new ArrayList<>(n)` reserves room but leaves size 0, so `add` works and `set` throws — and growth from the default capacity 10 costs a reallocation plus full copy each time | [Java 21 API — `java.util.ArrayList`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/ArrayList.html) | 2026-09-06 |
+| 31 — Java Arraylist | `Arrays.asList` returns a fixed-size *view* sharing storage with the array — size n, `set` writes through, `add`/`remove` rejected — and its type is `Arrays$ArrayList`, not `java.util.ArrayList` | [Java 21 API — `java.util.Arrays`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Arrays.html#asList(T...)) | 2026-09-06 |
