@@ -2,9 +2,9 @@
 
 <div align="center">
 
-## `29 / 110` labs complete
+## `30 / 110` labs complete
 
-`████████░░░░░░░░░░░░░░░░░░░░░░` **26%**
+`████████░░░░░░░░░░░░░░░░░░░░░░` **27%**
 
 </div>
 
@@ -17,7 +17,7 @@ OOP                ░░░░░░░░░░░░░░░░             
 Exceptions         ░░░░                                    0/2
 Threads            ░░░░░░░░░░░░░░░░                        0/8
 Advanced           ░░░░░░░░░░░░░░░░░░░░░░░░               0/12
-Stream API         ██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   1/18
+Stream API         ████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   2/18
 Core Contracts     ░░░░░░░░░░                              0/5
 I/O + Time         ░░░░░░░░░░                              0/5
 Concurrency+Async  ░░░░░░░░░░░░░░                          0/7
@@ -401,7 +401,7 @@ learning order, and review checkpoints.
 | 73 | Three-Argument Reduction | Medium | [ReduceTransactions.java](09-stream-api/ReduceTransactions.java) | ⬜ |
 | 74 | Primitive Streams and Statistics | Easy | [PrimitiveStreamStatistics.java](09-stream-api/PrimitiveStreamStatistics.java) | ⬜ |
 | 75 | Joining Collector | Easy | [JoiningCollector.java](09-stream-api/JoiningCollector.java) | ⬜ |
-| 76 | Grouping with a Downstream Collector | Medium | [GroupingSales.java](09-stream-api/GroupingSales.java) | ⬜ |
+| 76 | Grouping with a Downstream Collector | Medium | [GroupingSales.java](09-stream-api/GroupingSales.java) | ✅ |
 | 77 | Partitioning with Downstream Mapping | Medium | [PartitionPeople.java](09-stream-api/PartitionPeople.java) | ⬜ |
 | 78 | Building Maps with Duplicate Keys | Medium | [MergingVotes.java](09-stream-api/MergingVotes.java) | ⬜ |
 | 79 | Teeing Collector | Medium | [TeeingRange.java](09-stream-api/TeeingRange.java) | ⬜ |
@@ -474,11 +474,11 @@ are hand-kept and the script preserves them. Exit 1 means the README changed.
 | Exception Handling | 2 | 0/2 |
 | Threads and Concurrency | 8 | 0/8 |
 | Advanced | 12 | 0/12 |
-| Stream API | 18 | 1/18 |
+| Stream API | 18 | 2/18 |
 | Core Contracts | 5 | 0/5 |
 | I/O and Date/Time | 5 | 0/5 |
 | Concurrency and Async | 7 | 0/7 |
-| **Total** | **110** | **29/110** |
+| **Total** | **110** | **30/110** |
 
 ## Revision references
 
@@ -527,3 +527,5 @@ revisiting.
 | 65 — Filter and Map Pipeline | `toUpperCase(Locale.ROOT)` vs the no-arg overload: the default-locale form maps `"i"` to the dotted `"İ"` under a Turkish locale, so identical code produces different output per machine | [Java 21 API — `String.toUpperCase(Locale)`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html#toUpperCase(java.util.Locale)) | 2026-09-06 |
 | 65 — Filter and Map Pipeline | `isBlank()` and `strip()` both key off `Character.isWhitespace`, which excludes U+00A0 NO-BREAK SPACE — so a NBSP-only name is neither blank nor trimmable and survives as a one-character name | [Java 21 API — `String.isBlank()`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html#isBlank()) | 2026-09-06 |
 | 65 — Filter and Map Pipeline | `Stream.toList()` returns an unmodifiable list, where `collect(Collectors.toList())` returns a mutable `ArrayList` — the two are not interchangeable when the contract demands immutability | [Java 21 API — `Stream.toList()`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Stream.html#toList()) | 2026-09-06 |
+| 76 — Grouping with a Downstream Collector | `groupingBy`'s three overloads: the map supplier is a bare `Supplier<M extends Map<K,D>>` in the middle slot, and the downstream is a `Collector` — never a method reference, since `Collector` has five abstract methods | [Baeldung — Guide to Java `groupingBy` Collector](https://www.baeldung.com/java-groupingby-collector) | 2026-09-06 |
+| 76 — Grouping with a Downstream Collector | `BigDecimal.equals` compares scale as well as value, so `0.00` is not equal to `ZERO` — and `add` takes the larger of the two scales, which is what makes `ZERO` a safe reducing identity | [Baeldung — `BigDecimal` `equals()` vs. `compareTo()`](https://www.baeldung.com/java-bigdecimal-equals-compareto-difference) | 2026-09-06 |
