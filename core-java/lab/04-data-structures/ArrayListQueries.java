@@ -7,7 +7,6 @@
  * Complete: answerQueries(List<List<Integer>> rows, List<Query> queries)
  * Run: java ArrayListQueries.java
  */
-import java.util.ArrayList;
 import java.util.List;
 
 public class ArrayListQueries {
@@ -73,27 +72,50 @@ public class ArrayListQueries {
          * in a stack trace unless the JIT has optimised that away on a hot, repeatedly
          * thrown instance — which a cold path or varied throw sites will not give you.
          */
+        /*
         List<String> answers = new ArrayList<>(queries.size());
         for (int i = 0; i < queries.size(); i++) {
-            Query query = queries.get(i);
-            // Queries are one-based; these can go negative, so the >= 0 guards below
-            // are load-bearing. So is the order: && short-circuits, so row < rows.size()
-            // is proven before rows.get(row) runs.
-            int row = query.row() - 1;
-            int col = query.column() - 1;
-            if (row >= 0 && row < rows.size() && col >= 0 && col < rows.get(row).size()) {
-                String answer = rows.get(row).get(col).toString();
-                answers.add(answer);
-            } else {
-                answers.add("ERROR!");
-            }
-
+            answers.add(lookup(rows, queries.get(i)));
         }
-        return answers;
+        return answers; */
+
+        /*
+         * approach 4: the same work said as what it is — one answer per query,
+         * order preserved, nothing carried between elements. That shape is `map`
+         * and nothing else, which is the case for preferring a stream here; a
+         * problem needing an index or state across elements would not qualify.
+         *
+         * Pre-sizing still happens, just not by hand: a List's spliterator reports
+         * SIZED, so `toList()` knows the count up front and allocates once. Insert
+         * a `filter` and that is lost — the size is no longer known in advance.
+         *
+         * `toList()` (Java 16+) returns an unmodifiable list, and is not
+         * `Collectors.toList()`, which returns a mutable ArrayList and promises
+         * nothing about the class. The checks pass against either because
+         * List.equals compares contents, not implementations.
+         *
+         * The bounds test moved into `lookup` because a lambda has nowhere to bind
+         * `row` — inlined, the guard would recompute `query.row() - 1` three times.
+         * Extracting it also means the loop above and this stream share one
+         * definition of a present cell instead of drifting apart.
+         *
+         * Approach 1's try/catch does not survive the translation: wrapping a
+         * lambda body in one forces a block lambda, uglier than the loop it replaced.
+         */
+        return queries.stream().map(query -> lookup(rows, query)).toList();
     }
 
+    private static String lookup(List<List<Integer>> rows, Query query) {
+        // Queries are one-based; these can go negative, so the >= 0 guards below
+        // are load-bearing. So is the order: && short-circuits, so row < rows.size()
+        // is proven before rows.get(row) runs.
+        int row = query.row() - 1;
+        int col = query.column() - 1;
+        return row >= 0 && row < rows.size() && col >= 0 && col < rows.get(row).size()
+                ? rows.get(row).get(col).toString()
+                : "ERROR!";
+    }
 
-    
     public static void main(String[] args) {
         List<List<Integer>> rows = List.of(
                 List.of(5, 8),
