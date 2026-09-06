@@ -1,3 +1,4 @@
+
 /*
  * Challenge 68: Flatten Nested Data
  * Difficulty: Easy
@@ -9,22 +10,111 @@
  * Required focus: flatMap.
  * Run: java FlatMapWords.java
  */
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 public final class FlatMapWords {
     private FlatMapWords() {
     }
 
+    // Compiled once as a constant. String.split(regex) recompiles the pattern on
+    // every call, which inside a flatMap means once per line.
+    private static final Pattern SPLITTER = Pattern.compile("\\s+");
+
+    /**
+     * flatMap, not map: the mapper returns a Stream per line and flatMap
+     * concatenates them into one stream of words. map would give a
+     * Stream<Stream<String>> that distinct and sorted cannot see into.
+     */
     static List<String> uniqueWords(List<String> lines) {
-        throw new UnsupportedOperationException("TODO: flatten lines into normalized words");
+        return lines.stream()
+                // splitAsStream over split: no String[] is materialized per line.
+                // SPLITTER::splitAsStream is a bound reference to the constant.
+                .flatMap(SPLITTER::splitAsStream)
+
+                // Not defensive. Splitting drops trailing empty fields but never
+                // leading ones, so a line with leading whitespace -- and an empty
+                // line -- each yield an "" token that would sort to the front:
+                //     " a b " -> ["", "a", "b"]      ""   -> [""]
+                //     "  "    -> []                  "a b" -> ["a", "b"]
+                // Without this filter, List.of("") returns [""], not [].
+                .filter(word -> !word.isBlank())
+
+                // ROOT, not the default locale: under tr-TR "TITLE".toLowerCase()
+                // is "tItle" with a dotless i, so TITLE and title stop deduping.
+                // Folding must depend on the data, not on the host.
+                .map(word -> word.toLowerCase(Locale.ROOT))
+
+                // distinct before sorted: both are stateful and buffer, so
+                // deduplicating first leaves sorted less to order. Reversing them
+                // is correct but does strictly more work.
+                .distinct()
+
+                // sorted AFTER the lowercasing, never before. Natural String order
+                // is UTF-16 code-unit order, where every uppercase letter precedes
+                // every lowercase one -- ["A", "B", "a", "b"] -- so sorting the raw
+                // words would order "Zebra" before "apple" and the fold could not
+                // repair it.
+                .sorted()
+
+                // toList() returns an unmodifiable list (Java 16+), and unlike
+                // Collectors.toUnmodifiableList it tolerates nulls.
+                .toList();
     }
 
     public static void main(String[] args) {
-        check("flatten, normalize, and deduplicate", "List.of(\" Java stream \", \"STREAM API\", \"\", \"java\")", List.of("api", "java", "stream"), uniqueWords(List.of(" Java stream ", "STREAM   API", "", "java")));
+        check("flatten, normalize, and deduplicate", "List.of(\" Java stream \", \"STREAM   API\", \"\", \"java\")",
+                List.of("api", "java", "stream"), uniqueWords(List.of(" Java stream ", "STREAM   API", "", "java")));
         check("single word", "List.of(\"one\")", List.of("one"), uniqueWords(List.of("one")));
-        check("blank lines", "List.of(\" \", \"\\t\")", List.of(), uniqueWords(List.of("  ", "\t")));
+        check("blank lines", "List.of(\"  \", \"\\t\")", List.of(), uniqueWords(List.of("  ", "\t")));
+
+        // ---- empty and degenerate inputs ----
+        check("no lines at all", "List.of()", List.of(), uniqueWords(List.of()));
+        check("one empty line", "List.of(\"\")", List.of(), uniqueWords(List.of("")));
+        check("empty line beside a real one", "List.of(\"\", \"word\")",
+                List.of("word"), uniqueWords(List.of("", "word")));
+
+        // ---- separator placement: leading empties survive split, trailing ones do not ----
+        check("leading separator yields no empty word", "List.of(\" pad\")",
+                List.of("pad"), uniqueWords(List.of(" pad")));
+        check("trailing separator yields no empty word", "List.of(\"pad \")",
+                List.of("pad"), uniqueWords(List.of("pad ")));
+        check("surrounded by whitespace", "List.of(\"   pad   \")",
+                List.of("pad"), uniqueWords(List.of("   pad   ")));
+
+        // ---- \s+ collapses every whitespace kind, not just the space ----
+        check("runs of mixed whitespace are one separator", "List.of(\"a \\t\\n b\")",
+                List.of("a", "b"), uniqueWords(List.of("a \t\n b")));
+        check("tab, newline, form feed, carriage return", "List.of(\"a\\tb\\ncd\\fe\\rf\")",
+                List.of("a", "b", "cd", "e", "f"), uniqueWords(List.of("a\tb\ncd\fe\rf")));
+
+        // ---- deduplication ----
+        check("duplicates within a single line", "List.of(\"go go GO Go\")",
+                List.of("go"), uniqueWords(List.of("go go GO Go")));
+        check("duplicates across lines", "List.of(\"same\", \"SAME\", \"Same\")",
+                List.of("same"), uniqueWords(List.of("same", "SAME", "Same")));
+
+        // ---- sorting happens after lowercasing, not before ----
+        // Natural String order is UTF-16 code-unit order, where every uppercase
+        // letter precedes every lowercase one ([A, B, a, b]). The uppercase word
+        // must sort AFTER the lowercase one once folded, or transposing map and
+        // sorted still passes: "Zebra apple" catches it, "Beta ALPHA" does not.
+        check("sort follows case folding", "List.of(\"Zebra apple\")",
+                List.of("apple", "zebra"), uniqueWords(List.of("Zebra apple")));
+        check("case folding reorders across lines", "List.of(\"Echo\", \"delta\", \"foxtrot\")",
+                List.of("delta", "echo", "foxtrot"), uniqueWords(List.of("Echo", "delta", "foxtrot")));
+        check("digits and symbols sort before letters", "List.of(\"zeta 10 2 _under\")",
+                List.of("10", "2", "_under", "zeta"), uniqueWords(List.of("zeta 10 2 _under")));
+
+        // ---- only whitespace splits; punctuation stays attached ----
+        check("punctuation is part of the word", "List.of(\"end. mid, word\")",
+                List.of("end.", "mid,", "word"), uniqueWords(List.of("end. mid, word")));
+
+        // ---- Locale.ROOT keeps folding independent of the default locale ----
+        check("non-ascii folds and dedupes", "List.of(\"Caf\\u00e9 CAF\\u00c9\")",
+                List.of("caf\u00e9"), uniqueWords(List.of("Caf\u00e9 CAF\u00c9")));
+
         report("Challenge 68");
     }
 

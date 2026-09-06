@@ -2,9 +2,9 @@
 
 <div align="center">
 
-## `31 / 110` labs complete
+## `32 / 110` labs complete
 
-`████████░░░░░░░░░░░░░░░░░░░░░░` **28%**
+`█████████░░░░░░░░░░░░░░░░░░░░░` **29%**
 
 </div>
 
@@ -17,7 +17,7 @@ OOP                ░░░░░░░░░░░░░░░░             
 Exceptions         ░░░░                                    0/2
 Threads            ░░░░░░░░░░░░░░░░                        0/8
 Advanced           ░░░░░░░░░░░░░░░░░░░░░░░░               0/12
-Stream API         ██████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   3/18
+Stream API         ████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░   4/18
 Core Contracts     ░░░░░░░░░░                              0/5
 I/O + Time         ░░░░░░░░░░                              0/5
 Concurrency+Async  ░░░░░░░░░░░░░░                          0/7
@@ -393,7 +393,7 @@ learning order, and review checkpoints.
 | 65 | Filter and Map Pipeline | Easy | [FilterMapPipeline.java](09-stream-api/FilterMapPipeline.java) | ✅ |
 | 66 | Laziness and Short-Circuiting | Easy | [LazyFirstMatch.java](09-stream-api/LazyFirstMatch.java) | ⬜ |
 | 67 | Distinct, Sorted, Skip, and Limit | Easy | [DistinctScorePage.java](09-stream-api/DistinctScorePage.java) | ⬜ |
-| 68 | Flatten Nested Data | Easy | [FlatMapWords.java](09-stream-api/FlatMapWords.java) | ⬜ |
+| 68 | Flatten Nested Data | Easy | [FlatMapWords.java](09-stream-api/FlatMapWords.java) | ✅ |
 | 69 | One-to-Many Mapping with `mapMulti` | Medium | [MapMultiRanges.java](09-stream-api/MapMultiRanges.java) | ⬜ |
 | 70 | Prefix Operations | Easy | [TakeDropWhileReadings.java](09-stream-api/TakeDropWhileReadings.java) | ⬜ |
 | 71 | Matching and Finding | Easy | [MatchAndFindInventory.java](09-stream-api/MatchAndFindInventory.java) | ⬜ |
@@ -474,11 +474,11 @@ are hand-kept and the script preserves them. Exit 1 means the README changed.
 | Exception Handling | 2 | 0/2 |
 | Threads and Concurrency | 8 | 0/8 |
 | Advanced | 12 | 0/12 |
-| Stream API | 18 | 3/18 |
+| Stream API | 18 | 4/18 |
 | Core Contracts | 5 | 0/5 |
 | I/O and Date/Time | 5 | 0/5 |
 | Concurrency and Async | 7 | 0/7 |
-| **Total** | **110** | **31/110** |
+| **Total** | **110** | **32/110** |
 
 ## Revision references
 
@@ -531,3 +531,4 @@ revisiting.
 | 76 — Grouping with a Downstream Collector | `BigDecimal.equals` compares scale as well as value, so `0.00` is not equal to `ZERO` — and `add` takes the larger of the two scales, which is what makes `ZERO` a safe reducing identity | [Baeldung — `BigDecimal` `equals()` vs. `compareTo()`](https://www.baeldung.com/java-bigdecimal-equals-compareto-difference) | 2026-09-06 |
 | 78 — Building Maps with Duplicate Keys | `toMap`'s merge function is what makes a duplicate key legal — the two-arg overload throws `IllegalStateException` instead — and only the four-arg overload takes a map supplier | [Java 21 API — `Collectors.toMap`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Collectors.html#toMap(java.util.function.Function,java.util.function.Function,java.util.function.BinaryOperator,java.util.function.Supplier)) | 2026-09-07 |
 | 78 — Building Maps with Duplicate Keys | `toMap` merges through `Map::merge`, so a null value mapper result is an NPE; `groupingBy` has no duplicate-key concept at all and merges structurally | [Baeldung — Java 8 `Collectors.toMap`](https://www.baeldung.com/java-collectors-tomap) | 2026-09-07 |
+| 68 — Flatten Nested Data | Splitting drops trailing empty fields but keeps leading ones, so a line with leading whitespace yields an `""` token that must be filtered before it sorts to the front — and `flatMap` is what turns the per-line streams into one | [Java 21 API — `Pattern.splitAsStream`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/regex/Pattern.html#splitAsStream(java.lang.CharSequence)) | 2026-09-07 |
