@@ -627,76 +627,88 @@ cannot supply a fresh instance for each request.
 
 ### Lifecycle
 
-A bean is **built, then wrapped, then used**. Every lifecycle question — why a
-self-call skips a transaction, why `@PostConstruct` sees the raw object, why
-one callback fires and another does not — comes from where those three phases
-divide:
+Between `new PaymentService(...)` and the moment a controller calls it, the
+container does a surprising amount of work. Following one bean through it
+explains a whole family of otherwise unrelated puzzles.
+
+**First the container builds the object.** It calls the constructor, then
+supplies anything the constructor did not take — field and setter
+dependencies, property values — and then hands the bean any context it asked
+for through an `Aware` interface, such as its own bean name. At the end of
+this the object is complete in the Java sense: every field is set, and it
+would work if you called it directly.
+
+**Then the container decorates it.** Every `BeanPostProcessor` in the context
+gets to see the object twice: once before initialization, once after. Between
+those two visits, the bean's own initialization callback runs — `@PostConstruct`,
+or `afterPropertiesSet()`, or a custom init method. So the sequence around
+initialization is:
 
 ```text
-BUILD  the object exists but is not finished
-  1  instantiate          constructor runs
-  2  populate             fields and properties set
-  3  aware callbacks      BeanNameAware, ApplicationContextAware
+  1  instantiate            constructor runs
+  2  populate               remaining dependencies and properties set
+  3  aware callbacks        BeanNameAware, ApplicationContextAware
         |
-        v
-WRAP   the container decorates it
-  4  BPP before-init      postProcessBeforeInitialization
-  5  init callback        @PostConstruct
-                          InitializingBean.afterPropertiesSet
-                          custom init method
-  6  BPP after-init       postProcessAfterInitialization
-                          <-- the proxy is created here
+        v  the object is complete, but plain
+  4  BPP before-init        postProcessBeforeInitialization
+  5  YOUR init callback     @PostConstruct
+  6  BPP after-init         postProcessAfterInitialization
         |
-        v
-USE    other beans receive the proxy, not the target
-  7  ready for use
-  8  destroy callback     @PreDestroy
-                          DisposableBean.destroy
-                          custom destroy method
+        v  a post-processor may have returned a proxy instead
+  7  in use                 other beans hold whatever step 6 returned
+  8  destroy callback       @PreDestroy, on context close
 ```
 
-Three facts about that picture carry most of the interview value.
+Step 6 is where the interesting thing happens. A post-processor may return
+something *other* than the object it was given — typically a proxy wrapping
+it, carrying the transaction, security or caching behavior your annotations
+asked for ([§3](#3-container-startup-and-extension-points) covers how it
+decides). The container registers that return value as the bean, so from step
+7 onward every other bean holds the proxy. The original object still exists
+inside it, but nothing else has a reference to it.
 
-**Step 5 runs on the raw target, before step 6.** `@PostConstruct` executes
-inside the object, so `this` is the unproxied instance. A `@Transactional` or
-`@Cacheable` annotation on a method called from `@PostConstruct` does
-nothing — the advice lives on a proxy that does not exist yet. This is the
-same boundary that makes an internal self-call skip advice, seen from the
-timeline rather than the call stack ([§5](#5-aop-proxies)).
+That single detail answers the questions people usually meet separately.
 
-**Steps 4 and 6 are why the container, not `new`, gives you Spring's
-behavior.** An object built with `new` skips them entirely: no injection, no
-proxy, no callbacks. That is exactly the unmanaged `Ledger` that lite-mode
-configuration produces ([§3](#3-container-startup-and-extension-points)).
+Why does `@Transactional` do nothing when called from `@PostConstruct`? Look
+at the numbers: your init callback is step 5, the proxy appears at step 6. The
+annotation is real, but the thing that acts on it has not been created yet,
+and `this` inside your own method is the bare object regardless. It is the
+same reason an internal self-call skips advice, arriving one step earlier
+([§5](#5-aop-proxies)).
 
-**Step 2 completes before step 5, which is what makes `@PostConstruct`
-meaningful.** Dependencies are guaranteed present, so it is the correct place
-to validate wiring or derive state — and the wrong place for anything slow.
+Why is a `new`-ed object never quite the same? It never entered this sequence.
+No injection at step 2, no post-processors at steps 4 and 6, so no proxy and
+no callbacks — which is precisely what makes the second `Ledger` from a
+lite-mode configuration a silent problem.
 
-The three initialization hooks are ordered `@PostConstruct` →
-`InitializingBean.afterPropertiesSet()` → custom init method, with destruction
-mirroring it. Prefer the annotation: it is standard Java, keeps the class free
-of Spring interfaces, and works on classes you cannot modify via `@Bean(initMethod = ...)`.
+And why is `@PostConstruct` the right place for setup that a constructor
+cannot do? Because step 2 has already finished. Dependencies are guaranteed
+present, so it is safe to validate wiring or derive state from a collaborator
+there. Java's `@PostConstruct` is worth preferring over `InitializingBean` —
+it keeps the class free of Spring interfaces — and for a class you cannot
+modify, `@Bean(initMethod = "...")` names the method from outside.
 
-Avoid network calls and long-running work in constructors or `@PostConstruct`.
-They make startup fragile, occur before the application is ready, and can
-interact badly with proxies. Use an explicit lifecycle component or runner
-when startup work is truly required, with a clear failure policy.
+Keep that callback fast, though. Network calls and long-running work in a
+constructor or `@PostConstruct` make startup fragile: they run before the
+application is ready, they can fail the context, and a bean that is slow to
+initialize delays everything waiting on it. Startup work that genuinely must
+happen belongs in a lifecycle component or a runner, with an explicit failure
+policy.
 
-Destruction is less symmetric than it looks, and the asymmetry is a common
-question:
+Shutdown mirrors the sequence, but only partly, and the gaps are worth
+knowing:
 
 | Scope | Destruction callback |
 |---|---|
 | singleton | on context close |
-| prototype | **never** — the container hands over the instance and forgets it |
+| prototype | **never** — the container builds it, hands it over, and forgets it |
 | request/session | when the web scope ends |
 
-The container tracks a prototype long enough to build it, not to dispose of
-it, so a prototype holding a socket or a file handle leaks unless the caller
-closes it. A shutdown that is killed before the context closes runs no
-destroy callback at all, which is why graceful shutdown is a deployment
-concern and not a `@PreDestroy` one ([§15](#15-resilience)).
+A prototype is tracked long enough to be created, not long enough to be
+disposed of, so one holding a socket or file handle leaks unless its caller
+closes it. And no callback of any kind runs if the process dies before the
+context closes — which is why an orderly shutdown is something the deployment
+arranges, not something `@PreDestroy` guarantees ([§15](#15-resilience)).
 
 ### Circular dependencies
 
