@@ -387,7 +387,9 @@ Each decision in that snippet answers a likely follow-up:
   immutable, and the constraints are checked during startup. A missing
   `switchBaseUrl` or a `maxInFlight` of `0` aborts the boot with a report of
   which property failed, rather than surfacing as a null or a division at the
-  first payment.
+  first payment. `@EnableConfigurationProperties` registers the record as a
+  bean, since `@ConfigurationProperties` alone does not; binding rules are
+  [§4](#4-configuration-and-auto-configuration).
 - **`URI` and `Duration`, not `String` and `long`.** Relaxed binding parses
   `1500ms` or `PT1.5S` into a `Duration`, so unit ambiguity never reaches the
   code. A malformed URL is a startup failure, not a runtime one.
@@ -396,7 +398,8 @@ Each decision in that snippet answers a likely follow-up:
   singleton instead of a fresh object. No method here calls another, so the
   proxy buys nothing: turning it off skips the subclass and its startup cost.
   Set it when `@Bean` methods are independent; leave the default when one
-  calls another for its bean.
+  calls another for its bean. The unmanaged-object failure this risks is
+  [§3](#3-container-startup-and-extension-points).
 - **`Clock` as a bean.** `Instant.now()` is a static call, so a test cannot
   control it and "expires after 30 minutes" cannot be tested without waiting.
   An injected `Clock` is replaced with `Clock.fixed(...)` in a test, and the
@@ -716,6 +719,33 @@ class LiteConfiguration {
 
 Prefer parameter injection; it makes method-call semantics irrelevant.
 
+The failure is quiet, which is what makes it an interview question. Lite mode
+with an inter-bean call produces a second `Ledger` that no one registered: it
+is not a singleton, it receives no lifecycle callbacks, no `BeanPostProcessor`
+sees it, and so it carries no transaction, security or caching proxy. A
+`@Transactional` method on such an object simply does not start a transaction.
+Nothing throws — the container never learns the object exists.
+
+| | `proxyBeanMethods = true` (full) | `proxyBeanMethods = false` (lite) |
+|---|---|---|
+| Configuration class | CGLIB subclass created | used as written |
+| Inter-bean method call | routed to the container, returns the singleton | an ordinary Java call, constructs a new object |
+| Class/method constraints | not `final`, needs a non-private constructor | none |
+| Startup cost | subclass generated per configuration class | none |
+| Safe when | any `@Bean` method calls another | `@Bean` methods take dependencies as parameters |
+
+Two details finish the answer. The interception is per configuration class, so
+`this.ledger()` inside a proxied class is intercepted while a call to another
+configuration class's method is not. And a `@Bean` method on a plain
+`@Component` is never proxied at all — that is the *lite* case by definition,
+which is why `@Bean` methods belong on `@Configuration` classes.
+
+Boot's own auto-configuration classes use lite mode throughout, for the
+startup cost: it removes one generated subclass per configuration class in a
+context that may hold hundreds. Application code inherits the same reasoning —
+declare `proxyBeanMethods = false` and pass dependencies as parameters, or
+leave the default and let the container hand back singletons.
+
 ---
 
 ## 4. Configuration and auto-configuration
@@ -757,6 +787,53 @@ public record SwitchProperties(
 nested structure and validation. `${name}` is a property placeholder;
 `#{expression}` is a Spring Expression Language expression. Do not evaluate
 untrusted text as SpEL.
+
+**Relaxed binding** means one property matches many spellings, so YAML can
+stay kebab-case while Java stays camelCase, and an operator can override with
+an environment variable:
+
+```text
+max-in-flight   maxInFlight   max_in_flight   MAX_IN_FLIGHT   MAXINFLIGHT
+        |
+        v
+   int maxInFlight
+```
+
+That last form is why the pattern matters operationally: `PAYMENT_SWITCH_MAX_IN_FLIGHT`
+is a legal environment variable name, and a container platform can set it
+without the application knowing. `@Value("${payment-switch.max-in-flight}")`
+binds one exact string with no such latitude.
+
+**The class must be registered**, and the annotation alone does not do it.
+Three ways, and an interview will accept any of them named correctly:
+
+- `@EnableConfigurationProperties(SwitchProperties.class)` on a configuration
+  class — explicit, and the form auto-configuration uses;
+- `@ConfigurationPropertiesScan` on the application class — scans for the
+  annotation the way component scanning finds `@Component`;
+- `@Component` on the properties class itself — works, but mixes a stereotype
+  into a value object.
+
+A `record` binds through its canonical constructor, which makes the object
+immutable and means a missing value fails at construction. Java-bean binding
+(a class with setters) is the alternative, and it is the one that needs a
+no-argument constructor and mutable state. Constructor binding cannot be
+combined with `@Autowired` on the same class — properties are values, not
+service collaborators.
+
+Prefer typed properties over `@Value` for anything with more than one field:
+
+| | `@ConfigurationProperties` | `@Value` |
+|---|---|---|
+| Binds | a whole tree to one object | one expression to one field |
+| Naming | relaxed | exact match only |
+| Validation | JSR-380 on the type, at startup | none |
+| Metadata/IDE completion | generated | none |
+| Failure timing | startup, naming the property | injection, or later as a bad value |
+
+`@Value` remains reasonable for a single unrelated string. It is the wrong
+tool for a group of related settings, because each field fails separately and
+nothing describes the group as a unit.
 
 Secrets belong in a secret manager or platform-provided source, not Git,
 container images, exception messages or logs. Configuration binding does not
