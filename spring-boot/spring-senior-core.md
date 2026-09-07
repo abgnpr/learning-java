@@ -251,11 +251,11 @@ to the annotated class's own package and its descendants:
 
 ```text
 com.bank
-├── payments
-│   ├── PaymentApplication      @SpringBootApplication lives here
-│   └── PaymentService          found: descendant of com.bank.payments
-└── shared
-    └── AuditRecorder           NOT found: sibling, not descendant
+  payments
+    PaymentApplication      @SpringBootApplication lives here
+    PaymentService          found: descendant of com.bank.payments
+  shared
+    AuditRecorder           NOT found: sibling, not descendant
 ```
 
 Put the application class in the root package (`com.bank`) and both are
@@ -627,26 +627,76 @@ cannot supply a fresh instance for each request.
 
 ### Lifecycle
 
-A simplified bean lifecycle is:
+A bean is **built, then wrapped, then used**. Every lifecycle question — why a
+self-call skips a transaction, why `@PostConstruct` sees the raw object, why
+one callback fires and another does not — comes from where those three phases
+divide:
 
 ```text
-instantiate
-  -> populate dependencies and properties
-  -> aware callbacks
-  -> BeanPostProcessor before-initialization callbacks
-  -> @PostConstruct / InitializingBean / custom init method
-  -> BeanPostProcessor after-initialization callbacks, possibly a proxy
-  -> ready for use
-  -> @PreDestroy / DisposableBean / custom destroy method on shutdown
+BUILD  the object exists but is not finished
+  1  instantiate          constructor runs
+  2  populate             fields and properties set
+  3  aware callbacks      BeanNameAware, ApplicationContextAware
+        |
+        v
+WRAP   the container decorates it
+  4  BPP before-init      postProcessBeforeInitialization
+  5  init callback        @PostConstruct
+                          InitializingBean.afterPropertiesSet
+                          custom init method
+  6  BPP after-init       postProcessAfterInitialization
+                          <-- the proxy is created here
+        |
+        v
+USE    other beans receive the proxy, not the target
+  7  ready for use
+  8  destroy callback     @PreDestroy
+                          DisposableBean.destroy
+                          custom destroy method
 ```
+
+Three facts about that picture carry most of the interview value.
+
+**Step 5 runs on the raw target, before step 6.** `@PostConstruct` executes
+inside the object, so `this` is the unproxied instance. A `@Transactional` or
+`@Cacheable` annotation on a method called from `@PostConstruct` does
+nothing — the advice lives on a proxy that does not exist yet. This is the
+same boundary that makes an internal self-call skip advice, seen from the
+timeline rather than the call stack ([§5](#5-aop-proxies)).
+
+**Steps 4 and 6 are why the container, not `new`, gives you Spring's
+behavior.** An object built with `new` skips them entirely: no injection, no
+proxy, no callbacks. That is exactly the unmanaged `Ledger` that lite-mode
+configuration produces ([§3](#3-container-startup-and-extension-points)).
+
+**Step 2 completes before step 5, which is what makes `@PostConstruct`
+meaningful.** Dependencies are guaranteed present, so it is the correct place
+to validate wiring or derive state — and the wrong place for anything slow.
+
+The three initialization hooks are ordered `@PostConstruct` →
+`InitializingBean.afterPropertiesSet()` → custom init method, with destruction
+mirroring it. Prefer the annotation: it is standard Java, keeps the class free
+of Spring interfaces, and works on classes you cannot modify via `@Bean(initMethod = ...)`.
 
 Avoid network calls and long-running work in constructors or `@PostConstruct`.
 They make startup fragile, occur before the application is ready, and can
 interact badly with proxies. Use an explicit lifecycle component or runner
 when startup work is truly required, with a clear failure policy.
 
-Prototype bean destruction is not managed automatically after the container
-hands out the instance. Request/session destruction is tied to the web scope.
+Destruction is less symmetric than it looks, and the asymmetry is a common
+question:
+
+| Scope | Destruction callback |
+|---|---|
+| singleton | on context close |
+| prototype | **never** — the container hands over the instance and forgets it |
+| request/session | when the web scope ends |
+
+The container tracks a prototype long enough to build it, not to dispose of
+it, so a prototype holding a socket or a file handle leaks unless the caller
+closes it. A shutdown that is killed before the context closes runs no
+destroy callback at all, which is why graceful shutdown is a deployment
+concern and not a `@PreDestroy` one ([§15](#15-resilience)).
 
 ### Circular dependencies
 
