@@ -669,11 +669,35 @@ inside it, but nothing else has a reference to it.
 
 That single detail answers the questions people usually meet separately.
 
-Why does `@Transactional` do nothing when called from `@PostConstruct`? Look
-at the numbers: your init callback is step 5, the proxy appears at step 6. The
+Why does `@Transactional` do nothing when called from `@PostConstruct`?
+
+```java
+@Service
+class RailCache {
+    private final RailRepository repository;
+
+    RailCache(RailRepository repository) {
+        this.repository = repository;
+    }
+
+    @PostConstruct
+    void warm() {
+        load();                  // step 5: a plain Java call on the target
+    }
+
+    @Transactional               // annotation present, advice absent
+    void load() {
+        repository.findAllRails();
+    }
+}
+```
+
+Look at the numbers: `warm()` is step 5, the proxy appears at step 6. The
 annotation is real, but the thing that acts on it has not been created yet,
-and `this` inside your own method is the bare object regardless. It is the
-same reason an internal self-call skips advice, arriving one step earlier
+and `this.load()` runs on the bare object regardless. The repository call
+either joins whatever transaction it finds or opens its own, which is rarely
+what the annotation was asking for. It is the same reason an internal
+self-call skips advice, arriving one step earlier
 ([§5](#5-aop-proxies)).
 
 Why is a `new`-ed object never quite the same? It never entered this sequence.
