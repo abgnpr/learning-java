@@ -736,19 +736,99 @@ arranges, not something `@PreDestroy` guarantees ([§15](#15-resilience)).
 
 ### Circular dependencies
 
-Constructor cycle `A -> B -> A` cannot produce either fully constructed
-object, so startup fails. That is useful: it exposes a confused ownership
-boundary. Field/setter cycles were historically sometimes resolved through
-early references, but are fragile around proxies and are disallowed by modern
-Boot defaults.
+A constructor cycle cannot be built. To construct `PaymentService` the
+container needs a finished `NotificationService`, and to construct that it
+needs a finished `PaymentService`:
 
-Preferred fixes:
+```java
+@Service
+class PaymentService {
+    PaymentService(NotificationService notifications) { /* ... */ }
+}
 
-- extract the shared rule into a third service;
-- reverse one dependency using a domain event;
-- separate orchestration from capabilities;
-- as a tactical last resort, inject `ObjectProvider<T>` or use `@Lazy` while
-  planning the design correction.
+@Service
+class NotificationService {
+    NotificationService(PaymentService payments) { /* ... */ }
+}
+```
+
+Startup fails with `BeanCurrentlyInCreationException`, naming the cycle. Field
+and setter cycles were historically resolved by handing out a
+partially-initialized reference, which is fragile around proxies — the early
+reference can be the raw target while everyone else holds the proxy — and
+modern Boot rejects cycles by default rather than papering over them.
+
+Treat the failure as a design signal. The cycle above says neither service
+owns the rule "a completed payment notifies the payer," and the fix is to
+decide who does.
+
+**Extract the shared rule into a third service** when both sides genuinely
+need it. The new service depends on both; neither depends on the other:
+
+```java
+@Service
+class PaymentCompletionService {
+    PaymentCompletionService(PaymentService payments,
+                             NotificationService notifications) { /* ... */ }
+}
+```
+
+**Reverse one dependency with a domain event** when the callee should not
+know its callers. `PaymentService` announces what happened instead of naming
+who cares:
+
+```java
+@Service
+class PaymentService {
+    private final ApplicationEventPublisher events;
+
+    PaymentService(ApplicationEventPublisher events) {
+        this.events = events;
+    }
+
+    void settle(Payment payment) {
+        events.publishEvent(new PaymentSettled(payment.id()));
+    }
+}
+
+@Component
+class NotificationListener {
+    @EventListener
+    void on(PaymentSettled event) { /* notify the payer */ }
+}
+```
+
+The compile-time arrow now points one way: the listener knows the event,
+`PaymentService` knows nothing about notification. Adding a second listener
+changes no existing class.
+
+**Separate orchestration from capabilities** when the cycle is really a
+layering mistake — two peers calling each other because neither is in charge.
+Promote the sequence into a caller and leave the two as capabilities that do
+not reference each other.
+
+**As a tactical last resort**, break the construction-time edge while planning
+the real correction:
+
+```java
+@Service
+class PaymentService {
+    private final ObjectProvider<NotificationService> notifications;
+
+    PaymentService(ObjectProvider<NotificationService> notifications) {
+        this.notifications = notifications;      // resolved on use, not now
+    }
+
+    void settle(Payment payment) {
+        notifications.getObject().notifyPayer(payment);
+    }
+}
+```
+
+`ObjectProvider<T>` defers lookup to call time, and `@Lazy` on the injection
+point achieves the same by injecting a proxy that resolves on first use.
+Both leave the cycle in the design and hide it from startup, so they buy time
+rather than fix anything.
 
 ---
 
