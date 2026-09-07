@@ -468,34 +468,136 @@ contain SQL; it is simply a bad design with a correct stereotype.
 
 ### Candidate selection
 
-When one interface has multiple beans, dependency resolution needs a rule:
+Injection resolves **by type first**. One bean of the required type is the
+easy case; the interesting question is what happens when there are two:
 
 ```java
-interface PaymentRail { Receipt send(Payment payment); }
+interface PaymentRail {
+    Rail rail();                       // the domain key this bean serves
+    Receipt send(Payment payment);
+}
 
 @Component("impsRail")
 class ImpsRail implements PaymentRail { /* ... */ }
 
 @Component("neftRail")
 class NeftRail implements PaymentRail { /* ... */ }
+```
+
+A constructor asking for one `PaymentRail` now fails at startup with
+`NoUniqueBeanDefinitionException`, naming both candidates. That failure is the
+container refusing to guess, and every mechanism below is a way of answering
+it. Resolution narrows the candidate set in a fixed order:
+
+```text
+all beans assignable to PaymentRail        -> impsRail, neftRail
+        |
+        |  @Qualifier("...") at the injection point?
+        v  narrow to beans with that qualifier               [wins]
+        |
+        |  exactly one @Primary among what remains?
+        v  take it                                           [default]
+        |
+        |  does the parameter name match a bean name?
+        v  fall back to that                                 [fragile]
+        |
+        v
+   still 0 -> NoSuchBeanDefinition   still 2+ -> NoUniqueBeanDefinition
+```
+
+Read top-down, that ordering is the answer to "qualifier or primary?":
+`@Primary` is a **producer-side default** for the whole context, `@Qualifier`
+is a **consumer-side override** at one injection point. The qualifier is more
+specific, so it wins.
+
+```java
+@Component
+@Primary                                  // the default rail, context-wide
+class ImpsRail implements PaymentRail { /* ... */ }
 
 @Service
-class Router {
-    private final Map<String, PaymentRail> rails;
+class RefundService {
+    private final PaymentRail rail;
 
-    Router(Map<String, PaymentRail> rails) {
-        this.rails = Map.copyOf(rails);
+    RefundService(PaymentRail rail) {                  // gets ImpsRail
+        this.rail = rail;
+    }
+}
+
+@Service
+class BulkSalaryService {
+    private final PaymentRail rail;
+
+    BulkSalaryService(@Qualifier("neftRail") PaymentRail rail) {  // overrides
+        this.rail = rail;
     }
 }
 ```
 
-Spring can inject all beans as a list or a name-to-bean map. For a single
-candidate, use `@Qualifier` when the injection point deliberately chooses a
-variant; use `@Primary` for one system-wide default. A qualifier is more
-specific and wins over the primary candidate.
+The parameter-name fallback is real but should not be designed for: renaming
+a constructor parameter is a refactor that silently changes which bean is
+injected, and it depends on parameter names surviving compilation. Prefer an
+explicit qualifier.
 
-Do not turn bean names into uncontrolled business routing. Validate external
-rail names and map them to a closed domain type.
+For a genuinely dynamic choice, inject **every** candidate instead of one.
+Spring populates a `List<T>` with all beans of the type, and a
+`Map<String, T>` keyed by bean name:
+
+```java
+@Service
+class Router {
+    private final Map<String, PaymentRail> rails;
+
+    Router(Map<String, PaymentRail> rails) {           // impsRail -> ImpsRail
+        this.rails = Map.copyOf(rails);                // neftRail -> NeftRail
+    }
+}
+```
+
+Adding a third rail bean extends the map with no change to `Router`. Order a
+`List<T>` with `@Order` or `Ordered` when the sequence matters, as in a chain
+of validators; an unordered list must not be relied on for precedence.
+
+That convenience carries the trap the section exists for. A bean name is a
+wiring identifier, not a domain value, so this hands external input the keys
+to the container:
+
+```java
+Receipt route(String railFromRequest) {
+    return rails.get(railFromRequest).send(payment);   // NPE on a typo, and
+}                                                      // callers now depend
+                                                       // on bean names
+```
+
+A request field that reaches `Map.get` means a JSON typo becomes a
+`NullPointerException`, and renaming a `@Component` becomes a breaking API
+change. Validate into a closed type at the edge and key on that:
+
+```java
+enum Rail { IMPS, NEFT }                     // the closed domain type
+
+@Service
+class Router {
+    private final Map<Rail, PaymentRail> rails;
+
+    Router(List<PaymentRail> discovered) {
+        this.rails = discovered.stream()
+                .collect(toUnmodifiableMap(PaymentRail::rail, identity()));
+    }
+
+    Receipt route(Rail rail, Payment payment) {
+        PaymentRail selected = rails.get(rail);
+        if (selected == null) {
+            throw new UnsupportedRailException(rail);
+        }
+        return selected.send(payment);
+    }
+}
+```
+
+Each rail declares its own key (`PaymentRail::rail`), so the map is keyed by
+domain values the compiler checks, an unmapped rail fails with a domain
+exception rather than an NPE, and bean names stay an internal wiring detail.
 
 ### Scopes and thread safety
 
