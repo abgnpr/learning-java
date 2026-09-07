@@ -192,6 +192,21 @@ adds:
 - Actuator endpoints, metrics, health and production conventions;
 - test slices and integration with common infrastructure.
 
+The division is worth stating precisely, because it is the difference between
+a candidate who has used Boot and one who can debug it:
+
+| | Spring Framework | Spring Boot |
+|---|---|---|
+| Supplies | mechanisms: container, AOP, transactions, MVC | defaults, wiring and packaging for those mechanisms |
+| Decides | nothing on its own — you declare every bean | which beans to contribute, from classpath and properties |
+| Removed if absent | the application has no container | the application still runs, configured by hand |
+| Failure mode | missing bean, wiring error | a default you did not know existed, or one that backed off |
+
+Boot adds no runtime capability that Spring lacks. It removes the ceremony of
+declaring beans that almost every application declares identically, which is
+why Boot problems are rarely "Spring cannot do this" and usually "something
+was configured that I did not write."
+
 **Interview answer:** Spring provides the container and application
 frameworks. Spring Boot chooses sensible defaults and configures them based
 on the classpath, properties and beans, while allowing explicit application
@@ -208,22 +223,90 @@ It composes three annotations:
 public @interface SpringBootApplication { }
 ```
 
-Place the application class in a root package. If it sits in
-`com.bank.payments`, components in `com.bank.shared` are siblings and are not
-found unless scanning or imports are configured explicitly.
+Each contributes a different source of bean definitions, and they arrive in
+that order of authority:
+
+```text
+@ComponentScan          your @Service/@Repository/@Component classes
+        +
+@SpringBootConfiguration your @Bean methods
+        |
+        |  both are application definitions: they register first
+        v
+@EnableAutoConfiguration Boot's conditional classes evaluate LAST
+        |
+        v
+   a default is contributed only where you left a gap
+```
+
+That ordering is the whole reason `@ConditionalOnMissingBean` works. Boot's
+defaults are evaluated after application definitions are known, so a bean you
+declare is not overwritten — the auto-configuration that would have supplied
+it simply never fires. "Backing off" is not Boot deferring to you at runtime;
+it is a condition that evaluated false because your definition was already
+registered.
+
+Placement of the application class matters because `@ComponentScan` defaults
+to the annotated class's own package and its descendants:
+
+```text
+com.bank
+├── payments
+│   ├── PaymentApplication      @SpringBootApplication lives here
+│   └── PaymentService          found: descendant of com.bank.payments
+└── shared
+    └── AuditRecorder           NOT found: sibling, not descendant
+```
+
+Put the application class in the root package (`com.bank`) and both are
+scanned. Leave it in `com.bank.payments` and `AuditRecorder` is invisible
+until an explicit `@ComponentScan`, `@Import` or an auto-configuration import
+brings it in. The failure is not a compile error — it is a
+`NoSuchBeanDefinitionException` at startup, or worse, an injected collection
+that is quietly empty.
 
 ### Starter versus auto-configuration
 
-These are related but different:
+These are related but different, and the distinction is a common interview
+probe:
 
-- A **starter** is a dependency descriptor. It brings a coherent set of jars.
-- **Auto-configuration** is code in those jars that conditionally contributes
-  bean definitions.
+- A **starter** is a dependency descriptor — a POM with no code of its own.
+  It brings a coherent, version-aligned set of jars.
+- **Auto-configuration** is code inside those jars that conditionally
+  contributes bean definitions.
+
+The two are separable in both directions. A starter without matching
+auto-configuration just puts jars on the classpath; auto-configuration
+without its starter is inert because its `@ConditionalOnClass` guard fails.
+
+```text
+spring-boot-starter-data-jpa   (a POM: no classes)
+        |
+        | brings jars onto the classpath
+        v
+HikariCP, Hibernate, spring-orm, spring-boot-autoconfigure
+        |
+        | Boot evaluates conditions against that classpath
+        v
+DataSourceAutoConfiguration    @ConditionalOnClass(DataSource.class)
+HibernateJpaAutoConfiguration  @ConditionalOnMissingBean(EntityManagerFactory)
+        |
+        v
+DataSource, EntityManagerFactory, JpaTransactionManager beans
+```
 
 Adding a JDBC starter puts JDBC, a pool and supporting libraries on the
 classpath. Auto-configuration then sees a `DataSource` type and database
 properties and may create a `DataSource`, transaction manager and template.
-If the application defines its own relevant bean, Boot commonly **backs off**.
+If the application defines its own relevant bean, Boot commonly **backs
+off**. The mechanics of the conditions themselves are [§4](#4-configuration-and-auto-configuration).
+
+Two consequences worth carrying into an interview. First, a dependency you
+added for one class can start a web server or a database pool, because the
+condition tests the classpath, not your intent. Second, when a bean is not
+what you expect, the question is not "what did Spring do" but "which
+condition matched" — and `--debug` prints the condition evaluation report
+that answers it, in positive and negative matches.
 
 ### What `SpringApplication.run` does
 
@@ -239,9 +322,30 @@ A useful senior-level sequence is:
 7. Invoke `ApplicationRunner` and `CommandLineRunner` beans.
 8. Publish readiness/application-ready events if startup succeeds.
 
+The ordering carries real operational meaning:
+
+```text
+  1-2  environment ready      <- properties/profiles decide what follows
+  3-4  definitions loaded     <- recipes only; almost nothing constructed
+   5   REFRESH                <- objects built, proxies applied, eager singletons
+   6   port opens             <- inside refresh, so a bean failure = no port
+   7   runners                <- context is live; traffic may already arrive
+   8   ready event            <- readiness probes should flip here, not earlier
+```
+
+Three things fall out of it. Steps 1–2 happen before any bean exists, which
+is why a property that selects a profile cannot come from a bean. Step 6 sits
+*inside* refresh, so a failed singleton means the port never opens — the
+application fails closed rather than serving traffic in a half-built state.
+And step 7 runs after the server is accepting connections.
+
 A runner executes after the context exists, but it can still delay readiness
 or fail startup. Heavy data migration in a runner is therefore an operational
-decision, not harmless initialization.
+decision, not harmless initialization: the port is open, a load balancer may
+already be probing, and a slow runner shows up as a deployment that is
+"started" but failing health checks. Schema migration belongs to a tool such
+as Flyway or Liquibase that runs at a defined point, not to a `CommandLineRunner`
+racing traffic. The refresh phases themselves are [§3](#3-container-startup-and-extension-points).
 
 ### A clean application edge
 
@@ -270,9 +374,37 @@ class PaymentConfiguration {
 }
 ```
 
-The domain service depends on `Clock`, not `Instant.now()`, and on the typed
-properties object, not scattered strings. The result is validated startup
-configuration and deterministic tests.
+Everything the application needs from the outside world — configuration
+values and the current time — enters as a validated, typed object injected at
+the composition root, the entry point where the object graph is assembled.
+The domain service therefore depends on `Clock`, not `Instant.now()`, and on
+the typed properties record, not scattered strings: bad configuration fails
+startup rather than the first payment, and tests are deterministic.
+
+Each decision in that snippet answers a likely follow-up:
+
+- **`record` with `@Validated`.** Constructor binding makes the properties
+  immutable, and the constraints are checked during startup. A missing
+  `switchBaseUrl` or a `maxInFlight` of `0` aborts the boot with a report of
+  which property failed, rather than surfacing as a null or a division at the
+  first payment.
+- **`URI` and `Duration`, not `String` and `long`.** Relaxed binding parses
+  `1500ms` or `PT1.5S` into a `Duration`, so unit ambiguity never reaches the
+  code. A malformed URL is a startup failure, not a runtime one.
+- **`proxyBeanMethods = false`.** By default a `@Configuration` class is
+  CGLIB-subclassed so that one `@Bean` method calling another returns the
+  singleton instead of a fresh object. No method here calls another, so the
+  proxy buys nothing: turning it off skips the subclass and its startup cost.
+  Set it when `@Bean` methods are independent; leave the default when one
+  calls another for its bean.
+- **`Clock` as a bean.** `Instant.now()` is a static call, so a test cannot
+  control it and "expires after 30 minutes" cannot be tested without waiting.
+  An injected `Clock` is replaced with `Clock.fixed(...)` in a test, and the
+  production bean stays `systemUTC()`.
+
+The same argument extends to collaborators in [§2](#2-ioc-dependency-injection-and-beans):
+whatever the object cannot construct correctly by itself should arrive
+through its constructor, checked, at the edge.
 
 ---
 
