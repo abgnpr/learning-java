@@ -19,7 +19,7 @@
 
 - [Part III. Persistence and consistency](#part-iii-persistence-and-consistency)
   - [10. JPA and the persistence context](#10-jpa-and-the-persistence-context)
-  - [11. Mapping fetching and query performance](#11-mapping-fetching-and-query-performance)
+  - [11. Mapping, fetching and query performance](#11-mapping-fetching-and-query-performance)
   - [12. Concurrent writes and locking](#12-concurrent-writes-and-locking)
   - [13. Spring transactions](#13-spring-transactions)
   - [14. Cross-system consistency](#14-cross-system-consistency)
@@ -1751,41 +1751,43 @@ credentials or sensitive token contents.
 
 # Part III. Persistence and consistency
 
+Part III follows one state-changing operation from Java objects to durable
+effects:
+
+```text
+call service proxy
+  -> transaction begins
+  -> service method
+  -> repositories load managed entities
+  -> business rules change their state
+  -> concurrency control protects competing writes
+  -> the persistence context flushes SQL
+  -> the database commits
+  -> other systems learn about the committed result
+```
+
+Chapters 10–12 assume that a database transaction surrounds the operation and
+focus on JPA, SQL and concurrent writers. Chapter 13 explains that transaction
+boundary. Chapter 14 begins where a single database transaction stops.
+
 ## 10. JPA and the persistence context
 
-### Separate the layers
+### The layers involved
 
-- **JPA/Jakarta Persistence** is the ORM specification: entities,
-  `EntityManager`, JPQL, mappings and lifecycle semantics.
+Four layers participate in a typical Spring Data JPA call:
 
-- **Hibernate** is the most common JPA provider in Spring Boot and supplies
-  additional behavior and tuning features.
-
-- **Spring Data JPA** builds repository proxies and query abstractions on top
-  of JPA.
-
-- **JDBC** is the database access API underneath an ordinary Hibernate/JPA
-  application.
-
-`JpaRepository.save()` is not itself JPA magic, and JPA does not remove SQL.
-The relational database remains the consistency and query engine; ORM maps an
-object-oriented unit of work onto it.
-
-The small vocabulary needed for the rest of this chapter is:
-
-| Term | Meaning in this chapter |
+| Layer | Responsibility |
 |---|---|
-| ORM | Mapping between Java objects and relational tables while operating inside database transactions. |
-| entity | A Java object with persistent identity, normally mapped to one table row. |
-| `EntityManager` | The standard JPA API used to persist, find, remove, query and flush entities. |
-| persistence context | The set of entity instances currently managed by an `EntityManager`, together with their identity and change-tracking state. |
-| JPQL | A query language over entity types and fields; the provider translates it to SQL. |
-| repository | A Spring Data interface whose runtime proxy delegates persistence work to JPA. |
+| Spring Data JPA | creates repository implementations and derives or runs queries |
+| Jakarta Persistence (JPA) | defines entities, `EntityManager`, JPQL and persistence-context semantics |
+| Hibernate | commonly implements JPA and translates managed state and queries into SQL |
+| JDBC and the database | execute SQL and provide the actual transaction and constraints |
 
-### A concrete running example
+The repository abstraction removes repetitive data-access code; it does not
+remove SQL or database behavior. Correctness still depends on transaction
+boundaries, constraints, indexes and the queries that actually execute.
 
-The examples in this chapter use one deliberately small entity. Imports and
-accessors that add no persistence meaning are omitted:
+### A small entity and repository
 
 ```java
 @Entity
@@ -1811,55 +1813,35 @@ class Payment {
     @Column(nullable = false)
     private PaymentStatus status;
 
-    @Column(name = "settled_at")
-    private Instant settledAt;
-
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
-
-    protected Payment() { } // required by JPA; application code need not use it
+    protected Payment() { }
 
     Payment(String tenantId, String reference, BigDecimal amount) {
         this.tenantId = tenantId;
         this.reference = reference;
         this.amount = amount;
         this.status = PaymentStatus.PENDING;
-        this.createdAt = Instant.now();
     }
 
-    void markSettled(Instant settledAt) {
+    void settle() {
         if (status != PaymentStatus.PENDING) {
-            throw new IllegalStateException("Only pending payments can settle");
+            throw new IllegalStateException("Payment is not pending");
         }
         status = PaymentStatus.SETTLED;
-        this.settledAt = settledAt;
     }
 
-    void changeReference(String newReference) {
-        this.reference = newReference;
-    }
-
-    UUID getId() { return id; }
-    PaymentStatus getStatus() { return status; }
+    UUID id() { return id; }
 }
 
 enum PaymentStatus { PENDING, SETTLED }
 ```
 
-`@Entity` makes the class part of the persistence model; `@Id` identifies a
-row; `@GeneratedValue(UUID)` asks the provider to assign the identifier;
-`@Column` contributes column constraints; and `@Enumerated(STRING)` stores the
-enum name rather than its fragile numeric position. The database migration tool
-should still own the production schema—these annotations describe the mapping
-and are not a substitute for reviewed DDL.
+Mapping annotations describe how fields correspond to persisted state. Schema
+migrations should still own production DDL; entity annotations are not a
+substitute for reviewed constraints and indexes.
 
-Because the mapping annotations are on fields, JPA uses field access and can
-read/write the private fields directly. The protected no-argument constructor
-is for provider construction. Entities are usually ordinary classes rather
-than records because their identity and managed lifecycle are mutable; records
-remain excellent DTOs at the application boundary.
-
-Spring Data can implement a repository interface for this entity:
+The protected no-argument constructor exists for the provider. The domain
+method protects the state transition instead of exposing a public status
+setter.
 
 ```java
 interface PaymentRepository extends JpaRepository<Payment, UUID> {
@@ -1867,511 +1849,169 @@ interface PaymentRepository extends JpaRepository<Payment, UUID> {
 }
 ```
 
-With `spring-boot-starter-data-jpa`, a configured `DataSource`, and a JDBC
-driver, Boot normally auto-configures the `EntityManagerFactory`, a JPA
-transaction manager, and this repository proxy. Application code places the
-transaction around a complete use case. Spring's `@Transactional` annotation
-marks that boundary; an AOP proxy begins or joins the transaction before the
-method and completes it afterward:
+Spring Data creates the repository implementation at runtime. Query names are
+convenient APIs, but generated SQL must still be inspected when performance or
+locking matters.
 
-```java
-@Service
-class PaymentService {
-    private final PaymentRepository payments;
+### The persistence context is a unit of work
 
-    PaymentService(PaymentRepository payments) {
-        this.payments = payments;
-    }
-
-    @Transactional
-    UUID create(String tenantId, String reference, BigDecimal amount) {
-        Payment payment = new Payment(tenantId, reference, amount);
-        return payments.save(payment).getId();
-    }
-
-    @Transactional
-    void settle(String tenantId, UUID paymentId, Instant settledAt) {
-        Payment payment = payments.findByTenantIdAndId(tenantId, paymentId)
-            .orElseThrow();
-        payment.markSettled(settledAt);
-    }
-}
-```
-
-The absence of `save(payment)` in `settle` is intentional. The following
-sections explain why the loaded entity is already managed and how its mutation
-becomes an `UPDATE`.
-
-Most application code can use repositories. Later examples use the lower-level
-JPA API to make the mechanism visible. In a Spring-managed component it is
-commonly obtained like this:
-
-```java
-@PersistenceContext
-private EntityManager entityManager;
-```
-
-Spring injects a shared proxy that is safe to keep in a singleton bean, not one
-globally shared persistence context. Each invocation delegates to the actual
-transaction-associated `EntityManager`; that underlying manager and its managed
-entities must still not be shared between threads.
-
-The useful runtime picture is:
-
-```text
-@Transactional service method
-        |
-        v
-Spring transaction manager
-        |
-        +-- binds one EntityManager/persistence context to this execution
-        |
-        v
-Hibernate-backed EntityManager
-  identity map + snapshots + pending writes + managed entity state
-        |
-        +-- flush --> ordered SQL through JDBC
-        |
-        v
-database transaction -- commit or rollback
-```
-
-The persistence context is therefore more than a cache. It is the unit of
-work that decides which Java object represents a row, which changes need SQL,
-and when queued writes must be synchronized with the database.
-
-### One transaction from method call to commit
-
-Assume another Spring bean calls `paymentService.settle(...)`. The runtime
-sequence is:
-
-1. The call crosses the transactional service proxy. Spring opens or joins a
-   database transaction and associates an `EntityManager` with this execution.
-
-2. The repository proxy runs JPQL through that `EntityManager`; Hibernate
-   translates it to SQL and obtains a row through JDBC.
-
-3. Hibernate creates a `Payment`, records its original state, and puts it in
-   the persistence context. The object returned to the service is now managed.
-
-4. `markSettled` changes an ordinary Java field. An `UPDATE` need not execute
-   at the setter call.
-
-5. Before commit, Hibernate flushes the context, detects the status change,
-   and sends an `UPDATE` through JDBC.
-
-6. If flush and commit succeed, the database transaction commits. With a
-   transaction-scoped context, its entities become detached when that context
-   closes.
-
-7. If the method fails with an exception covered by the rollback rules, the
-   database work rolls back. Mutating the Java object does not override that
-   outcome.
-
-Conceptually, the important SQL is similar to:
-
-```sql
-select id, tenant_id, reference, amount, status, settled_at, created_at
-from payment
-where tenant_id = ? and id = ?;
-
-update payment set status = ?, settled_at = ? where id = ?;
-```
-
-The generated SQL is provider- and mapping-dependent, but this lifecycle is
-the foundation for understanding the rest of the chapter. Open Session in
-View can extend the context through the web request; §11 explains why that
-changes the detachment point but does not extend the database transaction.
-
-### Entity lifecycle states
-
-An entity instance is in one of four conceptual states:
-
-| State | Meaning |
-|---|---|
-| transient | ordinary new object, not associated with a persistence context |
-| managed | tracked by the current persistence context; changes can be flushed |
-| detached | has identity but is no longer tracked by this context |
-| removed | marked for deletion at flush/commit |
-
-```mermaid
-flowchart LR
-    N([new]) --> T[Transient]
-    T -- persist --> M[Managed]
-    DB[(Database row)] -- find / query --> M
-    D[Detached] -- "merge: copy state and return managed instance" --> M
-    M -- detach / clear / close --> D
-    M -- remove --> R[Removed]
-    M -- "flush: INSERT / UPDATE" --> DB
-    R -- "flush: DELETE" --> X[(Row deleted)]
-```
-
-```java
-Payment payment = new Payment(tenantId, reference, amount); // transient
-entityManager.persist(payment);                             // managed
-entityManager.flush();                                      // SQL synchronized
-entityManager.detach(payment);                              // detached
-payment.markSettled(now);                                   // not tracked here
-```
-
-`merge(detached)` does not reattach the same Java object. It copies state into
-a managed instance and returns that managed instance. Ignoring the return
-value is a classic detached-entity bug.
-
-```java
-Payment detached = loadInAnEarlierTransaction(id);
-
-Payment managed = entityManager.merge(detached);
-assert managed != detached;
-
-managed.markSettled(now);       // tracked
-detached.markSettled(later);    // still detached; this change is not tracked
-```
-
-For request updates, loading the current managed entity and applying an
-explicit command is usually safer than merging a graph supplied by a client:
+Assume a transaction is already active around this service method:
 
 ```java
 @Transactional
-public void changeReference(UUID id, String newReference) {
-    Payment payment = repository.findById(id).orElseThrow();
-    payment.changeReference(newReference); // domain rule + managed mutation
+public void settle(String tenantId, UUID paymentId) {
+    Payment payment = payments.findByTenantIdAndId(tenantId, paymentId)
+            .orElseThrow();
+
+    payment.settle();
 }
 ```
 
-This avoids copying stale or unauthorized fields from a detached graph and
-makes the intended mutation visible in code.
+The repository loads `Payment` through the transaction-associated
+`EntityManager`. The returned entity is **managed** by its persistence context.
+Changing its field does not require another `save` call. At flush, Hibernate's
+dirty checking detects the change and produces an `UPDATE`.
 
-### Persistence context and first-level cache
+```text
+transaction-associated EntityManager
+  -> persistence context
+       -> identity map: row id -> managed Java object
+       -> original/current state for dirty checking
+       -> pending inserts, updates and deletes
+  -> JDBC
+  -> database transaction
+```
 
-The persistence context is an identity map plus unit of work. Within one
-context, one database row identity normally maps to one managed Java instance:
+Within one persistence context, the same entity identity normally resolves to
+the same Java instance:
 
 ```java
 Payment first = entityManager.find(Payment.class, id);
 Payment second = entityManager.find(Payment.class, id);
+
 assert first == second;
 ```
 
-The second lookup can avoid another select, but the first-level cache is not a
-general query cache. JPQL may still execute while resolving returned entity
-identities through the context.
+This first-level cache is not a general query cache. A JPQL query can still
+execute SQL even when its result contains an entity already managed by the
+context.
 
-```java
-Payment byId = entityManager.find(Payment.class, id);       // SELECT
-Payment again = entityManager.find(Payment.class, id);      // normally no SELECT
-Payment byQuery = entityManager.createQuery(
-        "select p from Payment p where p.id = :id", Payment.class)
-    .setParameter("id", id)
-    .getSingleResult();                                     // query still executes
+The injected `EntityManager` in a Spring singleton is normally a shared proxy
+that delegates to the manager associated with the current transaction. The
+underlying persistence context and its entities are not thread-safe and must
+not be passed between concurrent threads.
 
-assert byId == again;
-assert byId == byQuery; // query row is reconciled with the managed instance
-```
+### Entity states
 
-Two separate transactions normally use separate persistence contexts and
-therefore need not return the same Java object. Do not put managed entities in
-static fields or pass them between threads.
+An entity has a state relative to a persistence context:
 
-The context can also become stale when another transaction or bulk SQL changes
-rows. `clear()`, `refresh()` or a new transaction/context may be required when
-mixing bulk operations with managed entities.
-
-**Advanced trap — bulk DML:** a JPQL `update` or `delete` operates directly on
-matching database rows rather than loading and mutating each entity. That is
-efficient, but it bypasses the Java objects already held in the persistence
-context:
-
-```java
-Payment payment = entityManager.find(Payment.class, id); // status = PENDING
-
-entityManager.createQuery("""
-        update Payment p set p.status = :settled where p.id = :id
-        """)
-    .setParameter("settled", SETTLED)
-    .setParameter("id", id)
-    .executeUpdate();
-
-assert payment.getStatus() == PENDING; // bulk DML bypassed managed state
-entityManager.refresh(payment);
-assert payment.getStatus() == SETTLED;
-```
-
-### Dirty checking and write-behind
-
-Hibernate tracks or snapshots managed state. At flush, it detects changes and
-generates SQL. Several object mutations can therefore become one database
-unit of work:
-
-```java
-@Transactional
-public void markSettled(UUID id, Instant settledAt) {
-    Payment payment = repository.findById(id).orElseThrow();
-    payment.markSettled(settledAt);
-    // no save required for this managed entity; flush writes the update
-}
-```
-
-No second `save(payment)` is required in this example. Dirty checking—not a
-repository call—is what makes the managed mutation persistent. The repository
-section below explains where `save` *is* needed and how it handles new and
-detached objects.
-
-Dirty checking has an important boundary: it applies only while the object is
-managed. Whether a change persists depends on both entity state and transaction
-outcome:
-
-| Mutation | Result |
+| State | Meaning |
 |---|---|
-| managed entity, transaction commits | detected and flushed |
-| managed entity, transaction rolls back | SQL may run, but is rolled back |
-| detached entity | ignored unless explicitly merged/copied to managed state |
-| ordinary DTO or scalar projection | never dirty-checked because it is a read value, not a managed entity |
+| transient | newly constructed and not associated with a context |
+| managed | tracked by the current context; changes may be flushed |
+| detached | has persistent identity but is no longer tracked by this context |
+| removed | managed and scheduled for deletion |
 
-Hibernate can optimize how it detects changed fields and which columns it puts
-in an `UPDATE`. Such provider optimizations do not change the managed-state
-rule. Inspect generated SQL rather than assuming every setter immediately
-executes an `UPDATE`.
-
-### Flush is not commit
-
-**Flush** synchronizes pending persistence-context changes to SQL. **Commit**
-makes the database transaction durable/visible according to database rules.
-A flush can occur:
-
-- explicitly through `flush()`;
-
-- before commit;
-
-- before a query whose result could be affected by pending changes;
-
-- according to configured flush mode.
-
-SQL can therefore execute before the method returns, and a constraint failure
-may appear at flush rather than at `save`. Conversely, a rollback after flush
-still undoes the database transaction.
-
-```java
-@Transactional
-public Payment create(CreatePayment command) {
-    Payment payment = repository.save(command.toEntity());
-    repository.flush(); // surfaces a unique/FK/not-null violation here
-    return payment;     // commit still happens after the method succeeds
-}
+```text
+new Payment(...) --persist--> managed --detach/close--> detached
+database row -----find-------> managed --remove-------> removed
 ```
 
-A query can also cause pending writes to flush so that its result is consistent
-with those writes:
+`merge(detached)` copies detached state into a managed instance and returns that
+managed instance. It does not make the supplied object managed:
 
 ```java
-entityManager.persist(new Payment(tenantId, "REF-42", amount));
-
-long count = entityManager.createQuery(
-        "select count(p) from Payment p where p.reference = :ref", Long.class)
-    .setParameter("ref", "REF-42")
-    .getSingleResult(); // AUTO flush may issue INSERT before SELECT
+Payment managed = entityManager.merge(detached);
+assert managed != detached;
 ```
 
-Exact timing depends on flush mode, provider, which tables a query touches and
-identifier generation. For example, a database identity-column strategy can
-require an early insert to obtain the id. Code should rely on transaction
-semantics, not on a guessed SQL timestamp.
+For an update request, loading the current managed entity and applying an
+explicit command is usually safer than merging a graph received from a client.
+It avoids copying stale or unauthorized fields and makes the intended mutation
+visible.
 
-Tests that never flush can pass while production commit fails. Force a flush
-when a test claims to prove a database constraint. Clear the context as well
-when it must prove that a value survives a real database and mapping
-round-trip:
+### Flush and commit are different events
+
+Flush synchronizes pending persistence-context work to SQL. Commit makes the
+database transaction durable according to the database contract.
+
+A flush commonly occurs before transaction commit and may also occur before a
+query whose result depends on pending changes. SQL can therefore run before the
+service method returns. A constraint can fail during flush, and a later
+rollback still undoes SQL that was already flushed.
 
 ```java
-repository.save(payment);
+Payment payment = payments.save(command.toPayment());
+payments.flush(); // force SQL and surface a database constraint here
+```
+
+Tests that claim to verify mappings or constraints should flush. When they also
+need to prove a database round trip, clear the context and reload:
+
+```java
 entityManager.flush();
 entityManager.clear();
 
-Payment reloaded = repository.findById(payment.getId()).orElseThrow();
-assertThat(reloaded.getStatus()).isEqualTo(PENDING);
+Payment reloaded = payments.findById(payment.id()).orElseThrow();
 ```
 
-### Persistence-context size
+### What `save` does
 
-Reading or writing 500,000 entities in one transaction retains managed state
-and snapshots, consumes heap and makes dirty checking expensive. Batch work in
-bounded chunks and periodically flush/clear:
+Spring Data JPA uses entity state detection to decide whether `save` should
+call `EntityManager.persist(...)` for a new entity or
+`EntityManager.merge(...)` for an existing one.
 
-```java
-for (int i = 0; i < commands.size(); i++) {
-    entityManager.persist(map(commands.get(i)));
-    if ((i + 1) % 100 == 0) {
-        entityManager.flush();
-        entityManager.clear();
-    }
-}
-```
+Use `save` when introducing a new entity through the repository. Do not add a
+second `save` merely to persist a change to an entity that is already managed
+inside the transaction; dirty checking owns that update.
 
-`flush()` alone does not release managed entities; `clear()` is what detaches
-them. After clearing, keep scalar identifiers rather than assuming earlier
-entity references are still tracked.
+Bulk JPQL or SQL updates are different. They change rows directly and bypass
+managed objects, callbacks and ordinary dirty checking. Flush compatible
+pending work first and clear or refresh any entities that may now be stale.
 
-The loop above bounds memory but still represents one database transaction if
-the surrounding boundary is a single `@Transactional` method. True transaction
-chunking requires each chunk to cross a separate transactional boundary, for
-example through another Spring bean or `TransactionTemplate`:
+### Keep the context bounded
 
-```java
-for (List<ImportRow> chunk : chunks(rows, 100)) {
-    transactionTemplate.executeWithoutResult(status -> {
-        chunk.forEach(row -> entityManager.persist(map(row)));
-        entityManager.flush();
-        entityManager.clear();
-    });
-}
-```
+A persistence context keeps references and tracking information for every
+managed entity. Processing hundreds of thousands of rows in one context
+consumes heap and makes dirty checking expensive.
 
-Chunking changes atomicity: chunk 1 can commit while chunk 2 fails. Decide
-whether partial progress is allowed and design checkpointing, restart and
-idempotency before selecting the boundary. If callbacks, cascades and entity
-invariants are unnecessary, bulk SQL or JDBC may be a better tool.
+For batch work, use bounded chunks and call `flush()` and `clear()` between
+them. Remember that clearing bounds memory but does not create a new database
+transaction. Separate commits require separate transaction boundaries, which
+also changes atomicity and restart behavior.
 
-### Entity identity and equality
-
-Database-generated identifiers may be absent until persistence, so equality
-based solely on a generated id can change while an entity sits in a hash-based
-collection. Mutable business fields are worse. Choose identity deliberately:
-
-- a stable assigned business key can support equality when truly immutable;
-
-- generated-id equality needs careful transient-instance semantics;
-
-- entities often remain inside aggregate boundaries rather than being generic
-  set keys.
-
-Never include lazy associations in `equals`, `hashCode` or `toString`; that can
-trigger queries, recurse through bidirectional graphs or fail outside a
-context.
-
-The tempting implementation below is unsafe because two new objects both have
-`null` ids, and because `hashCode` changes after persistence assigns an id:
-
-```java
-// Do not copy this generated-id equality implementation.
-@Override
-public boolean equals(Object other) {
-    return other instanceof Payment that && Objects.equals(id, that.id);
-}
-
-@Override
-public int hashCode() {
-    return Objects.hash(id);
-}
-```
-
-If those methods were added to `Payment`, this apparently ordinary use could
-break:
-
-```java
-Set<Payment> payments = new HashSet<>();
-Payment payment = new Payment(tenantId, reference, amount); // id is null
-payments.add(payment);
-
-entityManager.persist(payment);  // generated id may now change hashCode
-assert payments.contains(payment); // can now be false
-```
-
-There is no universal equality template: generated ids, assigned immutable
-keys, inheritance and Hibernate proxies impose different constraints. State
-the chosen identity model, keep the fields used by `hashCode` stable while the
-object is in a set/map, and test transient, managed, detached and proxied cases.
-The running `Payment` deliberately keeps Java's default reference equality;
-that is often safer than an incorrect entity-wide equality contract.
-
-### Repository proxy behavior
-
-Spring Data creates a proxy for the repository interface. Method names may be
-parsed into queries, declared queries may be validated, and CRUD operations
-delegate to the persistence provider. A repository method name is an API, not
-a guarantee of efficient SQL.
-
-```java
-record PaymentSummary(UUID id, String reference, PaymentStatus status,
-                      BigDecimal amount) { }
-
-interface PaymentRepository extends JpaRepository<Payment, UUID> {
-    Optional<Payment> findByTenantIdAndId(String tenantId, UUID id);
-
-    @Query("""
-           select new com.bank.api.PaymentSummary(
-               p.id, p.reference, p.status, p.amount)
-           from Payment p
-           where p.tenantId = :tenantId
-           order by p.createdAt desc, p.id desc
-           """)
-    Slice<PaymentSummary> findRecent(String tenantId, Pageable page);
-}
-```
-
-`findByTenantIdAndId` is a **derived query**: Spring parses the Java property
-names and creates the JPQL. `@Query` supplies JPQL explicitly. The constructor
-expression returns a record rather than managed entities, while `Pageable`
-provides the requested limit and ordering and `Slice` reports whether another
-window exists. JPQL names the Java entity and its fields (`Payment`,
-`tenantId`), not the SQL table and column names (`payment`, `tenant_id`).
-
-Tenant scoping in the query prevents unauthorized rows from becoming managed.
-Method-level post-filtering does not.
-
-`save` is frequently misunderstood. Conceptually, Spring Data performs this
-decision (simplified pseudocode):
-
-```java
-if (entityInformation.isNew(payment)) {
-    entityManager.persist(payment);
-    return payment;
-} else {
-    return entityManager.merge(payment);
-}
-```
-
-New-state detection commonly examines a nullable optimistic-lock version field
-(introduced in §12), if one exists, and otherwise the identifier. An entity
-with an application-assigned id may therefore look existing. Such a model can
-implement Spring Data's `Persistable` interface to report explicitly whether
-it is new. Also remember the return-value distinction: `persist` manages the
-argument, whereas `merge` returns the managed copy.
-
-For the running `Payment`, the generated id is `null` before first persistence,
-so `save` recognizes it as new and delegates to `persist`. Once the provider
-assigns the UUID, that same Java object is managed.
-
-Repository interfaces should express bounded data-access operations, while a
-service transaction composes them into one use case. CRUD method
-`@Transactional` settings do not replace that service boundary, and a derived
-method name says nothing about indexes, row counts, locking or fetch shape.
+Entity equality also needs deliberate design. Generated identifiers may be
+`null` before persistence, and a hash code must not change while an entity is a
+key in a `HashMap` or member of a `HashSet`. Avoid including mutable fields or
+lazy relationships in `equals`, `hashCode` or `toString`; there is no universal
+generated-id equality template that is safe for every model.
 
 ---
 
-## 11. Mapping fetching and query performance
+## 11. Mapping, fetching and query performance
 
-### Model aggregate boundaries before annotations
+The useful performance question is not “is this relationship lazy?” It is:
+**what SQL and how many rows will this use case execute?**
 
-An ORM association should reflect an ownership/use-case boundary, not every
-foreign key. A payment may need a debtor-account identifier without loading a
-mutable `Account` object graph. Large bidirectional graphs invite accidental
-cascades, serialization loops and unpredictable queries.
+### Map ownership deliberately
 
-Use entities for transactional behavior inside an aggregate. Use identifiers
-and explicit queries across aggregate boundaries.
+An ORM association should reflect an aggregate or ownership relationship, not
+every foreign key. Across aggregate boundaries, storing an identifier and using
+an explicit query is often safer than navigating a large mutable object graph.
 
-### Owning side and `mappedBy`
-
-In a bidirectional relationship, the owning side controls the foreign-key
-update. `mappedBy` names the Java field on the owning side; it is not a column
-name.
+For a bidirectional relationship, one side owns the foreign-key update.
+`mappedBy` names the Java field on that owning side:
 
 ```java
 @Entity
 class Payment {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "batch_id")
-    private PaymentBatch batch;                 // owning side
+    private PaymentBatch batch;
+
+    void attachTo(PaymentBatch batch) {
+        this.batch = batch;
+    }
 }
 
 @Entity
@@ -2379,63 +2019,55 @@ class PaymentBatch {
     @OneToMany(mappedBy = "batch",
                cascade = CascadeType.ALL,
                orphanRemoval = true)
-    private final List<Payment> payments = new ArrayList<>();
+    private List<Payment> payments = new ArrayList<>();
 
     void add(Payment payment) {
         payments.add(payment);
-        payment.attachTo(this);                  // maintain both Java sides
+        payment.attachTo(this);
     }
 }
 ```
 
-Changing only the inverse collection does not guarantee a foreign-key update.
-Helper methods keep both in-memory sides consistent.
+The helper maintains both Java sides; the owning `Payment.batch` field controls
+the foreign key.
 
-### Cascade versus orphan removal
+Cascade propagates entity-manager operations from parent to child.
+`orphanRemoval = true` deletes a child removed from an owned relationship.
+Neither feature should cross a shared-reference or aggregate boundary merely
+for convenience.
 
-Cascade propagates entity-manager operations from parent to child:
-`PERSIST`, `MERGE`, `REMOVE`, `REFRESH`, `DETACH` or `ALL`.
-`orphanRemoval = true` deletes a child removed from the parent's owned
-collection/reference.
+### Choose a fetch plan per use case
 
-They are not interchangeable. Cascade remove says "deleting parent deletes
-children"; orphan removal says "removing a child from this ownership relation
-deletes it." Do not cascade remove across shared references or aggregate
-boundaries. `CascadeType.ALL` is not a harmless default.
+Static fetch settings are defaults, not a complete query plan. Broad eager
+mapping over-fetches data. Unplanned lazy navigation can create extra queries
+or fail after the persistence context closes.
 
-### Fetch defaults are not fetch plans
+Useful query-specific tools include:
 
-JPA defaults to eager for to-one relationships and lazy for to-many
-relationships. Defaults rarely describe every use case. Mapping everything
-eager creates large joins and over-fetching; mapping everything lazy without
-query plans creates N+1 and detached-access failures.
+- JPQL fetch joins for a bounded relationship needed immediately;
 
-Prefer conservative mappings—commonly lazy—and select an explicit fetch plan
-per query:
+- `@EntityGraph` for a named or repository-level fetch plan;
 
-- JPQL `join fetch`;
+- DTO or interface projections for read-only views;
 
-- `@EntityGraph` or named entity graph;
+- batch fetching when several lazy references of the same kind are needed;
 
-- DTO/interface projections;
+- separate queries when one large join would multiply too many rows.
 
-- provider batch fetching;
+### Recognize N+1
 
-- a separate aggregate query when two collection joins would explode rows.
-
-### N+1
-
-N+1 occurs when one query loads N parents and later access triggers one query
-per parent association:
+N+1 starts with one query for N parents and then issues another query while
+navigating each parent's association:
 
 ```java
-List<Payment> payments = repository.findByStatus(PENDING); // 1 query
+List<Payment> payments = repository.findByStatus(PENDING); // one query
+
 for (Payment payment : payments) {
     log.info("rail={}", payment.getRail().getName());       // up to N queries
 }
 ```
 
-Fix according to the use case:
+If the use case needs each rail, fetch it deliberately:
 
 ```java
 @Query("""
@@ -2446,11 +2078,12 @@ Fix according to the use case:
 List<Payment> findWithRail(PaymentStatus status);
 ```
 
-For a read-only screen, a projection is often better than hydrated entities:
+For a read-only list, a projection often makes the requested columns clearer
+and avoids managed entities:
 
 ```java
-record PendingPaymentRow(UUID id, String reference, String railCode,
-                         BigDecimal amount) { }
+record PendingPaymentRow(
+        UUID id, String reference, String railCode, BigDecimal amount) { }
 
 @Query("""
        select new com.bank.read.PendingPaymentRow(
@@ -2461,23 +2094,26 @@ record PendingPaymentRow(UUID id, String reference, String railCode,
 List<PendingPaymentRow> findPendingRows(PaymentStatus status);
 ```
 
-N+1 is an access-pattern problem, not simply "lazy is bad." Eager mappings can
-still produce secondary selects or load much more data than needed.
+N+1 is an access-pattern problem, not proof that lazy loading itself is wrong.
+An eager mapping can still issue secondary selects or retrieve far more data
+than the use case needs.
 
-### Cartesian explosion
+### Avoid row multiplication
 
-Joining one parent to two to-many collections multiplies result rows. Ten
-payments × five audit entries produces fifty rows for one parent before ORM
-deduplication. This increases database work, network transfer and heap use,
-and some providers reject simultaneous bag fetching.
+Joining a parent to two to-many collections multiplies result rows. Ten
+payments with five audit entries each can already produce fifty rows for one
+batch before Hibernate reconstructs the objects.
 
-Use two bounded queries, batch fetching, aggregation/projection or redesign
-the read model. A single SQL statement is not automatically faster.
+Use multiple bounded queries, batch fetching, projections or a dedicated read
+model when a single join explodes. Fewer SQL statements do not automatically
+mean less database or network work.
 
-### Pagination
+Collection fetch joins also interact badly with pagination because SQL pages
+rows while the API usually pages parent entities. A safer pattern is to page
+parent identifiers first, then fetch the required graph for those identifiers.
 
-Offset pagination becomes expensive at large offsets and can shift under
-concurrent inserts. Keyset/seek pagination uses the last stable sort key:
+For large ordered result sets, keyset pagination avoids scanning and discarding
+an ever-growing offset:
 
 ```sql
 select id, created_at, status, amount
@@ -2488,145 +2124,82 @@ order by created_at desc, id desc
 fetch first :limit rows only
 ```
 
-Always use a deterministic order with a unique tie-breaker. `Slice` avoids a
-count query when the client only needs "has next"; `Page` includes totals and
-usually requires that additional count.
+The sort needs a stable unique tie-breaker such as `id`.
 
-Pagination over a collection fetch join is dangerous because SQL rows are
-children, while the page contract is parents. Use a two-step pattern: page
-parent ids, then fetch the desired graph by those ids while preserving order.
+### Write paths have query plans too
 
-### JDBC batching
+JDBC batching reduces round trips for compatible inserts and updates. It still
+requires a bounded persistence context, and identifier generation can affect
+whether inserts can be batched. Measure the driver's actual batches.
 
-Batching reduces network round trips; it does not make a huge persistence
-context cheap. Configure a batch size, use a database/provider-compatible id
-generation strategy, order inserts/updates where useful, and flush/clear in
-bounded chunks.
+Bulk update/delete is efficient for set-based work but bypasses managed entity
+state and often bypasses callbacks or ordinary version handling. Define those
+semantics explicitly and clear stale context state afterward.
 
-Identity-column generation can prevent insert batching because each generated
-key may require immediate execution. Measure actual driver batches rather
-than assuming a property worked.
+### Keep reads inside an explicit boundary
 
-### Bulk DML
+Open Session in View keeps the persistence context open through web response
+rendering. It makes lazy navigation convenient, but can hide N+1 in serializers
+and move queries outside the service transaction.
 
-JPQL/SQL bulk update/delete operates directly on rows and bypasses managed
-entity state, dirty checking, entity callbacks and often version semantics:
+For APIs, a strong default is to disable OSIV and create the required response
+DTO inside a deliberate service or query boundary. Disabling OSIV does not fix
+a missing fetch plan; it makes the missing plan visible sooner.
 
-```java
-@Modifying(clearAutomatically = true, flushAutomatically = true)
-@Query("""
-       update Payment p
-          set p.status = :expired
-        where p.status = :pending and p.expiresAt < :now
-       """)
-int expirePending(PaymentStatus pending,
-                  PaymentStatus expired,
-                  Instant now);
-```
+Second-level and query caches add a freshness and invalidation contract. They
+can help stable reference data, but rapidly changing balances, limits and
+authorization state require stronger justification. Cache explicit DTOs or
+values rather than leaking managed entities across contexts.
 
-Flush compatible pending changes first and clear/refresh stale managed
-objects. If optimistic versioning is required, include and increment the
-version deliberately or use provider support whose semantics you have tested.
+### Diagnose from evidence
 
-### Second-level and query caches
+For a slow repository operation:
 
-The mandatory first-level cache belongs to one persistence context. A
-provider's optional **second-level cache** can share entity/collection state
-across contexts in the same cache domain. A **query cache** stores query-result
-references/identifiers and depends on compatible entity cache/invalidation
-behavior.
+1. Separate connection-pool wait from SQL execution time.
 
-Caching creates a freshness and invalidation contract. It is often suitable
-for stable reference data with a high read/write ratio; rapidly changing
-balances, limits and authorization state demand much stronger justification.
-Multiple writers, bulk SQL and other applications can make cached state stale
-unless the chosen strategy coordinates them.
+2. Count SQL statements and rows returned.
 
-Spring's `@Cacheable` abstraction is another layer and is also commonly
-proxy-based. It does not turn JPA entities into safe detached cached objects.
-Cache DTOs or explicit values with deliberate keys, TTL/eviction and
-multi-tenant isolation, then measure hit rate and stale-result risk.
+3. Inspect the generated SQL and bound-value cardinality safely.
 
-### Open Session in View
-
-Open Session/EntityManager in View keeps the persistence context open through
-web rendering, allowing lazy access after the service transaction. It can hide
-N+1 in serializers, run queries outside the intended service transaction and
-couple the HTTP response to entity graphs.
-
-For APIs, a strong default is to disable OSIV and materialize a deliberate DTO
-inside the service/query boundary. Disabling it does not fix missing fetch
-plans; it exposes them earlier.
-
-### Diagnose with evidence
-
-Enable SQL and bind values safely in a non-production reproduction, inspect
-database execution plans, and record statement counts in focused tests.
-Production signals should include query latency, connection-pool acquisition
-time, active/waiting connections, slow queries and lock waits.
-
-The sequence for a slow repository call is:
-
-1. Count statements and rows returned.
-
-2. Separate pool wait from SQL execution.
-
-3. Inspect the actual SQL and parameters/cardinality.
-
-4. Run the database plan with realistic statistics.
+4. Examine the database execution plan with representative statistics.
 
 5. Check indexes, sorts, joins and lock waits.
 
-6. Measure the revised query under representative data.
+6. Measure the revised query under realistic data volume.
 
-"Add an index" is not a diagnosis until the query predicate, ordering and plan
-support it.
+An index recommendation is meaningful only when it follows from the predicate,
+ordering and observed plan.
 
 ---
 
 ## 12. Concurrent writes and locking
 
-### The lost-update problem
+A transaction makes its own writes atomic. It does not automatically prevent
+two transactions from making conflicting decisions from the same old state.
 
-Two transactions can read the same balance, calculate from the same old
-value, and overwrite each other. `@Transactional` alone does not prevent it;
-the isolation level and chosen concurrency control matter.
+### The lost-update problem
 
 ```text
 T1 reads balance 100
 T2 reads balance 100
 T1 writes 90
 T2 writes 80
-final 80; T1's debit disappeared
+final balance 80: T1's debit was overwritten
 ```
 
-Money ledgers often avoid mutable balance as the sole source of truth, but any
-mutable aggregate still needs a concurrency strategy.
+The application needs a concurrency strategy that matches the invariant and
+expected conflict rate.
 
 ### Optimistic locking
 
+Add a version column to an entity whose updates must detect concurrent change:
+
 ```java
-@Entity
-class Payment {
-    @Id
-    private UUID id;
-
-    @Version
-    private long version;
-
-    @Enumerated(EnumType.STRING)
-    private PaymentStatus status;
-
-    void approve() {
-        if (status != PaymentStatus.PENDING) {
-            throw new IllegalStateException("Only pending can be approved");
-        }
-        status = PaymentStatus.APPROVED;
-    }
-}
+@Version
+private long version;
 ```
 
-The update includes the expected version:
+Hibernate includes the expected version in the update:
 
 ```sql
 update payment
@@ -2634,19 +2207,18 @@ set status = ?, version = version + 1
 where id = ? and version = ?
 ```
 
-If zero rows update, another transaction changed the entity and JPA raises an
-optimistic-lock failure. This works well when conflicts are uncommon and
-readers should not block.
+If another transaction has already advanced the version, zero rows are updated
+and JPA reports an optimistic-lock failure. This works well when conflicts are
+uncommon and blocking readers would be wasteful.
 
-Retry the **whole business operation** in a fresh transaction: reread current
-state, reevaluate invariants and attempt the transition. Retrying only `save`
-repeats stale reasoning. Never blindly retry a step that already emitted an
-uncoordinated external side effect.
+A retry must rerun the complete business operation in a fresh transaction:
+reload current state, reevaluate the rules and attempt the transition again.
+Retrying only `save` repeats a decision made from stale state.
 
 ### Pessimistic locking
 
-A pessimistic lock asks the database to lock selected rows, commonly mapping
-to `FOR UPDATE`:
+A pessimistic write lock asks the database to lock selected rows, commonly
+using `FOR UPDATE`:
 
 ```java
 @Lock(LockModeType.PESSIMISTIC_WRITE)
@@ -2654,520 +2226,336 @@ to `FOR UPDATE`:
 Optional<Account> findForUpdate(UUID id);
 ```
 
-It simplifies some hot-resource workflows but holds locks and connections,
-reduces concurrency, and can deadlock. Keep the transaction short, define a
-lock timeout, acquire multiple locks in a deterministic order and never wait
-on a remote call while holding them.
+The lock is held until transaction completion. Keep that transaction short,
+set a lock timeout and never wait on a remote service while holding the lock.
+Exact SQL and lock coverage depend on the database and provider, so test against
+the production database engine.
 
-Database dialect and provider behavior determine exact SQL and lock coverage.
-Test against the production database, not H2 assumptions.
+### Atomic conditional updates
 
-### Atomic conditional update
-
-When the invariant can be expressed in SQL, a single conditional update may
-be clearer and faster:
+When an invariant fits in one SQL predicate, one statement can avoid a
+read-modify-write race:
 
 ```sql
 update account
-set available_balance = available_balance - :amount,
-    version = version + 1
+set available_balance = available_balance - :amount
 where id = :id
   and available_balance >= :amount
 ```
 
-One affected row means success; zero means absent or insufficient/concurrent
-state and requires a defined mapping. This avoids a read-modify-write race but
-does not remove the need for ledger entries, audit and idempotency.
+One affected row means the debit succeeded. Zero requires a defined outcome
+such as missing account, insufficient balance or concurrent change. The
+statement protects the numeric invariant; the surrounding transaction still
+needs ledger, audit and idempotency behavior.
 
-### Deadlocks
+### Unique constraints are concurrency controls
 
-A deadlock is a wait cycle, often from inconsistent lock order:
+An application-level “exists then insert” check races. A database unique
+constraint decides correctly when two transactions attempt the same business
+key concurrently. Catch and translate the resulting constraint violation into
+the domain outcome expected by the API.
+
+### Deadlocks and retries
+
+A deadlock is a wait cycle:
 
 ```text
-T1 holds account A, waits for B
-T2 holds account B, waits for A
+T1 holds account A and waits for B
+T2 holds account B and waits for A
 ```
 
-The database aborts a victim. Prevention and recovery are both needed:
+The database aborts a victim. Reduce deadlocks by acquiring resources in a
+consistent order, keeping transactions small and indexing write predicates so
+they do not lock more rows than intended.
 
-- lock accounts in a deterministic order;
+Retry the complete idempotent unit with bounded backoff and jitter. A retry
+cannot safely repeat an external side effect that escaped the database
+transaction.
 
-- keep transactions and result sets small;
-
-- index predicates so updates do not lock unintended rows;
-
-- inspect database deadlock graphs;
-
-- retry the complete idempotent unit with bounded jitter.
-
-Retrying without fixing lock order can turn a rare deadlock into a retry storm.
-
-### Choosing the strategy
+### Choose from the invariant
 
 | Situation | Likely starting point |
 |---|---|
-| rare edits to ordinary entity | optimistic `@Version` |
-| short hot critical section | pessimistic lock with timeout |
-| simple numeric/state invariant | atomic conditional update |
-| append-only financial truth | immutable ledger entries plus derived balance |
-| cross-service workflow | state machine, idempotency and saga/outbox |
+| uncommon edits to an ordinary entity | optimistic `@Version` |
+| short, hot critical section | pessimistic lock with timeout |
+| simple numeric or state predicate | atomic conditional update |
+| command deduplication | unique business key or claim row |
+| append-only financial truth | immutable ledger entries plus a derived balance |
 
-The right answer begins with conflict rate, invariant and required failure
-behavior—not an annotation preference.
+The annotation follows the invariant; it does not define it.
 
 ---
 
 ## 13. Spring transactions
 
-### Transaction vocabulary and guarantees
+Chapter 10 assumed a transaction-associated persistence context. This chapter
+explains how Spring opens that transaction, what joins it and how it completes.
 
-A transaction groups resource operations into one outcome. In this chapter the
-resource is normally one relational database; a JDBC connection carries the
-physical database transaction.
+### What `@Transactional` controls
 
-| Term | Meaning |
-|---|---|
-| resource manager | The system that owns transactional data and guarantees commit/rollback, normally the database. |
-| transaction manager | Spring adapter that starts, joins, suspends and completes transactions for a resource technology. |
-| physical transaction | The database transaction associated with a connection. |
-| logical transaction scope | One `@Transactional` method boundary participating in a physical transaction. |
-| propagation | Rule for whether a logical scope joins, creates, suspends or rejects a transaction. |
-| isolation | Rules controlling what concurrent transactions may observe. |
-| rollback-only | State recording that a transaction may no longer commit successfully. |
-
-The familiar ACID properties belong primarily to the database, not to the
-annotation:
-
-| Property | Practical meaning |
-|---|---|
-| atomicity | All writes in the transaction commit, or none of them do. |
-| consistency | Committed data satisfies database constraints; application code must still encode business invariants. |
-| isolation | Concurrent transactions interact according to the selected database isolation and locking/version rules. |
-| durability | After a successful commit, the database preserves the result according to its durability contract. |
-
-Rollback reverses enlisted resource work. It does not rewind Java heap
-mutations, retract an email, cancel an ordinary HTTP request or unsend a normal
-Kafka record.
-
-### What a Spring transaction actually coordinates
-
-Transaction advice asks a `PlatformTransactionManager` to begin, join,
-suspend, commit or roll back resource work around a method call. Common
-managers include JDBC, JPA and JTA variants. The resource manager—the
-database—ultimately supplies atomicity and isolation.
+`@Transactional` is metadata read by a Spring AOP interceptor. When a call
+crosses the proxy, the interceptor asks a transaction manager to begin or join
+resource work, calls the target, and then commits or rolls back.
 
 ```text
-caller -> transactional proxy
-          -> transaction manager begins/joins
-          -> target method
-               -> repository -> EntityManager/JDBC connection
-          -> commit if successful
-             or mark/perform rollback on failure
+caller
+  -> transactional proxy
+       -> transaction manager begins or joins
+       -> service method
+            -> repositories share transaction-bound resources
+       -> flush and commit, or roll back
 ```
 
-Spring does not invent a database transaction in memory. It binds relevant
-resource state to the execution context and applies consistent demarcation.
+For an imperative JPA application, `JpaTransactionManager` normally associates
+an `EntityManager` and its database connection with the current thread.
+Repository calls on that thread can share them. Work moved to another thread
+does not silently join the transaction. Reactive transaction managers instead
+use the reactive context.
 
-Typical manager choices are:
+The database supplies atomicity, isolation and durability. Spring supplies a
+consistent way to delimit the work. A rollback undoes enlisted database work;
+it does not rewind Java fields, retract an email or cancel an HTTP request.
 
-| Manager | Coordinates |
-|---|---|
-| `JpaTransactionManager` | A JPA `EntityManager` and normally its underlying JDBC connection. |
-| `DataSourceTransactionManager` / `JdbcTransactionManager` | JDBC work against one `DataSource`. |
-| JTA transaction manager | Compatible XA resources participating in a distributed transaction. |
+Proxy rules from §5 still apply. Self-invocation and objects created directly
+with `new` do not gain transaction behavior from an annotation.
 
-For an ordinary imperative application, Spring associates transaction state
-with the current thread. Repository calls on that thread can therefore share
-the same transaction-bound `EntityManager`/connection. Work moved to
-`@Async`, a raw executor or another thread does not silently join it. Reactive
-transaction managers use the reactive context instead of a thread-local model.
-
-`@Transactional` is proxy metadata, as explained in §5. The boundary activates
-only when a call crosses an eligible Spring proxy; self-invocation and objects
-created with `new` do not gain transaction behavior.
-
-The examples use Spring's
-`org.springframework.transaction.annotation.Transactional`. With no attributes,
-it means `REQUIRED` propagation, the database's default isolation, a read-write
-transaction, the manager's default timeout, and rollback for `RuntimeException`
-or `Error` but not ordinary checked exceptions. Each of those defaults can be
-overridden deliberately; the later subsections explain the consequences.
-
-### Put the boundary around a use case
+### Put the boundary around the use case
 
 ```java
 @Service
 class TransferService {
     private final AccountRepository accounts;
     private final LedgerRepository ledger;
-    private final OutboxRepository outbox;
-    private final TransferRequestRepository requests;
 
-    TransferService(AccountRepository accounts,
-                    LedgerRepository ledger,
-                    OutboxRepository outbox,
-                    TransferRequestRepository requests) {
+    TransferService(AccountRepository accounts, LedgerRepository ledger) {
         this.accounts = accounts;
         this.ledger = ledger;
-        this.outbox = outbox;
-        this.requests = requests;
     }
 
     @Transactional
     public TransferId transfer(TransferCommand command) {
-        TransferRequest request = requests.claim(command.idempotencyKey());
-        if (request.isCompleted()) {
-            return request.transferId();
-        }
+        List<Account> pair = accounts.findBothForUpdate(
+                command.debtor(), command.creditor());
 
-        Account debit = accounts.findForUpdate(command.debtor()).orElseThrow();
-        Account credit = accounts.findForUpdate(command.creditor()).orElseThrow();
+        Account debit = requireAccount(pair, command.debtor());
+        Account credit = requireAccount(pair, command.creditor());
 
         debit.debit(command.amount());
         credit.credit(command.amount());
-        LedgerEntry entry = ledger.save(LedgerEntry.forTransfer(command));
-        outbox.save(OutboxEvent.transferPosted(entry));
-        request.complete(entry.transferId());
+
+        LedgerEntry entry = ledger.save(
+                LedgerEntry.forTransfer(command));
         return entry.transferId();
     }
 }
 ```
 
-The invariant is local: account changes, ledger fact, outbox event and
-idempotency claim either commit together or roll back together. The method
-does not call a remote switch while holding locks. Here `requests.claim` is a
-domain-shaped repository operation backed by a unique idempotency key; its
-implementation must resolve concurrent duplicate claims rather than perform an
-unsafe unprotected "check then insert."
+The two account changes and ledger entry form one local invariant. They should
+commit together or not at all. Locks are acquired in a stable repository-defined
+order, and the method performs no remote network call while holding them.
 
-### One transfer from proxy entry to commit
+When the proxied method is called:
 
-Assume a controller calls the proxied `TransferService`. A successful execution
-looks like this:
+1. The transaction interceptor begins a physical database transaction.
 
-1. The transaction interceptor asks `JpaTransactionManager` to begin a
-   transaction. The manager associates an `EntityManager` and database
-   connection with the current execution.
+2. Repository calls share its persistence context and connection.
 
-2. Every repository call participates in that same transaction because the
-   repositories use the transaction-bound `EntityManager`.
+3. The service changes managed entities and persists the ledger entry.
 
-3. `requests.claim` establishes idempotent ownership. The account queries lock
-   or otherwise protect the rows according to their repository contract.
+4. A normal method return triggers flush; constraints can still fail here.
 
-4. `debit.debit(...)`, `credit.credit(...)`, and `request.complete(...)` mutate
-   managed entities. Hibernate records pending changes; `save` queues new
-   ledger and outbox entities.
+5. If flush succeeds, the database commits before the proxy returns success.
 
-5. When the method returns, commit first requires a JPA flush. Hibernate sends
-   the needed `INSERT` and `UPDATE` statements through JDBC, where constraints
-   can still reject them.
+6. A matching failure causes rollback instead.
 
-6. If flush succeeds, the database commits the physical transaction and Spring
-   returns the `TransferId` to the caller.
+### Logical scopes and propagation
 
-7. If the target throws an exception matching the rollback rules, or the
-   transaction was marked rollback-only, Spring rolls back the database work
-   instead. The exception still propagates unless application code translates
-   it.
+Each transactional method creates a logical transaction scope. Propagation
+decides how that scope relates to an existing physical transaction.
 
-Conceptually, the database observes one boundary:
+| Propagation | Behavior |
+|---|---|
+| `REQUIRED` | join the current transaction or create one; this is the default |
+| `REQUIRES_NEW` | suspend the current transaction and start an independent one |
+| `NESTED` | create a savepoint in one physical transaction when the manager supports it |
+| `SUPPORTS` | join if one exists, otherwise run without a transaction |
+| `MANDATORY` | fail unless a transaction already exists |
+| `NOT_SUPPORTED` | suspend any current transaction and run without one |
+| `NEVER` | fail if a transaction exists |
 
-```sql
-begin;
-insert into transfer_request (...) values (...);       -- unique key claim
-select ... from account where id in (?, ?) for update;
-update account set balance = ... where id = ?;
-update account set balance = ... where id = ?;
-insert into ledger_entry (...) values (...);
-insert into outbox_event (...) values (...);
-update transfer_request set transfer_id = ?, status = 'COMPLETED' where ...;
-commit;
-```
-
-The exact SQL and ordering depend on the mappings and provider. The essential
-claim is narrower: all statements use the same database transaction, and no
-success is reported until flush and commit succeed.
-
-### Logical and physical transactions
-
-Each transactional method creates a **logical scope** with its own rollback
-rules. With `REQUIRED`, nested logical scopes usually participate in the same
-physical database transaction.
-
-```mermaid
-flowchart TB
-    subgraph REQ["REQUIRED: shared physical transaction"]
-        RO[Outer logical scope] --> RP[(Physical transaction / connection 1)]
-        RI[Inner logical scope] --> RP
-        RI -- failure marks --> RB[Physical transaction rollback-only]
-        RP -. state becomes .-> RB
-        RB -- outer commit attempt --> UE[UnexpectedRollbackException]
-    end
-
-    subgraph NEW["REQUIRES_NEW: independent physical transaction"]
-        NO[Outer logical scope] --> NP1[(Physical transaction / connection 1)]
-        NI[Inner logical scope] --> NP2[(Physical transaction / connection 2)]
-        NI -. suspends while inner runs .-> NO
-        NP2 --> NC[Independent commit or rollback]
-        NC -. resume .-> NO
-    end
-
-    subgraph NEST["NESTED: savepoint in one physical transaction"]
-        XO[Outer logical scope] --> XP[(Physical transaction / connection 1)]
-        XI[Inner logical scope] --> XS{{Savepoint}}
-        XS -. belongs to .-> XP
-        XI -- rollback to --> XS
-        XP --> XF[Outer scope owns final commit or rollback]
-    end
-```
-
-If the inner scope marks the shared transaction rollback-only and the outer
-scope catches the exception and returns normally, the outer commit cannot
-honestly succeed. Spring throws `UnexpectedRollbackException` so the caller is
-not misled into believing a commit occurred.
+With `REQUIRED`, inner and outer logical scopes normally share one physical
+transaction. If an inner scope marks it rollback-only and the outer method
+catches the exception, the final commit still cannot succeed. Spring throws
+`UnexpectedRollbackException` rather than reporting a commit that did not
+happen.
 
 ```java
 @Transactional
 public void outer() {
     try {
-        riskService.recordRisk(); // REQUIRED; throws and marks rollback-only
+        riskService.recordRisk(); // REQUIRED; marks shared transaction rollback-only
     } catch (RuntimeException ignored) {
-        // continuing does not clear rollback-only
+        // catching does not clear rollback-only
     }
-    repository.save(audit);       // appears to run, but final commit fails
 }
 ```
 
-If audit must survive independently, model that requirement explicitly with a
-separate bean and `REQUIRES_NEW`, or emit operational evidence outside the
-database transaction. Do not use independent commits casually for business
-facts that must remain atomic.
-
-### Propagation
-
-| Propagation | Behavior | Senior concern |
-|---|---|---|
-| `REQUIRED` | join existing or create new | default; inner failure can mark shared transaction rollback-only |
-| `REQUIRES_NEW` | suspend existing and create independent transaction | requires another connection while outer resources may remain held |
-| `NESTED` | savepoint inside one physical transaction | mainly JDBC/savepoint support; not portable across all managers/providers |
-| `SUPPORTS` | join if present, otherwise run without one | behavior depends on caller |
-| `MANDATORY` | require existing transaction | useful assertion for internal components |
-| `NOT_SUPPORTED` | suspend and run non-transactionally | explicit non-transactional section |
-| `NEVER` | fail if transaction exists | rare assertion |
-
-`REQUIRES_NEW` can exhaust a pool: N outer transactions each hold a connection
-and wait for an inner connection. Size and load-test the pool, minimize the
-outer scope, and question whether independent transactions are necessary.
-
-`NESTED` rolls part of the work back to a savepoint while retaining the outer
-physical transaction. It is not a tiny independent commit and cannot survive
-an outer rollback.
+`REQUIRES_NEW` has an independent commit outcome but needs another connection
+while the outer transaction may still hold one. Under load, nested use can
+exhaust the pool. `NESTED` uses a savepoint; it is not an independent commit and
+cannot survive an outer rollback.
 
 ### Rollback rules
 
-By default, Spring rolls back for unchecked `RuntimeException` and `Error`,
-not checked exceptions. Configure `rollbackFor` when a checked business or
-integration exception must abort:
+By default, Spring rolls back for `RuntimeException` and `Error`, not ordinary
+checked exceptions. Add `rollbackFor` when a checked exception must abort the
+unit of work:
 
 ```java
 @Transactional(rollbackFor = SettlementFileException.class)
 public void importSettlement(Path file) throws SettlementFileException {
-    // ...
+    // parse and persist settlement data
 }
 ```
 
-Broad rules such as `rollbackFor = Exception.class` can be valid at a use-case
-boundary but should be intentional. A caught exception is invisible to the
-transaction interceptor unless code marks rollback-only or throws another
-matching failure.
+A caught exception does not cross the interceptor, so it cannot trigger a
+rollback rule there. Translate and rethrow when the transaction must fail, or
+mark it rollback-only deliberately. Do not catch an unexpected exception, log
+it and return success from a money-moving operation.
 
-Never catch `Exception`, log and return success from a money-moving method.
-Either translate and rethrow with the cause, or return a modeled business
-outcome only after transactional state is consistent.
+### Isolation and concrete invariants
 
-### Isolation
+Isolation controls what one database transaction may observe of another.
 
-Isolation defines which concurrent effects a transaction may observe. Common
-anomalies are dirty reads, non-repeatable reads and phantoms; lost update also
-depends on the actual read/write pattern and database controls.
-
-| Anomaly | Example |
+| Isolation concern | Example |
 |---|---|
-| dirty read | Transaction B reads a balance written by A before A commits; A later rolls back. |
-| non-repeatable read | B reads one account row twice and sees A's committed update the second time. |
-| phantom | B repeats a predicate query and sees rows that A inserted and committed in between. |
-| lost update | A and B read the same value, calculate independently, and one write overwrites the other. |
-| write skew | A and B update different rows after reading a shared invariant, leaving the combined state invalid. |
+| dirty read | observe another transaction's uncommitted change |
+| non-repeatable read | reread one row after another transaction commits an update |
+| phantom | repeat a predicate query and observe newly committed matching rows |
+| write skew | concurrent transactions update different rows after reading one shared invariant |
 
-- `READ_COMMITTED` prevents dirty reads and is a common default.
+`READ_COMMITTED` prevents dirty reads and is a common default.
+`REPEATABLE_READ` and `SERIALIZABLE` provide stronger guarantees, but exact
+behavior and failure modes depend on the database.
 
-- `REPEATABLE_READ` stabilizes rows read in a transaction, with exact behavior
-  varying by database implementation.
+Isolation level alone is rarely the whole business answer. Version columns,
+row locks, unique constraints and conditional updates express the particular
+invariants described in §12. An isolation declaration usually takes effect only
+when the method starts a new physical transaction; joining one does not
+renegotiate it.
 
-- `SERIALIZABLE` aims to make concurrent outcomes equivalent to serial
-  execution, with lower concurrency and possible serialization failures.
+### Other transaction attributes
 
-Do not answer that `SERIALIZABLE` automatically makes financial code correct.
-Unique constraints, version checks, conditional updates, row locks and retry
-policy express concrete invariants more directly.
+`readOnly = true` is a hint that may affect flush or database behavior. It is
+not a security boundary and does not portably guarantee that writes are
+impossible.
 
-Spring's isolation declaration usually applies only when it starts a new
-physical transaction; joining an existing one does not renegotiate the
-database transaction.
+A transaction timeout bounds work according to transaction-manager support. It
+does not replace pool-acquisition, SQL-statement or HTTP-client timeouts.
 
-### `readOnly`, timeout and manager selection
-
-`readOnly = true` is a hint/optimization. It can alter flush behavior or inform
-the driver/database, but it is not a security boundary and does not portably
-guarantee writes are impossible.
-
-A transaction timeout bounds transactional work according to manager support.
-It does not replace JDBC query, pool-acquisition or HTTP timeouts. The smallest
-applicable deadline should win.
-
-With multiple databases, name the intended manager explicitly or use a
-qualified composed annotation:
+When several transaction managers exist, select the intended one explicitly:
 
 ```java
 @Transactional(transactionManager = "ledgerTransactionManager")
 public void postLedgerEntry(...) { /* ... */ }
 ```
 
-Two local transaction managers do not create one atomic distributed
-transaction.
+Two independent local transaction managers do not create one atomic
+distributed transaction.
 
-### Programmatic boundaries
-
-`TransactionTemplate` is useful when the boundary is data-dependent or a
-remote call must clearly occur after commit:
+`TransactionTemplate` is useful when the boundary is conditional or when code
+must visibly continue only after the local commit:
 
 ```java
-UUID id = transactionTemplate.execute(status -> {
-    Payment payment = repository.save(new Payment(
-            command.tenantId(), command.reference(), command.amount()));
-    outbox.save(OutboxEvent.paymentCreated(payment));
-    return payment.getId();
-});
+UUID paymentId = transactionTemplate.execute(status ->
+        payments.save(command.toPayment()).id());
 
-// local transaction has completed here
-return queryPayment(id);
+// the local transaction has completed here
+return payments.findView(paymentId);
 ```
 
-Programmatic transactions make sequencing explicit but couple the code to
-Spring transaction APIs. Declarative transactions remain clearer for ordinary
+Programmatic demarcation makes sequencing explicit but couples the code to the
+Spring transaction API. Declarative boundaries remain simpler for ordinary
 use-case methods.
 
-Transaction synchronization callbacks can perform small after-commit hooks,
-but an in-memory callback is lost if the process dies immediately after the
-commit. Use a durable outbox for required publication.
+### Stop the local transaction at the database
 
-### Remote calls and transaction duration
+Holding a database transaction open while waiting for a remote service retains
+a connection and may retain locks. A network timeout is ambiguous: the peer may
+have completed its work even though no response arrived. The peer also cannot
+be rolled back by the local database transaction.
 
-Holding a database transaction open across an HTTP/RMI call retains a
-connection and possibly locks while network latency is unbounded. A timeout is
-ambiguous and the remote system cannot roll back with the database.
-
-Preferred shapes include:
-
-- remote read first, then short local validation/write when staleness is safe;
-
-- local intent/outbox commit, then asynchronous remote work;
-
-- explicit state machine: `PENDING -> SENT -> CONFIRMED/FAILED/UNKNOWN`;
-
-- idempotent remote command with reconciliation for unknown outcomes.
-
-There is no universal "remote calls always outside transactions" rule. The
-point is to expose the consistency trade-off and avoid pretending network I/O
-joined the local ACID boundary.
+Keep local transactions short. When a remote effect must follow a local commit,
+model the handoff explicitly. Chapter 14 covers the outbox, idempotency, sagas
+and reconciliation used for that handoff.
 
 ---
 
 ## 14. Cross-system consistency
 
-### Why a local transaction cannot cover everything
+A single database transaction gives one atomic outcome for resources enlisted
+in that transaction. An ordinary message publish, email, cache update or HTTP
+request is another system with another failure boundary.
 
-A JPA transaction can atomically commit changes in its enlisted database. An
-ordinary Kafka publish, email, cache update or HTTP request is a second system.
-The naive dual write has two failure windows:
+### The dual-write failure
+
+Suppose a service updates a payment and publishes an event as two separate
+operations:
 
 ```text
-DB commit succeeds -> process dies -> Kafka publish never happens
-Kafka publish succeeds -> DB commit fails -> event describes nonexistent fact
+database commit succeeds
+  -> process dies before publish
+  -> committed payment has no event
+
+publish succeeds
+  -> database commit fails
+  -> event describes state that never committed
 ```
 
-Reversing the order only swaps the inconsistency. A broad `@Transactional`
-annotation cannot make a remote service or ordinary producer participate.
+Changing the order only changes which inconsistency is possible.
+`@Transactional` cannot enlist an ordinary HTTP peer or non-transactional Kafka
+send in the database transaction.
 
-XA/two-phase commit exists for compatible resources but adds coordinator
-availability, operational complexity and limited ecosystem support. Modern
-service workflows commonly choose local atomicity plus durable messaging and
-idempotency.
+XA/two-phase commit can coordinate compatible resources, but it adds protocol,
+coordinator and operational constraints and is not available for arbitrary
+HTTP effects. Service architectures commonly use local atomicity plus durable
+handoff and idempotency.
 
 ### Transactional outbox
 
-Write the business state and an event record to the same database transaction:
+Write the business state and a message record in the same database transaction:
 
-```sql
-create table outbox_event (
-    event_id       uuid primary key,
-    aggregate_type varchar(80) not null,
-    aggregate_id   varchar(120) not null,
-    event_type     varchar(120) not null,
-    payload        text not null,
-    occurred_at    timestamp not null,
-    published_at   timestamp null,
-    attempts       integer not null default 0
-);
+```text
+BEGIN
+  update payment
+  insert ledger entry
+  insert outbox event with stable event_id
+COMMIT
 ```
 
-```mermaid
-sequenceDiagram
-    participant Client
-    participant API as Payment service
-    participant DB as Payment database
-    participant Publisher as Outbox publisher
-    participant Kafka
-    participant Consumer
-    participant CDB as Consumer database
+After commit, a publisher polls or streams the outbox and sends events to the
+broker:
 
-    Client->>API: POST /payments + idempotency key
-    API->>DB: BEGIN
-    API->>DB: claim key + update payment + ledger + outbox row
-    API->>DB: COMMIT
-    API-->>Client: stable accepted/result response
-
-    loop poll or CDC unpublished rows
-        Publisher->>DB: claim outbox event
-        Publisher->>Kafka: publish event_id
-        Kafka-->>Publisher: broker acknowledgement
-        Note over Publisher,DB: Crash here causes safe re-publication
-        Publisher->>DB: mark event published
-    end
-
-    Kafka-->>Consumer: deliver event, possibly more than once
-    Consumer->>CDB: BEGIN + insert processed_message(event_id)
-    alt first delivery
-        Consumer->>CDB: apply business effect + COMMIT
-    else duplicate key already exists
-        CDB-->>Consumer: duplicate is a successful no-op
-    end
+```text
+database transaction commits payment + outbox row
+  -> publisher claims row
+  -> publisher sends event_id to Kafka
+  -> publisher marks row published
 ```
 
-The publisher can crash after Kafka accepts the event but before
-`published_at` commits, so it may publish again. Outbox gives reliable
-**at-least-once publication**, not magical exactly-once end-to-end behavior.
+The publisher can crash after Kafka accepts the event but before the database
+records publication. It must send the same event again. The outbox therefore
+provides durable handoff with **at-least-once publication**, not end-to-end
+exactly-once execution.
 
-Claim rows safely with a lease/status, `SKIP LOCKED` pattern where supported,
-or change-data-capture infrastructure. Preserve per-aggregate ordering when
-required, bound retries, and operate poison events visibly rather than leaving
-the table to grow silently.
+Production operation also needs safe claiming across publisher replicas,
+retry/backoff, poison-event handling, retention and monitoring of oldest
+unpublished age. Preserve ordering per aggregate when consumers depend on it.
 
-### Idempotent consumer
+### Idempotent consumers
 
-A consumer records the event/business key in the same transaction as its
-database effect:
+A consumer handles duplicate delivery by recording a stable message id in the
+same transaction as its business effect:
 
 ```sql
 create table processed_message (
@@ -3182,95 +2570,97 @@ create table processed_message (
 @Transactional
 public void handle(PaymentPosted event) {
     if (!processed.tryInsert("reconciliation", event.eventId())) {
-        return;                         // duplicate is a successful no-op
+        return; // duplicate delivery is already complete
     }
+
     reconciliation.apply(event);
 }
 ```
 
-The unique constraint is the concurrency control. A separate "exists then
-insert" check races under concurrent delivery.
+The unique constraint decides correctly under concurrent delivery. An
+application-level “exists then insert” check can race.
 
-Deduplication key semantics matter. A transport event id deduplicates one
-publication; a payment idempotency key may deduplicate retried business
-commands that produced different transport messages.
+The deduplication key must match the promise. A transport event id deduplicates
+one publication; a business idempotency key deduplicates repeated commands that
+may produce different transport messages.
 
 ### API idempotency
 
-For `POST /payments`, the client supplies a high-entropy idempotency key scoped
-to the authenticated client/operation. The service atomically claims it and
-stores a request fingerprint plus the stable outcome.
+For a retryable command such as `POST /payments`, scope a high-entropy
+idempotency key to the authenticated caller and operation. Atomically store a
+request fingerprint and stable outcome.
 
-| Same key | Request fingerprint | Result |
-|---|---|---|
-| first use | any valid request | execute once and persist outcome |
-| retry | same request | return/replay the original outcome |
-| collision/misuse | different request | reject with conflict |
-| concurrent duplicate | same request | one owner executes; other waits or reads result |
+| Request | Result |
+|---|---|
+| first use of key | one owner executes and stores the outcome |
+| same key and same request | return or replay the stored outcome |
+| same key with different request | reject as a conflict |
+| concurrent duplicate | one owner executes; the other waits or reads the result |
 
-An in-memory map is not enough across replicas or restarts. Define retention,
-security scope and what happens while the first execution is still pending.
+An in-memory map fails across replicas and restarts. Define retention and the
+response while the first attempt remains in progress.
 
-### Saga and compensation
+### Sagas and compensation
 
-A saga is a sequence of local transactions with persisted workflow state.
-Failure triggers a compensating business action where possible:
+A saga stores a workflow as a sequence of local transactions:
 
 ```text
 PAYMENT_ACCEPTED
   -> DEBIT_POSTED
   -> SWITCH_SEND_PENDING
-  -> SWITCH_SENT
   -> CONFIRMED
 
-on definitive rejection:
+definitive rejection
   -> REVERSAL_PENDING
   -> REVERSED
 
-on timeout:
+timeout
   -> OUTCOME_UNKNOWN
-  -> status enquiry / reconciliation
+  -> status enquiry or reconciliation
 ```
 
-Compensation is not rollback. A reversal is a new auditable fact and can fail,
-be retried or require manual repair. Some actions are irreversible; the saga
-must prevent or contain them rather than pretend an undo exists.
+Compensation is a new business action, not a database rollback. A reversal must
+be auditable, can fail and may require retry or manual repair. Some effects are
+irreversible, so the workflow must prevent or contain them rather than pretend
+an undo exists.
 
-Orchestration stores a central state machine and commands participants.
-Choreography reacts to events without a central controller. Orchestration is
-often easier to audit and reason about for regulated payment flows;
-choreography can reduce coupling but becomes opaque when chains grow.
+An orchestrated saga keeps the state machine and next action in one workflow
+owner. Choreography lets services react to events without a central
+coordinator. Choreography reduces direct coupling but becomes difficult to
+trace when event chains grow; regulated financial flows often benefit from an
+explicit persisted state machine.
 
-### Kafka transaction boundaries
+### Kafka transaction scope
 
-Kafka producer transactions can atomically write records to Kafka partitions,
-and consume-transform-produce pipelines can coordinate consumed offsets with
-produced Kafka records. That guarantee does not automatically include an
-Oracle update. Spring can synchronize transaction managers in some shapes,
-but crash windows and commit order must be understood; it is not a replacement
-for an explicit consistency design.
+Kafka transactions can atomically write Kafka records and, in a
+consume-process-produce flow, coordinate consumed offsets with produced
+records. That transaction does not automatically include a relational database
+update.
 
-End-to-end "exactly once" requires the business effect to be idempotent or
-transactionally deduplicated at every boundary. Broker marketing terminology
-does not make an external bank debit execute once.
+Spring can synchronize Kafka and database transaction managers in specific
+shapes, but commit order and crash behavior must be understood. It is not a
+substitute for a durable cross-system design when both outcomes are required.
 
-### Reconciliation is part of correctness
+“Exactly once” inside Kafka does not make an external debit execute once. The
+business effect still needs an idempotency or deduplication boundary.
 
-Distributed outcomes can remain unknown after timeouts, process crashes or
-partner outages. Production design therefore needs:
+### Reconciliation closes unknown outcomes
 
-- durable states including `UNKNOWN`/`PENDING_RECONCILIATION`;
+Timeouts, crashes and partner outages can leave a distributed result unknown.
+Correctness therefore includes:
 
-- scheduled status enquiry or file-based reconciliation;
+- durable states such as `UNKNOWN` or `PENDING_RECONCILIATION`;
 
-- immutable evidence and operator-visible aging queues;
+- status enquiry or file-based reconciliation;
 
-- safe manual repair with four-eyes control where required;
+- immutable evidence and visible aging queues;
+
+- safe manual repair and approval controls where required;
 
 - metrics for stuck states, duplicates and compensation failures.
 
-If the design has no answer for "the partner debited but our response timed
-out," it is incomplete regardless of its annotations.
+If the partner may have debited the account after the local timeout, marking
+the payment failed without enquiry or reconciliation is not a complete design.
 
 ---
 
