@@ -13,9 +13,9 @@
 
 - [Part II. HTTP and security](#part-ii-http-and-security)
   - [6. The servlet request path](#6-the-servlet-request-path)
-  - [7. API boundaries validation and exceptions](#7-api-boundaries-validation-and-exceptions)
-  - [8. Spring Security architecture](#8-spring-security-architecture)
-  - [9. Route and method authorization](#9-route-and-method-authorization)
+  - [7. Spring Security architecture](#7-spring-security-architecture)
+  - [8. API boundaries, validation and exceptions](#8-api-boundaries-validation-and-exceptions)
+  - [9. Method authorization and ownership](#9-method-authorization-and-ownership)
 
 - [Part III. Persistence and consistency](#part-iii-persistence-and-consistency)
   - [10. JPA and the persistence context](#10-jpa-and-the-persistence-context)
@@ -86,9 +86,9 @@ each later chapter should attach to one of them.
 
 2. **How one request reaches business code:**
    [§6 servlet path](#6-the-servlet-request-path) →
-   [§8 authentication](#8-spring-security-architecture) →
-   [§9 authorization](#9-route-and-method-authorization) →
-   [§7 validation/errors](#7-api-boundaries-validation-and-exceptions).
+   [§7 authentication](#7-spring-security-architecture) →
+   [§8 validation/errors](#8-api-boundaries-validation-and-exceptions) →
+   [§9 method authorization](#9-method-authorization-and-ownership).
 
 3. **How one business operation becomes durable:**
    [§13 transaction boundary](#13-spring-transactions) →
@@ -1109,66 +1109,380 @@ should match and methods that must not match.
 
 # Part II. HTTP and security
 
-## 6. The servlet request path
-
-### One request from socket to service
-
-In a traditional Spring MVC application, an embedded servlet container owns
-the network connection and a bounded worker-thread pool. A request typically
-travels through:
+Part II follows one HTTP request until it reaches business code:
 
 ```text
-Tomcat/Jetty connector and worker thread
-  -> servlet Filter chain
-       -> tracing/correlation filter
-       -> Spring Security FilterChainProxy
+client
+  -> servlet container
+  -> servlet filters
+       -> Spring Security authenticates and checks the request
   -> DispatcherServlet
-       -> HandlerMapping selects controller method
-       -> HandlerAdapter invokes it
-       -> argument resolvers deserialize parameters/body
-       -> Bean Validation checks request DTO
-       -> controller calls service proxy
-       -> return value handled by message converters
-  -> servlet response
+       -> select controller
+       -> deserialize and validate input
+       -> invoke controller
+            -> call service proxy
+                 -> method authorization
+                 -> business operation
+       -> serialize the response
 ```
 
-The exact filters vary, but the ownership boundaries are important:
+The order matters. A security filter can reject the request before Spring MVC
+selects a controller. MVC exception handling therefore cannot handle every
+failure produced during an HTTP request.
 
-- A **servlet filter** surrounds the servlet and can reject before MVC.
+## 6. The servlet request path
 
-- A Spring MVC **`HandlerInterceptor`** surrounds controller handling after
-  `DispatcherServlet` has mapped the request.
+### From the socket to Spring MVC
 
-- A **controller advice** handles MVC exceptions and model/response concerns.
+In a traditional Spring MVC application, the embedded servlet container owns
+the listening socket and a worker-thread pool. It assigns an accepted request
+to a thread and invokes the servlet filter chain.
 
-- An **AOP proxy** surrounds Spring bean method calls, not raw servlet traffic.
+```text
+Tomcat or Jetty
+  -> Filter 1
+  -> Filter 2
+  -> Spring Security filter chain
+  -> DispatcherServlet
+  -> controller
+  -> service
+```
 
-Choose the earliest layer that has the information needed. Authentication
-belongs in the security chain. Business ownership usually belongs at the
-service boundary. JSON error formatting for controller failures belongs in
-MVC advice.
+A filter can inspect or modify the request and response, continue with
+`chain.doFilter(...)`, or stop processing and write a response itself. Logging,
+correlation, security and compression commonly live in filters because they
+need to surround the servlet.
 
-### `DispatcherServlet` is a coordinator
+`DispatcherServlet` is the front controller for Spring MVC. Once the filter
+chain reaches it, MVC takes over.
 
-`DispatcherServlet` does not contain every web behavior. It delegates:
+### What `DispatcherServlet` delegates
 
-| Collaborator | Responsibility |
+`DispatcherServlet` coordinates other components rather than performing every
+step itself:
+
+| Component | Responsibility |
 |---|---|
-| `HandlerMapping` | find the handler for path, verb and conditions |
-| `HandlerAdapter` | invoke that handler model |
-| argument resolvers | construct values such as `@PathVariable`, principal and pageable |
-| `HttpMessageConverter` | deserialize/serialize JSON, text or bytes |
-| `HandlerExceptionResolver` | turn eligible exceptions into responses |
-| view resolver | resolve a view for ordinary MVC controllers |
+| `HandlerMapping` | find the handler for the request path, method and conditions |
+| `HandlerAdapter` | invoke the selected kind of handler |
+| argument resolvers | create method arguments such as `@PathVariable`, `Authentication` or `Pageable` |
+| `HttpMessageConverter` | read and write formats such as JSON, text and bytes |
+| Bean Validation | validate eligible controller arguments |
+| `HandlerExceptionResolver` | turn MVC exceptions into responses |
 
-`@RestController` adds response-body semantics, so returning `"home"` writes
-the string body; an ordinary `@Controller` may interpret it as a view name.
+For a REST controller, the normal flow is:
 
-### A thin HTTP adapter
+```text
+request bytes
+  -> message converter creates request DTO
+  -> validation checks the DTO
+  -> controller calls application service
+  -> controller result becomes response DTO
+  -> message converter writes response bytes
+```
+
+An ordinary `@Controller` commonly returns a view name. `@RestController`
+includes response-body behavior, so its return values are written to the HTTP
+response.
+
+### Filters, interceptors and advice are different hooks
+
+These extension points sit at different places:
+
+| Hook | Runs around | Can act before controller selection? |
+|---|---|---|
+| servlet `Filter` | the servlet and everything downstream | yes |
+| Spring MVC `HandlerInterceptor` | a mapped MVC handler | no |
+| `@ControllerAdvice` | MVC argument, controller and response exception handling | no |
+| Spring AOP proxy | a call to an advised Spring bean | unrelated to raw servlet traffic |
+
+Place behavior at the earliest layer that has the information it needs.
+Authentication belongs in the security filter chain. HTTP representation and
+MVC error mapping belong in MVC. Business ownership checks usually belong on
+the service operation and in the data access rule that protects the state.
+
+### The blocking request model
+
+Spring MVC normally keeps one container thread assigned to a request while it
+waits for JDBC or blocking network calls. Capacity is therefore constrained by
+worker threads, database connections, downstream connections and latency.
+
+If 200 request threads compete for 30 database connections, increasing the
+thread count does not create more database throughput. It can instead create a
+longer queue and consume more memory.
+
+Virtual threads reduce the cost of blocked threads but do not create additional
+database connections or downstream capacity. WebFlux avoids tying up a thread
+for non-blocking I/O, but only when the entire relevant path uses non-blocking
+drivers and APIs. Mixing blocking JDBC into an event loop removes that benefit.
+
+Timeouts, retries and saturation controls for downstream work are covered in
+Part IV.
+
+---
+
+## 7. Spring Security architecture
+
+Spring Security's servlet support is a filter-based layer in front of Spring
+MVC. Its job is to establish an identity, apply request-level security rules and
+either continue the filter chain or produce a security response.
+
+### Authentication comes before authorization
+
+**Authentication** establishes who the caller is and how that identity was
+verified. **Authorization** decides whether that caller may perform an action.
+
+A valid credential is not by itself permission to settle a payment. It creates
+an authenticated identity with authorities that later authorization rules can
+evaluate.
+
+The main runtime objects are:
+
+| Object | Meaning |
+|---|---|
+| `Authentication` | principal, authorities, authentication state and mechanism-specific details |
+| `SecurityContext` | holder for the current `Authentication` |
+| `SecurityContextHolder` | access to the context associated with current execution |
+| authority | a granted capability such as `PAYMENT_WRITE` |
+
+### How the security filter chain fits
+
+The servlet container knows about a `DelegatingFilterProxy`. That proxy finds
+Spring Security's `FilterChainProxy` bean and delegates to it:
+
+```text
+servlet FilterChain
+  -> DelegatingFilterProxy
+       -> FilterChainProxy
+            -> first matching SecurityFilterChain
+                 -> exploit protection
+                 -> authentication filters
+                 -> request authorization
+  -> DispatcherServlet
+```
+
+Each `SecurityFilterChain` has a request matcher and an ordered set of filters.
+`FilterChainProxy` uses the first matching chain. If an API chain matches
+`/api/**`, later chains are not added to it; only that chain's filters run.
+
+Inside a chain, authentication must be established before request authorization
+can use it. A security filter can stop without calling the next filter, which is
+why an unauthenticated request may never reach MVC.
+
+### One bearer-token request
+
+Assume the client sends:
+
+```http
+POST /api/payments/7e5b7c0a/settlement HTTP/1.1
+Authorization: Bearer eyJ...
+Content-Type: application/json
+```
+
+The API is a resource server: it accepts an access token issued by an
+authorization server and validates that token before serving the protected
+resource.
+
+For a JWT, validation includes more than Base64 decoding. The resource server
+must verify the signature using a trusted key and validate claims such as
+issuer, expiration, not-before and audience. A signed JWT normally provides
+integrity, not secrecy, so sensitive data should not be placed in its claims.
+
+Boot can configure standard issuer and audience validation:
+
+```yaml
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://identity.example.com
+          audiences: payments-api
+```
+
+The token may carry an application-specific claim:
+
+```json
+{
+  "iss": "https://identity.example.com",
+  "sub": "user-1842",
+  "aud": ["payments-api"],
+  "exp": 1788778800,
+  "permissions": ["PAYMENT_WRITE"]
+}
+```
+
+Claims are trusted only after signature and claim validation succeeds.
+
+### Configuring the API chain
+
+This configuration maps `permissions` directly to authorities and protects the
+API with stateless bearer authentication:
 
 ```java
+@Configuration(proxyBeanMethods = false)
+class SecurityConfiguration {
+
+    @Bean
+    JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtGrantedAuthoritiesConverter authorities =
+                new JwtGrantedAuthoritiesConverter();
+        authorities.setAuthoritiesClaimName("permissions");
+        authorities.setAuthorityPrefix("");
+
+        JwtAuthenticationConverter converter =
+                new JwtAuthenticationConverter();
+        converter.setJwtGrantedAuthoritiesConverter(authorities);
+        return converter;
+    }
+
+    @Bean
+    @Order(1)
+    SecurityFilterChain api(
+            HttpSecurity http,
+            JwtAuthenticationConverter converter) throws Exception {
+
+        return http
+                .securityMatcher("/api/**")
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(
+                                SessionCreationPolicy.STATELESS))
+                .csrf(csrf -> csrf.disable())
+                .cors(Customizer.withDefaults())
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/health/readiness").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/payments/**")
+                            .hasAuthority("PAYMENT_WRITE")
+                        .requestMatchers(HttpMethod.GET, "/api/payments/**")
+                            .hasAuthority("PAYMENT_READ")
+                        .anyRequest().authenticated())
+                .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt
+                        .jwtAuthenticationConverter(converter)))
+                .exceptionHandling(errors -> errors
+                        .authenticationEntryPoint(
+                                new BearerTokenAuthenticationEntryPoint())
+                        .accessDeniedHandler(
+                                new BearerTokenAccessDeniedHandler()))
+                .build();
+    }
+
+    @Bean
+    @Order(2)
+    SecurityFilterChain fallback(HttpSecurity http) throws Exception {
+        return http
+                .authorizeHttpRequests(auth -> auth.anyRequest().denyAll())
+                .build();
+    }
+}
+```
+
+For the POST request, the flow is:
+
+1. `FilterChainProxy` selects the `/api/**` chain.
+
+2. The bearer filter extracts the token.
+
+3. The JWT decoder verifies the signature and required claims.
+
+4. `JwtAuthenticationConverter` creates an `Authentication` whose authorities
+   include `PAYMENT_WRITE`.
+
+5. Request authorization evaluates its matchers in declaration order. The
+   first matching POST rule requires that authority.
+
+6. If the rule succeeds, the filter chain continues to `DispatcherServlet`.
+
+The fallback chain prevents requests outside `/api/**` from accidentally
+remaining unprotected. Within each authorization block, specific matchers must
+appear before broader matchers because the first matching rule applies.
+
+With the default converter, standard `scope` or `scp` claims become authorities
+prefixed with `SCOPE_`. The explicit converter is needed here only because the
+contract uses a custom `permissions` claim and exact authority names.
+
+### The security context lasts for the request
+
+After successful authentication, the `SecurityContext` holds the resulting
+`Authentication`. In the usual servlet model it is available through
+`SecurityContextHolder` on the request thread and is cleared when the request
+finishes.
+
+Do not store an `Authentication` in a singleton field. Do not assume it follows
+work submitted to another executor. Use Spring's context-aware wrappers when
+infrastructure truly needs propagation, or pass the minimal business identity
+explicitly in an asynchronous command.
+
+### Other authentication mechanisms
+
+Different mechanisms produce the same kind of authenticated result:
+
+| Mechanism | Main path |
+|---|---|
+| bearer JWT | bearer filter → JWT decoder/validator → converter → `Authentication` |
+| username and password | authentication filter → `AuthenticationManager` → `AuthenticationProvider` → `Authentication` |
+| existing HTTP session | security-context repository loads the previously stored context |
+
+For username/password authentication, a `UserDetailsService` loads identity
+data and a `PasswordEncoder` verifies the submitted password. Store passwords
+with an adaptive one-way encoder such as bcrypt, scrypt, PBKDF2 or Argon2.
+Never store reversible passwords or fast unsalted hashes.
+
+Session authentication stores server-side context associated with a cookie.
+Bearer-token authentication validates a token on each request and normally
+does not use a login session. JWT is only a token format; it is not encryption
+and does not make revocation or key rotation disappear.
+
+### CSRF and CORS depend on browser behavior
+
+CSRF is a risk when a browser automatically attaches authentication, especially
+cookies, to a cross-site request. A server-side session can be stateless from a
+business perspective and still need CSRF protection because the browser sends
+the cookie automatically.
+
+The API chain above disables CSRF only because it expects a bearer token that
+the client code deliberately places in the `Authorization` header and does not
+also authenticate through cookies. If cookies authenticate the request, keep
+CSRF protection unless the complete threat model justifies another design.
+
+CORS controls whether browser JavaScript from one origin may use a response
+from another origin. It is not authentication and does not protect
+server-to-server traffic. CORS processing must occur early enough that a valid
+preflight request is not rejected as though it were an unauthenticated business
+request.
+
+### Who produces 401 and 403
+
+An invalid or missing credential for a protected request leads to
+authentication failure. An `AuthenticationEntryPoint` produces the **401**
+response.
+
+An authenticated caller without the required authority fails authorization.
+An `AccessDeniedHandler` produces the **403** response.
+
+Those failures occur in the security filter chain, before MVC. A
+`@ControllerAdvice` cannot handle them because no controller invocation has
+started. If the API uses one problem-details schema, configure security handlers
+and MVC exception handling to write compatible bodies at their respective
+layers.
+
+---
+
+## 8. API boundaries, validation and exceptions
+
+Once the security chain continues, `DispatcherServlet` selects a controller.
+The controller is an adapter between HTTP and an application use case.
+
+### Keep the controller focused on HTTP
+
+```java
+public record CreatePaymentRequest(
+        @NotNull UUID debtorAccountId,
+        @NotNull UUID creditorAccountId,
+        @NotNull @DecimalMin("0.01") BigDecimal amount,
+        @NotBlank @Size(min = 3, max = 3) String currency) { }
+
 @RestController
-@RequestMapping("/payments")
+@RequestMapping("/api/payments")
 class PaymentController {
     private final PaymentApplicationService payments;
 
@@ -1182,110 +1496,66 @@ class PaymentController {
             @Valid @RequestBody CreatePaymentRequest request,
             Authentication authentication) {
 
-        var command = new CreatePaymentCommand(
+        CreatePaymentCommand command = new CreatePaymentCommand(
                 idempotencyKey,
                 authentication.getName(),
                 request.debtorAccountId(),
                 request.creditorAccountId(),
-                request.amount());
+                request.amount(),
+                request.currency());
 
         PaymentResult result = payments.create(command);
+
         return ResponseEntity
-                .created(URI.create("/payments/" + result.id()))
+                .created(URI.create("/api/payments/" + result.id()))
                 .body(PaymentResponse.from(result));
     }
 }
 ```
 
-The controller owns HTTP translation: headers, authentication-to-command
-mapping, status and representation. The service owns the use case. The entity
-does not cross the HTTP boundary.
+The controller reads HTTP-specific input, converts it to an application command
+and turns the result into an HTTP response. It does not own payment state
+transitions or database transactions.
 
-### Thread-per-request consequences
+### Transport validation and business validation
 
-Blocking MVC normally dedicates one container thread while the request waits
-for JDBC or a downstream HTTP call. Throughput is therefore bounded by worker
-threads, connection pools and dependency latency—not CPU alone.
+`@Valid @RequestBody` runs Bean Validation while MVC resolves the controller
+argument. It can reject a missing field, malformed value or simple structural
+constraint before the controller method runs.
 
-If the database pool has 30 connections and 200 servlet threads, at most
-roughly 30 concurrent database users can make progress; the others wait or do
-non-database work. Increasing the web thread count can increase queueing and
-memory while leaving throughput unchanged.
+Business rules require domain state and context, for example:
 
-Virtual threads can reduce the cost of blocked threads, but they do not create
-database connections or remove downstream limits. Reactive WebFlux can
-efficiently compose non-blocking I/O, but mixing it with blocking JDBC on an
-event loop destroys the benefit. Choose a model from the whole call chain,
-not fashion.
+- the debtor account is active and belongs to the caller;
 
-### Outbound HTTP clients
+- the balance covers the debit;
 
-For new synchronous code, prefer the supported modern synchronous client
-(`RestClient` in current Spring) or an interface client built on it. `WebClient`
-is the reactive client and can also be used in blocking code, but blocking it
-does not make the path reactive. `RestTemplate` remains common in older
-systems but is not the direction for new designs.
+- the daily transfer limit has not been exceeded;
 
-Every production client needs:
+- the currency and payment rail are compatible.
 
-- connect, pool-acquisition and response/read timeouts;
+Those checks belong in the application or domain operation, often within the
+same transaction and concurrency control as the write. Checking current
+balance in a controller and updating it later creates a time-of-check/
+time-of-use race.
 
-- bounded connections and pending work;
+Method validation can apply constraints to service arguments and return values
+when it is enabled, but it does not replace domain rules that need current
+persistent state.
 
-- TLS and hostname verification;
+### Keep persistence entities behind the API contract
 
-- authentication and safe header propagation;
+Returning JPA entities directly couples JSON to persistence mappings. It can
+trigger lazy loading during serialization, expose relationships accidentally
+and make the external contract change when the schema model changes.
 
-- error mapping that preserves retryability information;
+Use request or command types at input and response projections at output. This
+does not require one DTO for every method call; introduce a boundary type where
+ownership, contract or change rate differs.
 
-- metrics/traces with low-cardinality tags;
+### Give failures a stable response shape
 
-- an idempotency decision before retries.
-
-An HTTP 500, socket reset and timeout are not equivalent. A timeout is
-**ambiguous**: the peer may have completed the operation after the caller gave
-up.
-
----
-
-## 7. API boundaries validation and exceptions
-
-### Transport validation versus business validation
-
-Transport validation rejects malformed input before the use case:
-
-```java
-public record CreatePaymentRequest(
-        @NotNull UUID debtorAccountId,
-        @NotNull UUID creditorAccountId,
-        @NotNull @DecimalMin("0.01") BigDecimal amount,
-        @NotBlank @Size(max = 3) String currency) { }
-```
-
-`@Valid @RequestBody` triggers nested Bean Validation during MVC argument
-resolution. Method parameter/return validation can enforce constraints on
-service methods when method validation is enabled.
-
-Business validation needs current domain state:
-
-- account is active;
-
-- debtor owns the account;
-
-- available balance covers the debit;
-
-- daily transfer limit is not exceeded;
-
-- currency pair and rail are allowed.
-
-These rules belong in the domain/application layer and often inside the same
-transaction or lock boundary as the write. A pre-query in the controller has
-a time-of-check/time-of-use race.
-
-### Error contract
-
-A consistent error response should contain stable machine-readable data and
-safe human context:
+A useful error body has a stable machine-readable code and enough safe context
+to correlate the failure:
 
 ```json
 {
@@ -1298,494 +1568,95 @@ safe human context:
 }
 ```
 
-Spring's `ProblemDetail` models RFC problem details and can carry additional
-properties. Keep the application error `code` stable; titles and messages can
-change or be localized. Never expose stack traces, SQL, key material, token
-claims or internal hostnames.
+Spring's `ProblemDetail` represents RFC problem details and allows additional
+properties. Keep `code` stable even if human-facing text changes. Never expose
+stack traces, SQL, credentials, token claims, internal hostnames or key
+material.
 
-### MVC exception boundary
+`@RestControllerAdvice` handles failures that enter MVC's exception-resolution
+path:
 
 ```java
 @RestControllerAdvice
 class ApiExceptionHandler {
 
     @ExceptionHandler(PaymentNotFound.class)
-    ResponseEntity<ProblemDetail> notFound(PaymentNotFound failure) {
+    ProblemDetail notFound(PaymentNotFound failure) {
         ProblemDetail problem = ProblemDetail.forStatus(404);
         problem.setTitle("Payment not found");
         problem.setProperty("code", "PAYMENT_NOT_FOUND");
-        return ResponseEntity.status(404).body(problem);
+        return problem;
     }
 
     @ExceptionHandler(OptimisticLockingFailureException.class)
-    ResponseEntity<ProblemDetail> conflict(Exception failure) {
+    ProblemDetail conflict(OptimisticLockingFailureException failure) {
         ProblemDetail problem = ProblemDetail.forStatus(409);
         problem.setTitle("Payment state changed concurrently");
         problem.setProperty("code", "PAYMENT_STATE_CONFLICT");
-        return ResponseEntity.status(409).body(problem);
+        return problem;
     }
 }
 ```
 
-Map expected domain failures precisely. For unexpected exceptions, log once
-at the owning boundary with a correlation/trace identifier and return a
-generic 500. Logging the same stack at controller, service and repository
-creates noise without information.
+Map expected failures deliberately. For an unexpected exception, log the stack
+once at the owning boundary with a correlation or trace identifier and return a
+generic 500. Logging it again in every layer creates duplicates without adding
+evidence.
 
-`@ControllerAdvice` participates in MVC's exception-resolution path. An
-authentication or authorization failure in a security filter happens before
-`DispatcherServlet`, so it normally requires an `AuthenticationEntryPoint` or
-`AccessDeniedHandler`, not MVC advice.
+Security-filter failures remain owned by the handlers described in §7; they do
+not pass through this advice.
 
-### Status-code decisions
+### Choose status codes as part of the contract
 
-- `400 Bad Request` — malformed representation or request constraint failure.
-
-- `401 Unauthorized` — authentication missing or invalid; despite the name,
-  it means unauthenticated.
-
-- `403 Forbidden` — authenticated identity lacks permission.
-
-- `404 Not Found` — resource absent; sometimes also used deliberately to avoid
-  exposing whether another tenant's resource exists.
-
-- `409 Conflict` — current resource state conflicts, including a surfaced
-  optimistic-lock conflict.
-
-- `422 Unprocessable Content` — syntactically valid but semantically invalid
-  input, when the API contract chooses this distinction.
-
-- `429 Too Many Requests` — rate or quota exceeded; include a useful retry
-  signal when safe.
-
-- `503 Service Unavailable` — temporarily unable to serve, possibly with
-  `Retry-After`; not a generic wrapper for every dependency error.
-
-Status alone is insufficient. Define idempotency, retryability and error-code
-semantics in the API contract.
-
-### DTOs and entity boundaries
-
-Returning JPA entities directly couples the wire contract to persistence,
-risks lazy loading during serialization, exposes unintended relationships,
-and makes schema evolution difficult. Use command/request DTOs at input and
-projection/response DTOs at output.
-
-Do not create one DTO per layer mechanically. Create a boundary type when the
-contract, ownership or change rate differs.
-
----
-
-## 8. Spring Security architecture
-
-### Authentication and authorization
-
-- **Authentication** establishes *who* the caller is and how that claim was
-  verified.
-
-- **Authorization** decides whether that authenticated caller may perform a
-  particular action on a particular resource.
-
-A valid token proves neither account ownership nor permission to transfer a
-specific amount. Authentication is evidence used by authorization.
-
-The minimum vocabulary for the servlet examples is:
-
-| Term | Meaning |
+| Status | Typical meaning here |
 |---|---|
-| credential | Evidence presented for authentication, such as a password, session cookie or bearer token. |
-| principal | The identity represented after successful authentication. |
-| authority | A granted capability represented by a string such as `PAYMENT_WRITE`. |
-| `Authentication` | Spring Security's object containing the principal, authorities and authentication state. |
-| `SecurityContext` | Holder for the current `Authentication`. |
-| filter | A servlet component that can inspect, modify, reject or pass an HTTP request before MVC. |
-| resource server | The API that validates an access token and protects resources; it is not normally the system that issued the token. |
-
-### A concrete bearer-token request
-
-Use one request as the running example:
-
-```http
-POST /api/payments/7e5b7c0a-12c4-4d89-9f6a-1d9125034210/settlement HTTP/1.1
-Host: payments.example.com
-Authorization: Bearer eyJ...
-Content-Type: application/json
-
-{"settledAt":"2026-09-07T10:30:00Z"}
-```
-
-Suppose the decoded JWT payload resembles:
-
-```json
-{
-  "iss": "https://identity.example.com",
-  "sub": "user-1842",
-  "aud": ["payments-api"],
-  "exp": 1788778800,
-  "nbf": 1788774900,
-  "permissions": ["PAYMENT_WRITE"]
-}
-```
-
-Decoded claims are untrusted input until signature and claim validation
-succeed. A signed JWT normally provides integrity, not secrecy; clients and
-intermediaries that possess it can read its claims. Never put passwords,
-account secrets or unnecessary personal data in it.
-
-With OAuth2 resource-server and JWT/JOSE support on the classpath, Boot can
-configure trusted key discovery and standard validation from the issuer:
-
-```yaml
-spring:
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: https://identity.example.com
-          audiences: payments-api
-```
-
-The issuer metadata identifies the key set used to verify signatures. The
-audience check prevents a token intended for some other API from being
-accepted by the payments API. Production availability also requires a
-deliberate key-discovery/cache and startup policy.
-
-### The servlet security chain
-
-```text
-Servlet container FilterChain
-  -> DelegatingFilterProxy
-       -> Spring bean named springSecurityFilterChain
-            -> FilterChainProxy
-                 -> first matching SecurityFilterChain
-                      -> exploit protection
-                      -> authentication filters
-                      -> authorization filter
-  -> DispatcherServlet
-```
-
-`FilterChainProxy` selects the **first matching** `SecurityFilterChain`. Inside
-a chain, filters also have a defined order because authentication must be
-available before authorization. Security filters can stop the request and
-write the response without invoking MVC.
-
-The wrapper types each have one job:
-
-- `DelegatingFilterProxy` is the servlet-container filter that finds a Spring
-  bean and delegates to it.
-
-- `FilterChainProxy` is that Spring Security bean; it chooses one configured
-  `SecurityFilterChain`.
-
-- A `SecurityFilterChain` is a matcher plus an ordered list of security
-  filters for matching requests. It is not the servlet container's entire
-  filter chain.
-
-Multiple chains are useful when `/api/**` is stateless JWT while an admin UI
-uses a session. Make chain matchers mutually understandable and always define
-a safe fallback.
-
-### Security context and authentication object
-
-`SecurityContextHolder` exposes the current `SecurityContext`, which holds an
-`Authentication`. A successful `Authentication` generally contains:
-
-- principal — identity/user representation;
-
-- credentials — often cleared after authentication;
-
-- authorities — granted capabilities such as `PAYMENT_WRITE`;
-
-- details — request or mechanism-specific metadata;
-
-- authenticated flag.
-
-In the ordinary servlet model the context is associated with the current
-thread for the request and cleared afterward. Moving work to another executor
-does not safely propagate it by accident. Use Spring's context-aware wrappers
-or, better, pass the minimal business identity explicitly into an asynchronous
-command. Never retain an `Authentication` in a singleton field.
-
-### Authentication pipeline
-
-For username/password-style authentication, the components line up as:
-
-```text
-authentication filter extracts credentials
-  -> unauthenticated Authentication token
-  -> AuthenticationManager
-       -> ProviderManager delegates to AuthenticationProvider(s)
-            -> load identity / verify credential with PasswordEncoder
-  -> authenticated Authentication with authorities
-  -> SecurityContext for the request
-```
-
-An `AuthenticationProvider` supports particular token types. `ProviderManager`
-tries suitable providers and can delegate to a parent. A `UserDetailsService`
-loads user data; it does not by itself authenticate an HTTP request.
-
-For a JWT resource server, the bearer filter extracts the token, a JWT
-authentication provider uses a decoder to verify and validate it, and a
-converter maps trusted claims to principal/authorities. The resulting context
-feeds route and method authorization. The resource server does not compare a
-JWT to a stored password on every request.
-
-A `SecurityContextRepository` can load/save context for session-based flows.
-A stateless resource-server chain should not create a login session as an
-authentication cache. In both designs, security infrastructure must clear the
-thread-associated context at request completion to prevent identity leakage
-into reused container threads.
-
-### A stateless resource-server chain
-
-```java
-@Configuration(proxyBeanMethods = false)
-@EnableMethodSecurity
-class SecurityConfiguration {
-
-    @Bean
-    JwtAuthenticationConverter jwtAuthenticationConverter() {
-        JwtGrantedAuthoritiesConverter authorities =
-                new JwtGrantedAuthoritiesConverter();
-        authorities.setAuthoritiesClaimName("permissions");
-        authorities.setAuthorityPrefix("");
-
-        JwtAuthenticationConverter authentication =
-                new JwtAuthenticationConverter();
-        authentication.setJwtGrantedAuthoritiesConverter(authorities);
-        return authentication;
-    }
-
-    @Bean
-    @Order(1)
-    SecurityFilterChain api(
-            HttpSecurity http,
-            JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
-        return http
-                .securityMatcher("/api/**")
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .csrf(csrf -> csrf.disable())
-                .cors(Customizer.withDefaults())
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/health/readiness").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/payments/**")
-                            .hasAuthority("PAYMENT_WRITE")
-                        .requestMatchers(HttpMethod.GET, "/api/payments/**")
-                            .hasAuthority("PAYMENT_READ")
-                        .anyRequest().authenticated())
-                .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt
-                        .jwtAuthenticationConverter(jwtAuthenticationConverter)))
-                .exceptionHandling(errors -> errors
-                        .authenticationEntryPoint(
-                                new BearerTokenAuthenticationEntryPoint())
-                        .accessDeniedHandler(
-                                new BearerTokenAccessDeniedHandler()))
-                .build();
-    }
-
-    @Bean
-    SecurityFilterChain fallback(HttpSecurity http) throws Exception {
-        return http
-                .authorizeHttpRequests(auth -> auth.anyRequest().denyAll())
-                .build();
-    }
-}
-```
-
-The converter is essential to this particular contract: it turns the custom
-`permissions` claim into exact, prefix-free authorities, so
-`hasAuthority("PAYMENT_WRITE")` can succeed. With Spring Security's default
-converter, standard `scope`/`scp` values instead become authorities prefixed
-with `SCOPE_`; a scope named `payment.write` would be checked as
-`SCOPE_payment.write`.
-
-The standard bearer handlers above produce OAuth2 bearer errors. An application
-that promises a shared problem-details contract can replace them with custom
-`AuthenticationEntryPoint` and `AccessDeniedHandler` implementations.
-
-`@Order(1)` gives the API chain priority. Requests outside `/api/**` do not
-match it, so the later fallback chain denies them. Without a matching fallback,
-an unintended endpoint could remain outside Spring Security entirely.
-
-Disabling CSRF is justified here only because browsers do not automatically
-attach the bearer credential and the chain is truly stateless. If a browser
-authenticates with cookies, CSRF protection normally remains necessary.
-
-### One request through the security chain
-
-For the running `POST` request, the end-to-end sequence is:
-
-1. The servlet container invokes `DelegatingFilterProxy` before
-   `DispatcherServlet` and Spring MVC.
-
-2. `FilterChainProxy` selects the first chain whose `securityMatcher` accepts
-   `/api/payments/7e5b7c0a-12c4-4d89-9f6a-1d9125034210/settlement`—the
-   `/api/**` chain above.
-
-3. The bearer-token filter extracts the `Authorization` header. Absence or a
-   malformed bearer credential fails authentication when this protected route
-   requires it.
-
-4. The JWT decoder verifies the signature using a trusted key and validates
-   time, issuer and configured audience constraints.
-
-5. `JwtAuthenticationConverter` maps `sub` to the principal name and the
-   `permissions` claim to authorities. Successful authentication is stored in
-   the request's `SecurityContext`.
-
-6. Request authorization evaluates matchers in declaration order. The POST
-   rule requires `PAYMENT_WRITE`.
-
-7. If allowed, the chain continues to MVC and the controller. Method/object
-   authorization may impose narrower ownership rules in §9.
-
-8. On completion, security infrastructure clears the thread-associated
-   context so a reused servlet thread cannot inherit the previous identity.
-
-An invalid token stops at authentication and produces 401. A valid token
-without `PAYMENT_WRITE` reaches authorization but is denied with 403. Neither
-failure needs to invoke a controller.
-
-### Route matcher ordering
-
-Within request authorization, rules are evaluated in declaration order and
-the first matching rule applies. Put specific rules before broad rules:
-
-```java
-.requestMatchers("/actuator/health/liveness").permitAll()
-.requestMatchers("/actuator/**").hasAuthority("OPS")
-.anyRequest().authenticated()
-```
-
-If `/**.permitAll()` comes first, later restrictions never participate. If a
-broad deny comes first, intended public endpoints are unreachable. The same
-first-match principle applies when selecting among multiple security chains.
-
-### Sessions versus stateless authentication
-
-With session authentication, credentials are verified once and the server
-persists a security context associated with a session cookie. Advantages
-include simple logout/revocation and small subsequent requests; costs include
-server-side state, CSRF exposure for browser cookies and distributed-session
-operations when horizontally scaled.
-
-With bearer-token resource-server authentication, every request presents a
-token. The service validates it and derives an `Authentication`; it does not
-need a login session. Advantages include service autonomy and horizontal
-scaling. Costs include token lifecycle, key rotation, revocation difficulty,
-claim design and larger request credentials.
-
-"JWT" is a token format, not an architecture and not encryption. Do not place
-secrets in claims.
-
-### JWT resource-server validation
-
-A resource server should validate at least:
-
-- signature with an allowed algorithm and trusted current key;
-
-- issuer (`iss`);
-
-- expiration (`exp`) and not-before (`nbf`) with controlled clock skew;
-
-- audience (`aud`) when the token is intended for specific services;
-
-- required claim types and mapping to authorities.
-
-Decoding Base64 is not validation. Accepting the algorithm chosen by an
-untrusted token, skipping audience checks or trusting a gateway-injected
-identity header on a bypassable network path are authentication failures.
-
-The authorization server authenticates users/clients and issues tokens. The
-resource server validates access tokens and enforces access. An access token
-is for APIs; an OpenID Connect ID token describes a login to a client and
-should not be used as a general API credential.
-
-### Passwords
-
-Store a password using an adaptive one-way password encoder such as bcrypt,
-scrypt, PBKDF2 or Argon2, with a per-password salt handled by the encoder.
-The work factor should make offline guessing expensive while fitting login
-capacity. Use a delegating encoder format when supporting algorithm upgrades.
-
-Never store reversible encrypted passwords or fast unsalted hashes. Never log
-credentials. Rate limit authentication attempts, design recovery carefully,
-and treat MFA/recovery as part of the trust model.
-
-### CSRF and CORS
-
-**CSRF** exploits credentials that a browser attaches automatically, such as
-session cookies, by causing the browser to send an unwanted state-changing
-request. A CSRF token or same-site cookie policy helps prove the request came
-from the intended application. Stateless does not automatically mean
-CSRF-safe; the credential transport determines the risk.
-
-**CORS** is a browser policy controlling whether JavaScript from one origin
-may read/use a cross-origin response. It is not authentication and does not
-protect server-to-server calls. Preflight requests may be unauthenticated and
-need CORS processing before an authentication rejection.
-
-### 401 and 403 boundaries
-
-- An `AuthenticationEntryPoint` handles a request that needs authentication
-  but has no valid authenticated identity: **401**.
-
-- An `AccessDeniedHandler` handles an authenticated caller denied access:
-  **403**.
-
-```mermaid
-flowchart TD
-    A[HTTP request] --> B[Spring Security filter chain]
-    B --> C{Valid authentication?}
-    C -- No --> D[AuthenticationEntryPoint]
-    D --> E[401 problem response]
-    C -- Yes --> F{Authorized for request?}
-    F -- No --> G[AccessDeniedHandler]
-    G --> H[403 problem response]
-    F -- Yes --> I[DispatcherServlet and Spring MVC]
-    I --> J{Controller path succeeds?}
-    J -- Yes --> K[Application response]
-    J -- No --> L[HandlerExceptionResolver / @ControllerAdvice]
-    L --> M[MVC problem response]
-```
-
-`ExceptionTranslationFilter` bridges eligible security exceptions to those
-handlers. A custom filter placed incorrectly may throw outside that handling
-region; filter position is part of correctness.
-
-Write the same safe problem-details schema at both security and MVC
-boundaries, but do not force security-filter exceptions through a controller.
+| `400 Bad Request` | malformed representation or request constraint failure |
+| `401 Unauthorized` | authentication missing or invalid |
+| `403 Forbidden` | authenticated identity lacks permission |
+| `404 Not Found` | resource absent, or deliberately concealed from another tenant |
+| `409 Conflict` | current resource state conflicts with the operation |
+| `422 Unprocessable Content` | structurally valid input fails a semantic contract, when the API uses this distinction |
+| `429 Too Many Requests` | rate or quota exceeded |
+| `503 Service Unavailable` | service is temporarily unable to handle the request |
+
+The status is only one part of the contract. Also define the stable error code,
+whether the outcome is retryable and whether repeating the request requires an
+idempotency key.
 
 ---
 
-## 9. Route and method authorization
+## 9. Method authorization and ownership
 
-### Why use both boundaries
+Request authorization protects an HTTP route. Method authorization protects an
+application operation regardless of whether it was reached from MVC, a message
+listener, a scheduler or another service bean.
 
-Route authorization cheaply protects HTTP entry points by method/path and
-coarse authority. Method authorization protects business operations wherever
-they are invoked—from MVC, messaging, scheduling or another service bean.
+### Apply authorization at the right layers
 
 ```text
-request rule: may PAYMENT_WRITE callers enter POST /payments?
-service rule: may this caller debit this account for this command?
-domain rule: is this payment transition legal in current state?
+security filter: may this authority enter POST /api/payments/**?
+controller:      translate the authenticated request into a command
+service proxy:   may this caller perform this operation on this account?
+domain/data:     is the state transition legal and scoped to the tenant?
 ```
 
-They are complementary. A controller path is not a durable business boundary;
-a service might later gain a Kafka listener or batch caller.
+The checks are related but not interchangeable. A route rule is useful and
+cheap, but the URL does not always contain enough information for account
+ownership or transaction-limit decisions. The service operation has the
+business arguments and remains protected when a new entry point is added.
 
-### Enabling and using method security
+### Enable and apply method security
 
-Adding the security starter does not by itself activate method authorization.
-Enable it explicitly:
+The security starter does not activate method authorization by itself:
 
 ```java
 @Configuration
 @EnableMethodSecurity
 class MethodSecurityConfiguration { }
 ```
+
+`@EnableMethodSecurity` installs advisors for annotations such as
+`@PreAuthorize` and `@PostAuthorize`.
 
 ```java
 @Service
@@ -1794,46 +1665,31 @@ class AccountApplicationService {
     @PreAuthorize("hasAuthority('PAYMENT_WRITE') " +
                   "and @accountPolicy.canDebit(authentication, #accountId)")
     public PaymentResult debit(UUID accountId, Money amount) {
-        // business rule and state change
-    }
-
-    @PostAuthorize("returnObject.ownerId() == authentication.name")
-    public AccountView read(UUID accountId) {
-        return load(accountId);
+        return performDebit(accountId, amount);
     }
 }
 ```
 
-- `@PreAuthorize` decides before invocation and is the default choice.
+`hasAuthority("PAYMENT_WRITE")` checks the exact granted string.
+`hasRole("OPS")` conventionally checks for `ROLE_OPS`. Capability-oriented
+authorities tend to remain more stable than organization-specific role names.
 
-- `@PostAuthorize` decides using `returnObject` after invocation. Avoid it
-  when executing the method already reveals data or produces side effects.
-
-- `@PreFilter` removes unauthorized elements from supported input
-  collections before invocation.
-
-- `@PostFilter` removes unauthorized elements from returned collections after
-  invocation.
-
-Filtering is not rejection. An atomic batch that contains one unauthorized
-payment should normally fail as a whole, not silently process the remainder.
-Post-filtering does not prevent rows from being read and breaks the meaning of
-database pagination; constrain tenant/ownership in the query.
-
-### Roles authorities and policy beans
-
-`hasAuthority("PAYMENT_WRITE")` compares the exact granted string.
-`hasRole("OPS")` conventionally checks for `ROLE_OPS`. Prefer stable
-capabilities over an explosion of organization-specific roles.
-
-Complex object authorization is clearer in a typed policy bean:
+Move object-level logic into a typed policy bean rather than building a long
+expression:
 
 ```java
 @Component("accountPolicy")
 class AccountPolicy {
     private final AccountAccessRepository access;
 
-    public boolean canDebit(Authentication authentication, UUID accountId) {
+    AccountPolicy(AccountAccessRepository access) {
+        this.access = access;
+    }
+
+    public boolean canDebit(
+            Authentication authentication,
+            UUID accountId) {
+
         return authentication != null
                 && authentication.isAuthenticated()
                 && access.mayDebit(authentication.getName(), accountId);
@@ -1841,61 +1697,55 @@ class AccountPolicy {
 }
 ```
 
-Keep the expression short and test the policy as ordinary Java. Authorization
-must fail closed on missing data or dependency failure unless the business
-risk explicitly supports another decision.
+The expression remains a readable declaration, while the policy can be tested
+as ordinary Java. Missing data and dependency failures should deny access unless
+the risk model explicitly defines another safe outcome.
 
-### SpEL vocabulary
+### Before, after and filtering annotations
 
-Spring Expression Language appears in configuration and security:
-
-| Form | Meaning |
+| Annotation | Decision point |
 |---|---|
-| `${payments.timeout}` | property placeholder resolved from the environment |
-| `#{2 * 1000}` | evaluated SpEL expression |
-| `@accountPolicy` | bean reference inside SpEL |
-| `#accountId` | method argument/variable |
-| `authentication` | current security authentication in method expressions |
-| `principal` | current principal |
-| `returnObject` | method return value in post-authorization |
-| `filterObject` | current element/entry during pre/post filtering |
+| `@PreAuthorize` | before invocation; usually the clearest choice |
+| `@PostAuthorize` | after invocation, with access to `returnObject` |
+| `@PreFilter` | removes unsupported elements from eligible input collections |
+| `@PostFilter` | removes unsupported elements from eligible result collections |
 
-SpEL can navigate properties, call methods, perform selection and invoke
-beans. That power is exactly why untrusted strings must never be evaluated as
-expressions. Use a fixed expression with data passed as variables, or a typed
-policy API.
+`@PostAuthorize` is unsuitable when running the method has already exposed
+data or produced an irreversible side effect. Filtering is not rejection: an
+atomic batch containing one unauthorized item should normally fail, not
+silently process the rest. Post-filtering also cannot make an unscoped database
+query safe or preserve correct pagination.
 
-### Proxy implications
+Useful expression values include `authentication`, method arguments such as
+`#accountId`, bean references such as `@accountPolicy`, and `returnObject` for
+post-authorization. The expression itself should be fixed application code;
+never evaluate untrusted text as SpEL.
 
-Method security is proxy-based by default. Self-invocation, `new` objects,
-private/final non-interceptable methods and calls during initialization can
-bypass it just like transactions. Do not assume a protected annotation on a
-method proves every call path crossed the proxy.
+### Method security is proxy-based
 
-For the most sensitive invariant, also enforce tenant/account ownership in the
-data access predicate and domain operation. Defense in depth should repeat the
-invariant at meaningful boundaries, not duplicate opaque expressions
-everywhere.
+Method-security advisors run when a call crosses the Spring proxy. The same
+constraints described in §5 apply: self-invocation, objects created with `new`,
+non-interceptable methods and calls during initialization can bypass the
+advisor.
 
-### Security review checklist
+Authorization on the service method is still not the only safeguard. Tenant or
+account ownership should constrain the data-access predicate, and the domain
+operation should reject illegal state transitions. Each check protects a
+different failure mode.
 
-For a money-moving endpoint, be ready to state:
+### Test the access matrix
 
-- who issues and who validates credentials;
+For a protected money-moving operation, test at least:
 
-- issuer/audience/key-rotation expectations;
+| Case | Expected result |
+|---|---|
+| missing or invalid credential | 401 from the security chain |
+| valid identity without route authority | 403 before MVC |
+| valid authority but another tenant's account | denial at method/data policy |
+| permitted identity and owned account | operation reaches business code |
 
-- route rule and method/object rule;
-
-- tenant/account scoping in the query;
-
-- CSRF decision based on credential transport;
-
-- 401 and 403 response owners;
-
-- audit data captured without sensitive payloads;
-
-- tests for missing, invalid, insufficient and cross-tenant identities.
+Also verify that audit records identify the action and decision without storing
+credentials or sensitive token contents.
 
 ---
 
@@ -4563,8 +4413,8 @@ line running in the target system.
 |---|---|---|
 | §1–§4 Boot/container | [Boot basics](spring-boot-basics.md) and [container internals](spring-container-internals.md) | explain startup and diagnose one conditional-bean failure |
 | §5 proxies | [Boot basics §8](spring-boot-basics.md) | reproduce self-invocation and show collaborator fix |
-| §6–§7 MVC/API | [Boot basics §5–§6](spring-boot-basics.md) | controller test for JSON, validation and problem details |
-| §8–§9 security | [Security kit](spring-security-basics.md) | 401/403/cross-tenant tests and filter-chain explanation |
+| §6 and §8 MVC/API | [Boot basics §5–§6](spring-boot-basics.md) | controller test for JSON, validation and problem details |
+| §7 and §9 security | [Security kit](spring-security-basics.md) | 401/403/cross-tenant tests and filter-chain explanation |
 | §10–§12 persistence | [JPA performance kit](spring-data-jpa-performance.md) | query-count test and one concurrent-write test |
 | §13–§14 consistency | [Transaction kit](spring-boot-transactions-deep.md) | rollback-only reproduction and outbox/idempotency design |
 | §15 resilience | [Resilience kit](spring-boot-resilience.md) | delayed/failing stub proves deadline, attempts and fallback |
