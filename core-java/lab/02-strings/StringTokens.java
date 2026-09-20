@@ -15,6 +15,14 @@ public final class StringTokens {
     private StringTokens() {
     }
 
+    /*
+     * Both approaches hinge on one rule: a "letter" here is a Unicode code
+     * point, not a char. Java strings are UTF-16, so an astral letter like
+     * 𐐀 (U+10400) is two chars, and Character.isLetter(char) says false for
+     * each surrogate half on its own. Approach 1 survives that only because
+     * it reads codePointAt/charCount and never touches charAt; approach 2
+     * gets it free, since \P{L} in java.util.regex matches per code point.
+     */
     static List<String> tokenize(String text) {
         // appraoch 1: using a loop and codepoints
         /* 
@@ -38,7 +46,22 @@ public final class StringTokens {
         return tokens;
         */
 
+        // The loop's cost is the trailing flush after the while: a token still
+        // in the builder when the text ends has no delimiter to close it. The
+        // strip() is decoration — a leading or trailing run of non-letters is
+        // already skipped by the isLetter test.
+
         // appraoch 2: regex and streams
+        // \P{L} is the negated category: one or more non-letters, so the
+        // delimiter is "everything a token isn't" and no letter needs listing.
+        // The + matters — without it "coffee... and" would split on each dot
+        // and hand back empty strings between them.
+        //
+        // The filter exists for one asymmetric case: split discards trailing
+        // empty fields but keeps a leading one, so ", Tea" arrives as
+        // ["", "Tea"] while "Tea, " is just ["Tea"]. "--- 123 ---" needs no
+        // guard of its own; it is all delimiter, so the stream is empty and
+        // toList() returns [].
         return Pattern.compile("\\P{L}+")
                 .splitAsStream(text)
                 .filter(s -> !s.isEmpty())

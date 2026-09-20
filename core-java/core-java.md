@@ -113,10 +113,72 @@ version?" is a certainty).
   behind an interface (design level); encapsulation hides data
   behind access control (implementation level).
 - **Interface vs abstract class?**
-  - interface — pure contract: no state, a class implements many
-  - abstract class — partial implementation: fields +
-    constructors, single inheritance
-  - since Java 8 interfaces may carry `default`/`static` methods
+  - interface — a contract/capability; no constructors or per-object
+    instance state, and a class may implement many
+  - abstract class — a shared base for closely related classes; may
+    have instance fields, constructors, protected members, and both
+    abstract and concrete methods, but a class may extend only one
+  - since Java 8 interfaces may have `default`/`static` methods (and
+    private helper methods since Java 9), so "interface = 100%
+    abstraction" is an outdated interview answer
+- **If abstract classes exist, why do we need interfaces?** — they
+  solve different design problems. An abstract class says **what an
+  object is** and shares state/implementation within one class family;
+  an interface says **what an object can do** and lets unrelated
+  classes expose the same contract.
+  - Java permits only one superclass, but a class may implement many
+    interfaces — it can inherit one implementation while advertising
+    several independent capabilities
+  - callers can depend on the interface instead of a concrete class;
+    implementations can then be swapped, mocked, or injected without
+    changing the caller
+  - an interface does not force implementors into the same class
+    hierarchy or give them unwanted state/implementation
+
+  ```java
+  interface Payable  { void pay(); }
+  interface Retryable { void retry(); }
+
+  abstract class AuditedService {       // shared state + implementation
+      protected final String serviceName;
+
+      protected AuditedService(String serviceName) {
+          this.serviceName = serviceName;
+      }
+
+      protected void audit() { /* common logic */ }
+  }
+
+  class CardService extends AuditedService
+          implements Payable, Retryable {
+      CardService() { super("card"); }
+      public void pay()   { audit(); }
+      public void retry() { /* retry logic */ }
+  }
+  ```
+
+  Here `CardService` **is an** `AuditedService`, while `Payable` and
+  `Retryable` are independent things it **can do**. The two mechanisms
+  complement each other.
+
+  **`is-a` vs `can-do` gist:**
+  - class inheritance usually models a strong **is-a** family
+    relationship: `SavingsAccount extends Account` → a savings account
+    is an account
+  - an interface usually models a **can-do** capability:
+    `Invoice implements Printable` → an invoice can be printed; an
+    unrelated `Report` can implement the same capability
+  - this is a design heuristic, not a type-system rule — formally, an
+    implementing object **is also an instance of** its interface, so
+    `Payable p = new CardService()` is valid
+  - **has-a** means composition, not inheritance: a `Car` has an
+    `Engine`, so keep an `Engine` field rather than extending `Engine`
+
+  **Decision rule:** need shared mutable state, construction, or common
+  protected implementation across a family → abstract class. Need a
+  role/API that many possibly unrelated classes can implement, or more
+  than one role → interface. Prefer composition when neither needs an
+  inheritance relationship.
 - **Why were `default` methods introduced?** — **interface evolution**.
   Pre-8, adding a method to a published interface broke every
   implementor at compile time. Java 8 needed `stream()` on
@@ -767,41 +829,86 @@ version?" is a certainty).
   catch (SQLException | JMSException e) { ... }  // multi-catch
   ```
 
-- **Overriding + checked exceptions?** *(panel favorite, ties to
-  §1)*
-  - **the rule:** an override can only *shrink* the checked list.
-    It may throw the same, a narrower (subclass), fewer, or none.
-    It may **not** throw a broader checked exception or a brand-new
-    one the parent never declared. Unchecked is unrestricted —
-    throw any `RuntimeException`, declared or not.
-  - **why (say this):** callers are compiled against the *parent's*
-    signature, so they only handle what the parent's `throws` list
-    promises. Polymorphism lets a `Base` reference hold a child
-    instance — `Base b = new Child(); b.read();` — and the caller
-    wrapped that in `try/catch(IOException)`. If `Child.read()`
-    could throw a broader `Exception`, the caller would face a
-    checked exception the compiler already blessed as impossible.
-    So the compiler bans widening at the source. Narrowing is safe:
-    a `FileNotFoundException` *is* an `IOException`, the existing
-    catch still covers it. Unchecked is exempt because the compiler
-    never forced callers to handle it in the first place.
+- **Can we override a method with exceptions?** *(panel favorite,
+  ties to §1)* — yes. The `throws` clause is **not part of the method
+  signature**, so it does not decide whether a method overrides.
+  It only constrains which exceptions the override may let escape.
+- **If the base method declares a checked exception, must the
+  override also declare it?** — **no**. `throws IOException` means
+  "this method *may* let an `IOException` escape," not "every
+  implementation must throw one." The override may declare:
+  - the same checked exception
+  - a narrower subclass of it
+  - fewer exceptions, when the parent declares several
+  - no checked exception at all
+
+  |Parent declaration|Checked declaration allowed on override|
+  |---|---|
+  |none|none|
+  |`throws Exception`|`Exception`, any checked subtype, or none|
+  |`throws IOException`|`IOException`, e.g. `FileNotFoundException`, or none|
+  |`throws IOException, SQLException`|either family, both families, or none|
+
+  The override may **not** declare a broader or unrelated checked
+  exception. Unchecked exceptions (`RuntimeException` and its
+  subclasses) are unrestricted in every row.
+
+  **Memory rule:** the override may *shrink* the checked-exception
+  contract, never widen it.
 
   ```java
   class Base { void read() throws IOException {} }
 
   // ✅ same / narrower / dropped / unchecked
-  class A extends Base { void read() throws IOException {} }
-  class B extends Base { void read() throws FileNotFoundException {} }
-  class C extends Base { void read() {} }
-  class D extends Base { void read() throws IllegalStateException {} }
+  class A extends Base {
+      @Override void read() throws IOException {}
+  }
+  class B extends Base {
+      @Override void read() throws FileNotFoundException {}
+  }
+  class C extends Base {
+      @Override void read() {}
+  }
+  class D extends Base {
+      @Override void read() throws IllegalStateException {}
+  }
 
   // ❌ broader or new checked — won't compile
-  class E extends Base { void read() throws Exception {} }
-  class F extends Base { void read() throws SQLException {} }
+  class E extends Base {
+      @Override void read() throws Exception {}
+  }
+  class F extends Base {
+      @Override void read() throws SQLException {}
+  }
   ```
 
-  - trap line: *narrower-or-fewer OK, broader-or-new checked =
-    compile error, unchecked = anything goes*
+  **Why Java enforces it:** callers compile against the reference
+  type's contract. If `Base.read()` promises at most `IOException`,
+  a runtime `Child` implementation cannot surprise that caller with
+  the broader checked `Exception`. A narrower exception is safe
+  because the parent's catch already covers it.
+
+  ```java
+  class Child extends Base {
+      @Override void read() {} // drops IOException — legal
+  }
+
+  static void callViaBase() throws IOException {
+      Base asBase = new Child();
+      asBase.read();  // must still handle/declare IOException
+  }
+
+  static void callViaChild() {
+      Child asChild = new Child();
+      asChild.read(); // no handling: Child's declaration is used
+  }
+  ```
+
+  The object chosen at runtime decides **which body runs**; the
+  reference type known at compile time decides **which checked
+  exceptions the caller must handle**. An override that declares no
+  checked exception may still catch checked exceptions internally,
+  and it may always throw unchecked exceptions.
 - **ClassNotFoundException vs NoClassDefFoundError?**
   - the Exception — checked; reflectively loading a missing class
     (`Class.forName("com.x.Missing")`)

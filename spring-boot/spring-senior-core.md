@@ -7,7 +7,7 @@
   - [2. IoC dependency injection and beans](#2-ioc-dependency-injection-and-beans)
   - [3. Container startup and extension points](#3-container-startup-and-extension-points)
   - [4. Configuration and auto-configuration](#4-configuration-and-auto-configuration)
-  - [5. AOP proxies](#5-aop-proxies)
+  - [5. Aspect-oriented programming and Spring proxies](#5-aspect-oriented-programming-aop-and-spring-proxies)
 - [Part II. HTTP and security](#part-ii-http-and-security)
   - [6. The servlet request path](#6-the-servlet-request-path)
   - [7. API boundaries validation and exceptions](#7-api-boundaries-validation-and-exceptions)
@@ -58,21 +58,37 @@ idempotent."* Then name the Spring mechanisms.
 
 ### The minimum viable path
 
-If the interview is close, own these chapters first:
+Do not start in the middle of the book. Learn three connected runtime stories;
+each later chapter should attach to one of them.
 
-> **[§5](#5-aop-proxies) → [§6](#6-the-servlet-request-path) →
-> [§8](#8-spring-security-architecture) →
-> [§10](#10-jpa-and-the-persistence-context) →
-> [§11](#11-mapping-fetching-and-query-performance) →
-> [§13](#13-spring-transactions) →
-> [§14](#14-cross-system-consistency) →
-> [§15](#15-resilience) → [§16](#16-observability-and-diagnosis) →
-> [§17](#17-production-testing)**
+1. **How the application comes alive:**
+   [§1 Boot](#1-spring-and-spring-boot) →
+   [§3 context refresh](#3-container-startup-and-extension-points) →
+   [§2 one bean](#2-ioc-dependency-injection-and-beans) →
+   [§5 one proxied call](#5-aspect-oriented-programming-aop-and-spring-proxies).
+2. **How one request reaches business code:**
+   [§6 servlet path](#6-the-servlet-request-path) →
+   [§8 authentication](#8-spring-security-architecture) →
+   [§9 authorization](#9-route-and-method-authorization) →
+   [§7 validation/errors](#7-api-boundaries-validation-and-exceptions).
+3. **How one business operation becomes durable:**
+   [§13 transaction boundary](#13-spring-transactions) →
+   [§10 persistence context](#10-jpa-and-the-persistence-context) →
+   [§11 SQL/fetch behavior](#11-mapping-fetching-and-query-performance) →
+   [§12 concurrent writes](#12-concurrent-writes-and-locking) →
+   [§14 cross-system consistency](#14-cross-system-consistency).
 
-That path covers the questions that distinguish "used Spring" from
-"understands production Spring": proxy boundaries, filter/MVC boundaries,
-the persistence context, N+1, rollback-only state, outbox/idempotency,
-timeout/retry composition, evidence-led diagnosis and failure-proof testing.
+If time is short, be able to narrate those three stories before collecting
+isolated annotations or edge cases. Then add the production proof:
+[§15 resilience](#15-resilience) →
+[§16 observability](#16-observability-and-diagnosis) →
+[§17 testing](#17-production-testing). Configuration in
+[§4](#4-configuration-and-auto-configuration) supplies inputs to all three
+stories and can be studied after the first startup pass.
+
+This order is conceptual rather than numeric. It deliberately follows runtime
+causality: **start the application → handle a request → commit its effects →
+prove it behaves in production.**
 
 ### Version boundary
 
@@ -166,6 +182,30 @@ boundary; the engineer supplies the invariants.
 ---
 
 # Part I. Container and Spring Boot
+
+Part I describes one application startup at nested zoom levels. Keep this map
+visible so the chapters do not feel like separate startup sequences:
+
+```text
+OUTER APPLICATION  §1  SpringApplication.run: environment -> definitions -> ready
+  CONTEXT          §3  refresh: change recipes -> install processors -> build beans
+    ONE BEAN       §2  construct -> inject -> initialize -> exposed bean
+      ONE CALL     §5  caller -> proxy/interceptors -> target
+
+CONFIGURATION      §4  properties and conditions decide which recipes enter the context
+```
+
+Each level owns a different question:
+
+- **§1:** What does Spring Boot do from `main` to readiness?
+- **§3:** What happens inside the context's `refresh()` step?
+- **§2:** What happens to one object created during refresh?
+- **§5:** What happens when another object later calls an exposed proxy?
+- **§4:** Which external values and auto-configuration conditions shape the
+  definitions used by the first three levels?
+
+When a later section mentions an earlier level, treat it as a handoff, not a
+new sequence to memorize.
 
 ## 1. Spring and Spring Boot
 
@@ -308,44 +348,88 @@ what you expect, the question is not "what did Spring do" but "which
 condition matched" — and `--debug` prints the condition evaluation report
 that answers it, in positive and negative matches.
 
-### What `SpringApplication.run` does
+### Spring Boot startup — one story, not eight facts
 
-A useful senior-level sequence is:
+Do not start by reciting event names. Remember one transformation:
 
-1. Determine the application type and create the appropriate context.
-2. Prepare the `Environment` from property sources and profiles.
-3. Apply initializers and publish startup events.
-4. Load application and auto-configuration bean definitions.
-5. Refresh the context: run factory post-processors, register bean
-   post-processors, create eager singletons and start lifecycle components.
-6. Start the embedded web server during context refresh.
-7. Invoke `ApplicationRunner` and `CommandLineRunner` beans.
-8. Publish readiness/application-ready events if startup succeeds.
-
-The ordering carries real operational meaning:
+> **Configuration becomes recipes; recipes become objects; objects become
+> ready.**
 
 ```text
-  1-2  environment ready      <- properties/profiles decide what follows
-  3-4  definitions loaded     <- recipes only; almost nothing constructed
-   5   REFRESH                <- objects built, proxies applied, eager singletons
-   6   port opens             <- inside refresh, so a bean failure = no port
-   7   runners                <- context is live; traffic may already arrive
-   8   ready event            <- readiness probes should flip here, not earlier
+main()
+  -> SpringApplication.run(...)
+  -> ENVIRONMENT       properties, arguments and active profiles
+  -> BEAN DEFINITIONS  configuration, scan, imports and auto-configuration
+  -> REFRESH           process recipes; create, wire, initialize and proxy beans
+  -> RUNNERS           ApplicationRunner / CommandLineRunner
+  -> READY             ApplicationReadyEvent; accept traffic
 ```
 
-Three things fall out of it. Steps 1–2 happen before any bean exists, which
-is why a property that selects a profile cannot come from a bean. Step 6 sits
-*inside* refresh, so a failed singleton means the port never opens — the
-application fails closed rather than serving traffic in a half-built state.
-And step 7 runs after the server is accepting connections.
+That is the interview spine. Expand it as four beats:
 
-A runner executes after the context exists, but it can still delay readiness
-or fail startup. Heavy data migration in a runner is therefore an operational
-decision, not harmless initialization: the port is open, a load balancer may
-already be probing, and a slow runner shows up as a deployment that is
-"started" but failing health checks. Schema migration belongs to a tool such
-as Flyway or Liquibase that runs at a defined point, not to a `CommandLineRunner`
-racing traffic. The refresh phases themselves are [§3](#3-container-startup-and-extension-points).
+1. **Prepare.** `run` determines the application type, prepares the
+   `Environment`, and creates the appropriate `ApplicationContext`. Properties
+   and profiles must be known now because they decide which configuration is
+   active. Ordinary application beans do not exist yet.
+2. **Register recipes.** Boot loads `BeanDefinition`s from the application
+   class: explicit configuration, component scanning, imports and conditional
+   auto-configuration. These are construction recipes, not the objects. This
+   is where conditions match and Boot defaults back off.
+3. **Refresh and build.** The context finalizes definition metadata, registers
+   bean post-processors, and creates the remaining eager singletons. Each bean
+   is constructed, dependencies are injected, initialization callbacks run,
+   and a post-processor may expose a proxy. A web context also creates and
+   starts its embedded server as part of refresh.
+4. **Run and become ready.** After refresh Boot publishes
+   `ApplicationStartedEvent`, calls `ApplicationRunner` and
+   `CommandLineRunner`, then publishes `ApplicationReadyEvent` and changes
+   readiness to accepting traffic. An exception instead produces
+   `ApplicationFailedEvent`.
+
+**A spoken answer:**
+
+> `main` delegates to `SpringApplication.run`. Boot first prepares the
+> environment and profiles, then creates the right application context and
+> registers bean definitions from configuration, component scanning and
+> auto-configuration. Refresh turns those recipes into wired, initialized
+> beans; bean post-processors can wrap them with proxies, and a web context
+> starts the embedded server. Finally Boot runs the runners and publishes the
+> ready event. In short: **environment → definitions → beans → ready**.
+
+Keep the levels separate. `SpringApplication.run` is the whole Boot journey;
+`ApplicationContext.refresh()` is the large middle step that turns definitions
+into a running context. Only zoom into refresh if the interviewer asks about
+post-processors, bean lifecycle or proxies. Its internals are
+[§3](#3-container-startup-and-extension-points).
+
+The order explains the common follow-ups:
+
+- **When does auto-configuration run?** While definitions are being selected
+  and registered, before ordinary application singletons are created.
+- **When are proxies created?** During bean post-processing inside refresh,
+  after the target is instantiated and initialized but before ordinary callers
+  receive the final exposed bean.
+- **`@PostConstruct` or a runner?** `@PostConstruct` is one bean's
+  initialization callback during refresh. Runners execute after the whole
+  context has refreshed and are the better hook for bounded application-level
+  startup work.
+- **Is an open port the same as readiness?** No. The web server is initialized
+  during refresh, but Boot does not announce readiness until runners finish.
+  A platform honoring readiness will not route traffic earlier; direct traffic
+  or a misconfigured platform still can.
+- **What if startup work fails?** The ready state is never reached; startup
+  fails and the context is closed rather than advertising a healthy partial
+  application.
+
+A runner can therefore delay readiness or fail startup. Keep it bounded and
+reserve it for work that truly belongs between "context built" and "ready."
+Schema migration is normally delegated to Flyway or Liquibase at their defined
+startup phase rather than improvised in a runner.
+
+**Blind recall drill:** close the page and rebuild only these arrows first:
+`run → environment → definitions → refresh/beans → runners → ready`. Then add
+one sentence to each arrow. If those six anchors are intact, the details have
+somewhere to attach.
 
 ### A clean application edge
 
@@ -412,6 +496,11 @@ through its constructor, checked, at the edge.
 ---
 
 ## 2. IoC dependency injection and beans
+
+This chapter zooms into the objects created during refresh. §3 owns the
+context-wide refresh sequence; here the questions are narrower: how Spring
+chooses a dependency, constructs one bean, initializes it and exposes the
+finished reference.
 
 ### IoC and DI
 
@@ -662,10 +751,11 @@ initialization is:
 Step 6 is where the interesting thing happens. A post-processor may return
 something *other* than the object it was given — typically a proxy wrapping
 it, carrying the transaction, security or caching behavior your annotations
-asked for ([§3](#3-container-startup-and-extension-points) covers how it
-decides). The container registers that return value as the bean, so from step
-7 onward every other bean holds the proxy. The original object still exists
-inside it, but nothing else has a reference to it.
+asked for. [§3](#3-container-startup-and-extension-points) places that moment
+inside refresh; [§5](#5-aspect-oriented-programming-aop-and-spring-proxies)
+explains the later invocation. The container registers the returned reference
+as the bean, so from step 7 onward other beans normally hold the proxy. The
+original target still exists inside it.
 
 That single detail answers the questions people usually meet separately.
 
@@ -698,7 +788,7 @@ and `this.load()` runs on the bare object regardless. The repository call
 either joins whatever transaction it finds or opens its own, which is rarely
 what the annotation was asking for. It is the same reason an internal
 self-call skips advice, arriving one step earlier
-([§5](#5-aop-proxies)).
+([§5](#5-aspect-oriented-programming-aop-and-spring-proxies)).
 
 Why is a `new`-ed object never quite the same? It never entered this sequence.
 No injection at step 2, no post-processors at steps 4 and 6, so no proxy and
@@ -834,6 +924,11 @@ rather than fix anything.
 
 ## 3. Container startup and extension points
 
+This chapter opens the `REFRESH` box from §1. It owns the context-wide
+transition from registered recipes to a running container. For the lifecycle
+of one object created inside that transition, return to §2; for what an AOP
+proxy does when called later, continue to §5.
+
 ### Definitions are recipes; beans are objects
 
 A `BeanDefinition` describes how to create a bean: class or factory method,
@@ -867,24 +962,50 @@ objects before constructing most of them.
 
 ### The important refresh phases
 
-`ApplicationContext.refresh()` has many implementation details. The stable
-interview model is:
+`refresh()` is the **definitions → beans** section inside the larger Boot
+startup story. Do not memorize another eight-step list. Remember three verbs:
+**change recipes, install processors, build objects**.
 
-1. Prepare or obtain the bean factory and register initial configuration
-   sources.
-2. Invoke `BeanDefinitionRegistryPostProcessor` implementations; Spring's
-   configuration-class processor parses configuration classes, scans and
-   imports and registers further definitions here.
-3. Invoke remaining `BeanFactoryPostProcessor` implementations against the
-   complete definition metadata.
-4. Register `BeanPostProcessor` implementations.
-5. Initialize message source and application event machinery.
-6. Initialize infrastructure such as the embedded server where relevant.
-7. Instantiate remaining eager singleton beans.
-8. Publish refresh lifecycle events and start lifecycle components.
+```text
+BeanDefinitions
+      |
+      |  1. CHANGE RECIPES
+      |     registry post-processors may add definitions
+      |     factory post-processors may modify definitions
+      v
+complete definition metadata
+      |
+      |  2. INSTALL PROCESSORS
+      |     register BeanPostProcessors before ordinary beans exist
+      v
+BeanFactory ready to create managed objects
+      |
+      |  3. BUILD OBJECTS
+      |     construct -> inject -> initialize -> post-process/proxy
+      v
+eager singletons + lifecycle/server infrastructure -> refreshed context
+```
 
-Do not memorize private method names. Explain which phase can safely mutate
-metadata and which can wrap instances.
+In slightly more depth:
+
+1. **Change recipes.** `BeanDefinitionRegistryPostProcessor`s can register
+   more definitions; Spring's configuration-class processor discovers
+   configuration, scans and imports here. Remaining
+   `BeanFactoryPostProcessor`s can modify the completed metadata before
+   ordinary application objects are created.
+2. **Install processors.** Spring discovers and registers
+   `BeanPostProcessor`s early so they can participate in every later bean's
+   initialization. Context services such as event and message infrastructure
+   are prepared around this part of refresh.
+3. **Build objects.** Spring creates remaining non-lazy singleton beans,
+   resolves dependencies, invokes initialization callbacks and lets bean
+   post-processors return the exposed object—sometimes a proxy. Web-server and
+   lifecycle hooks also run within refresh; successful completion publishes
+   the refreshed context and leaves it running.
+
+The boundary to say aloud is more important than internal method names:
+**factory post-processors work on definitions before ordinary objects exist;
+bean post-processors work on instances and can wrap them.**
 
 ### `BeanFactoryPostProcessor` versus `BeanPostProcessor`
 
@@ -921,25 +1042,25 @@ This is educational, not a blanket production recommendation: global lazy
 startup moves configuration failures into first traffic and can create a
 latency spike.
 
-### How proxies appear
+### Where refresh hands off to proxies
 
-Some bean post-processors inspect metadata such as `@Transactional` or
-method-security annotations. After the target initializes, they may return a
-proxy instead of the raw target. Other beans therefore receive the proxy:
+The context-wide story ends at the exposed bean reference. During the final
+part of one bean's lifecycle, a `BeanPostProcessor` may return a proxy instead
+of the raw target:
 
 ```text
 PaymentService target
         |
-        v
-transaction/security advisors selected
+        |  BeanPostProcessor selects transaction/security advisors
         |
         v
-PaymentService proxy injected into controller
+exposed PaymentService proxy -> injected into callers
 ```
 
-The bean name remains the same while its runtime class may be a JDK proxy or a
-generated subclass. Debug behavior through the injected reference, not a raw
-instance created with `new`.
+That is the same lifecycle boundary shown in §2, not another startup phase.
+The bean name remains the same while the exposed runtime object may change.
+Refresh only creates and publishes that reference; §5 owns what happens when a
+caller later crosses the proxy.
 
 ### `FactoryBean<T>`
 
@@ -1184,12 +1305,105 @@ on the platform contract. Distinguish **invalid configuration** from
 
 ---
 
-## 5. AOP proxies
+## 5. Aspect-oriented programming (AOP) and Spring proxies
 
-### The mechanism behind the annotations
+The container work is finished now: definitions were registered, the target
+was created, and callers received the exposed bean reference. This chapter
+starts at **call time**. Its question is not how the application starts, but
+what happens when an invocation crosses that reference.
 
-Spring AOP wraps a target object with a proxy. A call crossing that proxy can
-run advice before, after or around the target method.
+### What AOP means and why it exists
+
+**AOP** means **Aspect-Oriented Programming**. It is a way to keep behavior
+that applies across many classes separate from the business behavior inside
+those classes.
+
+Object-oriented code usually decomposes a system by responsibility:
+`PaymentService` settles payments, `RefundService` creates refunds, and
+`AccountService` changes accounts. Some requirements cut across all those
+vertical responsibilities:
+
+- start and complete a database transaction;
+- verify the caller's authority;
+- record duration and outcome;
+- retry a narrowly defined transient failure;
+- read or populate a cache.
+
+These are **cross-cutting concerns**. Without a shared mechanism, every service
+can become responsible for repeating and correctly ordering the same wrapper
+code. In conceptual ordinary Java, one method might look like this (where the
+three collaborators are application infrastructure helpers):
+
+```java
+Receipt settle(SettlementCommand command) {
+    authorization.require("PAYMENT_WRITE");
+    long started = System.nanoTime();
+    try {
+        return transactions.inTransaction(() -> doSettle(command));
+    } finally {
+        metrics.record("payment.settle", System.nanoTime() - started);
+    }
+}
+```
+
+That explicit code is understandable in isolation. Repeating variants of it in
+fifty methods creates **scattering**—one policy lives in many classes—and
+**tangling**—business workflow is mixed with infrastructure workflow. A change
+to the transaction, authorization or measurement policy then requires many
+edits and is easy to apply inconsistently.
+
+AOP extracts a stable wrapper policy and applies it at selected method
+boundaries:
+
+```text
+without AOP
+  PaymentService -> authorization + transaction + timing + payment logic
+  RefundService  -> authorization + transaction + timing + refund logic
+  AccountService -> authorization + transaction + timing + account logic
+
+with AOP
+  payment call -> [authorization -> transaction -> timing] -> payment logic
+  refund call  -> [the configured interceptor policies]     -> refund logic
+  account call -> [the configured interceptor policies]     -> account logic
+```
+
+AOP does not create a capability that ordinary Java lacks. An engineer could
+write a decorator around every service manually. Spring AOP automates creation
+and selection of those decorators, which is especially valuable for framework
+policies such as `@Transactional`, method security, caching, retry and
+`@Async`. Most Spring developers **use** AOP through those features far more
+often than they write a custom aspect.
+
+Each horizontal policy is one *aspect* of the application that cuts across
+otherwise unrelated classes—hence the name aspect-oriented programming.
+
+Use AOP when the policy is uniform, cross-cutting and naturally wraps a method
+call. Keep domain decisions—payment state transitions, fee calculation,
+compensation and idempotency—in explicit business code where control flow is
+visible.
+
+### The small AOP vocabulary
+
+The terminology maps onto that wrapper model:
+
+| Term | Meaning |
+|---|---|
+| aspect | A module representing one cross-cutting concern, such as timing or authorization. |
+| join point | A place where behavior could be attached; Spring AOP supports method-execution join points. |
+| pointcut | A rule selecting which method-execution join points should be wrapped. |
+| advice/interceptor | The wrapper code that runs before, after or around the selected invocation. |
+| target | The application object containing the actual business method. |
+| proxy | The object given to callers; it runs interceptors and delegates to the target. |
+| advisor | Spring's pairing of a pointcut with advice. |
+
+You do not need this vocabulary to call an annotated service, but it makes
+startup logs, stack traces and proxy failures much easier to reason about.
+
+### The mechanism behind Spring annotations
+
+Spring usually implements AOP by putting a **proxy** in front of a managed bean.
+The proxy behaves like a generated decorator. A call crossing it can run one or
+more interceptors before and after the target method:
 
 ```text
 caller
@@ -1202,13 +1416,111 @@ caller
   <- result or exception
 ```
 
+This nesting is illustrative rather than guaranteed; advisor ordering decides
+which concern wraps which other concern.
+
 Transactions, method authorization, caching, retry and `@Async` commonly use
-this mechanism. The annotation is metadata; the proxy is the runtime behavior.
+this mechanism. An annotation such as `@Transactional` is metadata describing
+the desired boundary; it does not open a transaction by itself. The interceptor
+invoked by the proxy supplies the runtime behavior.
+
+```text
+reference injected into caller
+          |
+          v
+   PaymentService proxy       <- Spring infrastructure object
+   [transaction interceptor]
+          |
+          v
+   PaymentService target      <- application object and business method
+```
+
+This distinction explains the central rule of the chapter:
+
+> Advice runs only when a call reaches the proxy. A direct call on the target
+> has no opportunity to be intercepted.
+
+Spring's proxy-based AOP supports method execution on Spring beans when the call
+arrives through the proxy. It does not intercept field access, constructors,
+arbitrary objects created with `new`, or calls that remain inside the target.
+
+### One call from proxy entry to target return
+
+Consider a transactional application service:
+
+```java
+record SettlementCommand(UUID paymentId) { }
+record Receipt(UUID paymentId) { }
+
+@Service
+class PaymentService {
+
+    @Transactional
+    public Receipt settle(SettlementCommand command) {
+        // Stand-in for the application's ordinary business logic.
+        return new Receipt(command.paymentId());
+    }
+}
+
+@Component
+class SettlementCoordinator {
+    private final PaymentService payments;
+
+    SettlementCoordinator(PaymentService payments) {
+        this.payments = payments; // normally a proxy reference
+    }
+
+    Receipt settle(UUID id) {
+        return payments.settle(new SettlementCommand(id));
+    }
+}
+```
+
+By application readiness, §2–§3 have already explained how the target became
+an exposed proxy and how `SettlementCoordinator` received that reference. The
+new action here is the call:
+
+1. `SettlementCoordinator` invokes `payments.settle(...)` on the exposed
+   reference.
+2. The proxy finds the matching transaction advisor and invokes its
+   interceptor.
+3. The interceptor starts or joins a transaction, then calls the target's
+   business method.
+4. A normal target return makes the interceptor attempt commit before the
+   proxy call returns; a matching failure causes rollback and propagation.
+
+The coordinator does not manually invoke an aspect, and the target does not
+open its own proxy. Business code declares the boundary while infrastructure
+owns the repeated wrapper mechanics. Section 13 owns the exact transaction
+and rollback rules; this chapter owns only the fact that the call crosses the
+interceptor before reaching the target.
+
+At runtime, the call stack is conceptually:
+
+```text
+SettlementCoordinator
+  -> PaymentService proxy
+       -> TransactionInterceptor
+            -> PaymentService.settle
+       <- commit/rollback
+  <- Receipt or exception
+```
+
+Calling `new PaymentService().settle(...)` would execute the Java method but
+would not create a Spring bean, a proxy or a transaction.
 
 ### JDK and class-based proxies
 
-- A JDK dynamic proxy implements interfaces and delegates to the target.
-- A class-based proxy subclasses the target.
+| Proxy style | Runtime shape | Main constraint |
+|---|---|---|
+| JDK dynamic proxy | Implements one or more target interfaces and delegates to the target. | It is assignable to those interfaces, not the target class; calls must use methods exposed by them. |
+| class-based proxy | Generates a subclass of the target and overrides interceptable methods. | Cannot override a `final` method or subclass a `final` class. |
+
+The core Spring Framework can choose a JDK proxy when a target exposes an
+interface. Spring Boot normally configures class-based proxies by default via
+`spring.aop.proxy-target-class=true`; project configuration and individual
+features can change that choice. The `PaymentService` example above therefore
+does not need an interface merely to receive transaction advice.
 
 Class-based proxies cannot override `final` methods; neither proxy style can
 intercept `private` methods. Modern Spring supports more visibility cases for
@@ -1219,35 +1531,43 @@ Code should depend on service interfaces for design reasons where a useful
 abstraction exists, not merely to satisfy old proxy folklore. Spring can use
 class-based proxies without an interface.
 
+Do not make correctness depend on guessing which proxy style Boot selected.
+Keep advised service boundaries externally callable and non-final, and inject
+them through a stable type. The proxy and target are distinct objects even
+when a debugger renders them similarly.
+
 ### Self-invocation
 
 ```java
 @Service
 class SettlementService {
 
-    public void settleBatch(List<Payment> payments) {
-        for (Payment payment : payments) {
-            settleOne(payment);       // call on this, bypasses proxy
+    public void settleBatch(List<UUID> paymentIds) {
+        for (UUID paymentId : paymentIds) {
+            settleOne(paymentId);       // call on this, bypasses proxy
         }
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void settleOne(Payment payment) { /* ... */ }
+    @Transactional
+    public void settleOne(UUID paymentId) { /* ... */ }
 }
 ```
 
 The external call enters the proxy once for `settleBatch`. The internal Java
-call `this.settleOne(...)` never re-enters it, so `REQUIRES_NEW` advice does
-not run. The same trap applies to method security, caching, retry and async
-advice.
+call `this.settleOne(...)` never re-enters it, so no transaction interceptor
+runs for `settleOne`. If `settleBatch` itself is not transactional, the work is
+non-transactional. If it is transactional, the inner method merely runs in
+that existing transaction; any distinct propagation settings on `settleOne`
+are ignored. The same proxy-bypass trap applies to method security, caching,
+retry and async advice.
 
 Prefer an explicit collaborator:
 
 ```java
 @Service
 class SingleSettlementService {
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void settle(Payment payment) { /* ... */ }
+    @Transactional
+    public void settle(UUID paymentId) { /* ... */ }
 }
 
 @Service
@@ -1258,14 +1578,79 @@ class BatchSettlementService {
         this.single = single;
     }
 
-    public void settleBatch(List<Payment> payments) {
-        payments.forEach(single::settle); // crosses collaborator proxy
+    public void settleBatch(List<UUID> paymentIds) {
+        paymentIds.forEach(single::settle); // crosses collaborator proxy
     }
 }
 ```
 
+With the code exactly as shown, `settleBatch` has no transaction and each call
+to `single.settle` starts and commits its own default `REQUIRED` transaction.
+Earlier IDs can therefore commit before a later ID fails. If the entire batch
+must be atomic, put one transaction around the batch and let the collaborator
+join it; if each item must be independently retryable, keep the per-item
+boundary and design partial progress explicitly.
+
 Self-injecting the proxy or calling `AopContext.currentProxy()` couples
-business code to interception machinery and usually hides a missing boundary.
+business code to interception machinery and usually hides a missing boundary;
+`AopContext.currentProxy()` also requires proxy exposure to be enabled.
+
+### Optional: writing a custom aspect
+
+Most applications can consume Spring's existing transactional, security,
+caching and observability support without defining an aspect. When an
+application genuinely owns a cross-cutting policy, `@Aspect` provides a way to
+declare it. This example times selected service methods:
+
+```java
+@Aspect
+@Component
+class ServiceTimingAspect {
+    private final MeterRegistry meters;
+
+    ServiceTimingAspect(MeterRegistry meters) {
+        this.meters = meters;
+    }
+
+    @Around("execution(public * *(..)) && " +
+            "within(com.bank.payment.service..*)")
+    Object time(ProceedingJoinPoint invocation) throws Throwable {
+        long started = System.nanoTime();
+        try {
+            return invocation.proceed();
+        } finally {
+            meters.timer("payment.service",
+                         "method", invocation.getSignature().getName())
+                  .record(System.nanoTime() - started, TimeUnit.NANOSECONDS);
+        }
+    }
+}
+```
+
+`@Around` is advice that controls when the selected method proceeds.
+`execution(public * *(..))` selects public methods with any return type, name
+and arguments; `within(com.bank.payment.service..*)` limits them to types in
+that package and its subpackages. `invocation.proceed()` continues the remaining
+interceptor chain and eventually calls the target. Around advice can technically
+skip, repeat or replace that call, which is powerful enough to demand restraint;
+the `finally` block here records both successful and failed invocations.
+
+Keep pointcuts narrow and test both matches and non-matches. A pointcut matching
+every application method creates overhead; a metric label containing payment
+IDs creates unbounded cardinality. For application-defined aspects, the usual
+Boot entry point is `spring-boot-starter-aop`; Boot enables proxy-based
+`@Aspect` support when the required AspectJ types are present. Infrastructure
+features such as transaction management register their own advisors when
+enabled.
+
+The example's `MeterRegistry` also requires Micrometer and an actual registry,
+normally supplied through Boot's Actuator/metrics setup. That dependency is
+specific to the timing action, not to AOP itself.
+
+Despite the `@Aspect` name and AspectJ expression syntax, this configuration
+still uses Spring proxies; it does not weave the target class's bytecode. Full
+AspectJ weaving is a separate mechanism that can advise constructors, fields
+and other join points. Most Spring applications only need proxy-based AOP.
 
 ### Other proxy traps
 
@@ -1280,6 +1665,37 @@ business code to interception machinery and usually hides a missing boundary.
   automatically become one shared context.
 - The runtime class in a debugger may be generated. Inspect the proxy and its
   advisors before blaming the database.
+
+A focused diagnostic can prove the boundary without relying on the generated
+class name:
+
+```java
+@Service
+class TransactionProbe {
+    @Transactional
+    public boolean transactionActive() {
+        return TransactionSynchronizationManager
+                .isActualTransactionActive();
+    }
+}
+
+@SpringBootTest
+class ProxyBoundaryTest {
+    @Autowired PaymentService payments;
+    @Autowired TransactionProbe probe;
+
+    @Test
+    void transactionAdviceRunsAcrossTheProxy() {
+        assertThat(AopUtils.isAopProxy(payments)).isTrue();
+        assertThat(probe.transactionActive()).isTrue();
+    }
+}
+```
+
+The first assertion only proves that some proxy exists. The second calls the
+probe from outside its bean and verifies transaction advice actually ran. For
+business behavior, an integration test proving rollback after an exception is
+stronger still.
 
 ### When not to use AOP
 
@@ -1556,6 +1972,67 @@ contract, ownership or change rate differs.
 A valid token proves neither account ownership nor permission to transfer a
 specific amount. Authentication is evidence used by authorization.
 
+The minimum vocabulary for the servlet examples is:
+
+| Term | Meaning |
+|---|---|
+| credential | Evidence presented for authentication, such as a password, session cookie or bearer token. |
+| principal | The identity represented after successful authentication. |
+| authority | A granted capability represented by a string such as `PAYMENT_WRITE`. |
+| `Authentication` | Spring Security's object containing the principal, authorities and authentication state. |
+| `SecurityContext` | Holder for the current `Authentication`. |
+| filter | A servlet component that can inspect, modify, reject or pass an HTTP request before MVC. |
+| resource server | The API that validates an access token and protects resources; it is not normally the system that issued the token. |
+
+### A concrete bearer-token request
+
+Use one request as the running example:
+
+```http
+POST /api/payments/7e5b7c0a-12c4-4d89-9f6a-1d9125034210/settlement HTTP/1.1
+Host: payments.example.com
+Authorization: Bearer eyJ...
+Content-Type: application/json
+
+{"settledAt":"2026-09-07T10:30:00Z"}
+```
+
+Suppose the decoded JWT payload resembles:
+
+```json
+{
+  "iss": "https://identity.example.com",
+  "sub": "user-1842",
+  "aud": ["payments-api"],
+  "exp": 1788778800,
+  "nbf": 1788774900,
+  "permissions": ["PAYMENT_WRITE"]
+}
+```
+
+Decoded claims are untrusted input until signature and claim validation
+succeed. A signed JWT normally provides integrity, not secrecy; clients and
+intermediaries that possess it can read its claims. Never put passwords,
+account secrets or unnecessary personal data in it.
+
+With OAuth2 resource-server and JWT/JOSE support on the classpath, Boot can
+configure trusted key discovery and standard validation from the issuer:
+
+```yaml
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://identity.example.com
+          audiences: payments-api
+```
+
+The issuer metadata identifies the key set used to verify signatures. The
+audience check prevents a token intended for some other API from being
+accepted by the payments API. Production availability also requires a
+deliberate key-discovery/cache and startup policy.
+
 ### The servlet security chain
 
 ```text
@@ -1574,6 +2051,16 @@ Servlet container FilterChain
 a chain, filters also have a defined order because authentication must be
 available before authorization. Security filters can stop the request and
 write the response without invoking MVC.
+
+The wrapper types each have one job:
+
+- `DelegatingFilterProxy` is the servlet-container filter that finds a Spring
+  bean and delegates to it.
+- `FilterChainProxy` is that Spring Security bean; it chooses one configured
+  `SecurityFilterChain`.
+- A `SecurityFilterChain` is a matcher plus an ordered list of security
+  filters for matching requests. It is not the servlet container's entire
+  filter chain.
 
 Multiple chains are useful when `/api/**` is stateless JWT while an admin UI
 uses a session. Make chain matchers mutually understandable and always define
@@ -1634,7 +2121,23 @@ into reused container threads.
 class SecurityConfiguration {
 
     @Bean
-    SecurityFilterChain api(HttpSecurity http) throws Exception {
+    JwtAuthenticationConverter jwtAuthenticationConverter() {
+        JwtGrantedAuthoritiesConverter authorities =
+                new JwtGrantedAuthoritiesConverter();
+        authorities.setAuthoritiesClaimName("permissions");
+        authorities.setAuthorityPrefix("");
+
+        JwtAuthenticationConverter authentication =
+                new JwtAuthenticationConverter();
+        authentication.setJwtGrantedAuthoritiesConverter(authorities);
+        return authentication;
+    }
+
+    @Bean
+    @Order(1)
+    SecurityFilterChain api(
+            HttpSecurity http,
+            JwtAuthenticationConverter jwtAuthenticationConverter) throws Exception {
         return http
                 .securityMatcher("/api/**")
                 .sessionManagement(session -> session
@@ -1648,18 +2151,71 @@ class SecurityConfiguration {
                         .requestMatchers(HttpMethod.GET, "/api/payments/**")
                             .hasAuthority("PAYMENT_READ")
                         .anyRequest().authenticated())
-                .oauth2ResourceServer(oauth -> oauth.jwt(Customizer.withDefaults()))
+                .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt
+                        .jwtAuthenticationConverter(jwtAuthenticationConverter)))
                 .exceptionHandling(errors -> errors
-                        .authenticationEntryPoint(problem401())
-                        .accessDeniedHandler(problem403()))
+                        .authenticationEntryPoint(
+                                new BearerTokenAuthenticationEntryPoint())
+                        .accessDeniedHandler(
+                                new BearerTokenAccessDeniedHandler()))
+                .build();
+    }
+
+    @Bean
+    SecurityFilterChain fallback(HttpSecurity http) throws Exception {
+        return http
+                .authorizeHttpRequests(auth -> auth.anyRequest().denyAll())
                 .build();
     }
 }
 ```
 
+The converter is essential to this particular contract: it turns the custom
+`permissions` claim into exact, prefix-free authorities, so
+`hasAuthority("PAYMENT_WRITE")` can succeed. With Spring Security's default
+converter, standard `scope`/`scp` values instead become authorities prefixed
+with `SCOPE_`; a scope named `payment.write` would be checked as
+`SCOPE_payment.write`.
+
+The standard bearer handlers above produce OAuth2 bearer errors. An application
+that promises a shared problem-details contract can replace them with custom
+`AuthenticationEntryPoint` and `AccessDeniedHandler` implementations.
+
+`@Order(1)` gives the API chain priority. Requests outside `/api/**` do not
+match it, so the later fallback chain denies them. Without a matching fallback,
+an unintended endpoint could remain outside Spring Security entirely.
+
 Disabling CSRF is justified here only because browsers do not automatically
 attach the bearer credential and the chain is truly stateless. If a browser
 authenticates with cookies, CSRF protection normally remains necessary.
+
+### One request through the security chain
+
+For the running `POST` request, the end-to-end sequence is:
+
+1. The servlet container invokes `DelegatingFilterProxy` before
+   `DispatcherServlet` and Spring MVC.
+2. `FilterChainProxy` selects the first chain whose `securityMatcher` accepts
+   `/api/payments/7e5b7c0a-12c4-4d89-9f6a-1d9125034210/settlement`—the
+   `/api/**` chain above.
+3. The bearer-token filter extracts the `Authorization` header. Absence or a
+   malformed bearer credential fails authentication when this protected route
+   requires it.
+4. The JWT decoder verifies the signature using a trusted key and validates
+   time, issuer and configured audience constraints.
+5. `JwtAuthenticationConverter` maps `sub` to the principal name and the
+   `permissions` claim to authorities. Successful authentication is stored in
+   the request's `SecurityContext`.
+6. Request authorization evaluates matchers in declaration order. The POST
+   rule requires `PAYMENT_WRITE`.
+7. If allowed, the chain continues to MVC and the controller. Method/object
+   authorization may impose narrower ownership rules in §9.
+8. On completion, security infrastructure clears the thread-associated
+   context so a reused servlet thread cannot inherit the previous identity.
+
+An invalid token stops at authentication and produces 401. A valid token
+without `PAYMENT_WRITE` reaches authorization but is denied with 403. Neither
+failure needs to invoke a controller.
 
 ### Route matcher ordering
 
@@ -1917,6 +2473,212 @@ For a money-moving endpoint, be ready to state:
 The relational database remains the consistency and query engine; ORM maps an
 object-oriented unit of work onto it.
 
+The small vocabulary needed for the rest of this chapter is:
+
+| Term | Meaning in this chapter |
+|---|---|
+| ORM | Mapping between Java objects and relational tables while operating inside database transactions. |
+| entity | A Java object with persistent identity, normally mapped to one table row. |
+| `EntityManager` | The standard JPA API used to persist, find, remove, query and flush entities. |
+| persistence context | The set of entity instances currently managed by an `EntityManager`, together with their identity and change-tracking state. |
+| JPQL | A query language over entity types and fields; the provider translates it to SQL. |
+| repository | A Spring Data interface whose runtime proxy delegates persistence work to JPA. |
+
+### A concrete running example
+
+The examples in this chapter use one deliberately small entity. Imports and
+accessors that add no persistence meaning are omitted:
+
+```java
+@Entity
+@Table(name = "payment",
+       uniqueConstraints = @UniqueConstraint(
+           name = "uk_payment_tenant_reference",
+           columnNames = {"tenant_id", "reference"}))
+class Payment {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @Column(name = "tenant_id", nullable = false, updatable = false)
+    private String tenantId;
+
+    @Column(nullable = false)
+    private String reference;
+
+    @Column(nullable = false, precision = 19, scale = 2)
+    private BigDecimal amount;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PaymentStatus status;
+
+    @Column(name = "settled_at")
+    private Instant settledAt;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
+
+    protected Payment() { } // required by JPA; application code need not use it
+
+    Payment(String tenantId, String reference, BigDecimal amount) {
+        this.tenantId = tenantId;
+        this.reference = reference;
+        this.amount = amount;
+        this.status = PaymentStatus.PENDING;
+        this.createdAt = Instant.now();
+    }
+
+    void markSettled(Instant settledAt) {
+        if (status != PaymentStatus.PENDING) {
+            throw new IllegalStateException("Only pending payments can settle");
+        }
+        status = PaymentStatus.SETTLED;
+        this.settledAt = settledAt;
+    }
+
+    void changeReference(String newReference) {
+        this.reference = newReference;
+    }
+
+    UUID getId() { return id; }
+    PaymentStatus getStatus() { return status; }
+}
+
+enum PaymentStatus { PENDING, SETTLED }
+```
+
+`@Entity` makes the class part of the persistence model; `@Id` identifies a
+row; `@GeneratedValue(UUID)` asks the provider to assign the identifier;
+`@Column` contributes column constraints; and `@Enumerated(STRING)` stores the
+enum name rather than its fragile numeric position. The database migration tool
+should still own the production schema—these annotations describe the mapping
+and are not a substitute for reviewed DDL.
+
+Because the mapping annotations are on fields, JPA uses field access and can
+read/write the private fields directly. The protected no-argument constructor
+is for provider construction. Entities are usually ordinary classes rather
+than records because their identity and managed lifecycle are mutable; records
+remain excellent DTOs at the application boundary.
+
+Spring Data can implement a repository interface for this entity:
+
+```java
+interface PaymentRepository extends JpaRepository<Payment, UUID> {
+    Optional<Payment> findByTenantIdAndId(String tenantId, UUID id);
+}
+```
+
+With `spring-boot-starter-data-jpa`, a configured `DataSource`, and a JDBC
+driver, Boot normally auto-configures the `EntityManagerFactory`, a JPA
+transaction manager, and this repository proxy. Application code places the
+transaction around a complete use case. Spring's `@Transactional` annotation
+marks that boundary; an AOP proxy begins or joins the transaction before the
+method and completes it afterward:
+
+```java
+@Service
+class PaymentService {
+    private final PaymentRepository payments;
+
+    PaymentService(PaymentRepository payments) {
+        this.payments = payments;
+    }
+
+    @Transactional
+    UUID create(String tenantId, String reference, BigDecimal amount) {
+        Payment payment = new Payment(tenantId, reference, amount);
+        return payments.save(payment).getId();
+    }
+
+    @Transactional
+    void settle(String tenantId, UUID paymentId, Instant settledAt) {
+        Payment payment = payments.findByTenantIdAndId(tenantId, paymentId)
+            .orElseThrow();
+        payment.markSettled(settledAt);
+    }
+}
+```
+
+The absence of `save(payment)` in `settle` is intentional. The following
+sections explain why the loaded entity is already managed and how its mutation
+becomes an `UPDATE`.
+
+Most application code can use repositories. Later examples use the lower-level
+JPA API to make the mechanism visible. In a Spring-managed component it is
+commonly obtained like this:
+
+```java
+@PersistenceContext
+private EntityManager entityManager;
+```
+
+Spring injects a shared proxy that is safe to keep in a singleton bean, not one
+globally shared persistence context. Each invocation delegates to the actual
+transaction-associated `EntityManager`; that underlying manager and its managed
+entities must still not be shared between threads.
+
+The useful runtime picture is:
+
+```text
+@Transactional service method
+        |
+        v
+Spring transaction manager
+        |
+        +-- binds one EntityManager/persistence context to this execution
+        |
+        v
+Hibernate-backed EntityManager
+  identity map + snapshots + pending writes + managed entity state
+        |
+        +-- flush --> ordered SQL through JDBC
+        |
+        v
+database transaction -- commit or rollback
+```
+
+The persistence context is therefore more than a cache. It is the unit of
+work that decides which Java object represents a row, which changes need SQL,
+and when queued writes must be synchronized with the database.
+
+### One transaction from method call to commit
+
+Assume another Spring bean calls `paymentService.settle(...)`. The runtime
+sequence is:
+
+1. The call crosses the transactional service proxy. Spring opens or joins a
+   database transaction and associates an `EntityManager` with this execution.
+2. The repository proxy runs JPQL through that `EntityManager`; Hibernate
+   translates it to SQL and obtains a row through JDBC.
+3. Hibernate creates a `Payment`, records its original state, and puts it in
+   the persistence context. The object returned to the service is now managed.
+4. `markSettled` changes an ordinary Java field. An `UPDATE` need not execute
+   at the setter call.
+5. Before commit, Hibernate flushes the context, detects the status change,
+   and sends an `UPDATE` through JDBC.
+6. If flush and commit succeed, the database transaction commits. With a
+   transaction-scoped context, its entities become detached when that context
+   closes.
+7. If the method fails with an exception covered by the rollback rules, the
+   database work rolls back. Mutating the Java object does not override that
+   outcome.
+
+Conceptually, the important SQL is similar to:
+
+```sql
+select id, tenant_id, reference, amount, status, settled_at, created_at
+from payment
+where tenant_id = ? and id = ?;
+
+update payment set status = ?, settled_at = ? where id = ?;
+```
+
+The generated SQL is provider- and mapping-dependent, but this lifecycle is
+the foundation for understanding the rest of the chapter. Open Session in
+View can extend the context through the web request; §11 explains why that
+changes the detachment point but does not extend the database transaction.
+
 ### Entity lifecycle states
 
 An entity instance is in one of four conceptual states:
@@ -1941,16 +2703,40 @@ flowchart LR
 ```
 
 ```java
-Payment payment = new Payment(reference, amount); // transient
-entityManager.persist(payment);                   // managed
-entityManager.flush();                            // SQL synchronized
-entityManager.detach(payment);                    // detached
-payment.markSettled();                            // not dirty-checked here
+Payment payment = new Payment(tenantId, reference, amount); // transient
+entityManager.persist(payment);                             // managed
+entityManager.flush();                                      // SQL synchronized
+entityManager.detach(payment);                              // detached
+payment.markSettled(now);                                   // not tracked here
 ```
 
 `merge(detached)` does not reattach the same Java object. It copies state into
 a managed instance and returns that managed instance. Ignoring the return
 value is a classic detached-entity bug.
+
+```java
+Payment detached = loadInAnEarlierTransaction(id);
+
+Payment managed = entityManager.merge(detached);
+assert managed != detached;
+
+managed.markSettled(now);       // tracked
+detached.markSettled(later);    // still detached; this change is not tracked
+```
+
+For request updates, loading the current managed entity and applying an
+explicit command is usually safer than merging a graph supplied by a client:
+
+```java
+@Transactional
+public void changeReference(UUID id, String newReference) {
+    Payment payment = repository.findById(id).orElseThrow();
+    payment.changeReference(newReference); // domain rule + managed mutation
+}
+```
+
+This avoids copying stale or unauthorized fields from a detached graph and
+makes the intended mutation visible in code.
 
 ### Persistence context and first-level cache
 
@@ -1967,14 +2753,51 @@ The second lookup can avoid another select, but the first-level cache is not a
 general query cache. JPQL may still execute while resolving returned entity
 identities through the context.
 
+```java
+Payment byId = entityManager.find(Payment.class, id);       // SELECT
+Payment again = entityManager.find(Payment.class, id);      // normally no SELECT
+Payment byQuery = entityManager.createQuery(
+        "select p from Payment p where p.id = :id", Payment.class)
+    .setParameter("id", id)
+    .getSingleResult();                                     // query still executes
+
+assert byId == again;
+assert byId == byQuery; // query row is reconciled with the managed instance
+```
+
+Two separate transactions normally use separate persistence contexts and
+therefore need not return the same Java object. Do not put managed entities in
+static fields or pass them between threads.
+
 The context can also become stale when another transaction or bulk SQL changes
 rows. `clear()`, `refresh()` or a new transaction/context may be required when
 mixing bulk operations with managed entities.
 
+**Advanced trap — bulk DML:** a JPQL `update` or `delete` operates directly on
+matching database rows rather than loading and mutating each entity. That is
+efficient, but it bypasses the Java objects already held in the persistence
+context:
+
+```java
+Payment payment = entityManager.find(Payment.class, id); // status = PENDING
+
+entityManager.createQuery("""
+        update Payment p set p.status = :settled where p.id = :id
+        """)
+    .setParameter("settled", SETTLED)
+    .setParameter("id", id)
+    .executeUpdate();
+
+assert payment.getStatus() == PENDING; // bulk DML bypassed managed state
+entityManager.refresh(payment);
+assert payment.getStatus() == SETTLED;
+```
+
 ### Dirty checking and write-behind
 
-Hibernate snapshots managed state. At flush, it detects changes and generates
-SQL:
+Hibernate tracks or snapshots managed state. At flush, it detects changes and
+generates SQL. Several object mutations can therefore become one database
+unit of work:
 
 ```java
 @Transactional
@@ -1985,9 +2808,26 @@ public void markSettled(UUID id, Instant settledAt) {
 }
 ```
 
-Calling `save` is not wrong merely because dirty checking exists, but do not
-claim it is what makes a managed change persist. Spring Data `save` generally
-chooses `persist` for a new entity and `merge` for an existing one.
+No second `save(payment)` is required in this example. Dirty checking—not a
+repository call—is what makes the managed mutation persistent. The repository
+section below explains where `save` *is* needed and how it handles new and
+detached objects.
+
+Dirty checking has an important boundary: it applies only while the object is
+managed. Whether a change persists depends on both entity state and transaction
+outcome:
+
+| Mutation | Result |
+|---|---|
+| managed entity, transaction commits | detected and flushed |
+| managed entity, transaction rolls back | SQL may run, but is rolled back |
+| detached entity | ignored unless explicitly merged/copied to managed state |
+| ordinary DTO or scalar projection | never dirty-checked because it is a read value, not a managed entity |
+
+Hibernate can optimize how it detects changed fields and which columns it puts
+in an `UPDATE`. Such provider optimizations do not change the managed-state
+rule. Inspect generated SQL rather than assuming every setter immediately
+executes an `UPDATE`.
 
 ### Flush is not commit
 
@@ -2004,8 +2844,45 @@ SQL can therefore execute before the method returns, and a constraint failure
 may appear at flush rather than at `save`. Conversely, a rollback after flush
 still undoes the database transaction.
 
+```java
+@Transactional
+public Payment create(CreatePayment command) {
+    Payment payment = repository.save(command.toEntity());
+    repository.flush(); // surfaces a unique/FK/not-null violation here
+    return payment;     // commit still happens after the method succeeds
+}
+```
+
+A query can also cause pending writes to flush so that its result is consistent
+with those writes:
+
+```java
+entityManager.persist(new Payment(tenantId, "REF-42", amount));
+
+long count = entityManager.createQuery(
+        "select count(p) from Payment p where p.reference = :ref", Long.class)
+    .setParameter("ref", "REF-42")
+    .getSingleResult(); // AUTO flush may issue INSERT before SELECT
+```
+
+Exact timing depends on flush mode, provider, which tables a query touches and
+identifier generation. For example, a database identity-column strategy can
+require an early insert to obtain the id. Code should rely on transaction
+semantics, not on a guessed SQL timestamp.
+
 Tests that never flush can pass while production commit fails. Force a flush
-when the test claims to prove a database constraint.
+when a test claims to prove a database constraint. Clear the context as well
+when it must prove that a value survives a real database and mapping
+round-trip:
+
+```java
+repository.save(payment);
+entityManager.flush();
+entityManager.clear();
+
+Payment reloaded = repository.findById(payment.getId()).orElseThrow();
+assertThat(reloaded.getStatus()).isEqualTo(PENDING);
+```
 
 ### Persistence-context size
 
@@ -2023,8 +2900,29 @@ for (int i = 0; i < commands.size(); i++) {
 }
 ```
 
-Chunking changes atomicity. Decide whether partial progress is allowed and how
-restart/idempotency works before selecting the chunk boundary.
+`flush()` alone does not release managed entities; `clear()` is what detaches
+them. After clearing, keep scalar identifiers rather than assuming earlier
+entity references are still tracked.
+
+The loop above bounds memory but still represents one database transaction if
+the surrounding boundary is a single `@Transactional` method. True transaction
+chunking requires each chunk to cross a separate transactional boundary, for
+example through another Spring bean or `TransactionTemplate`:
+
+```java
+for (List<ImportRow> chunk : chunks(rows, 100)) {
+    transactionTemplate.executeWithoutResult(status -> {
+        chunk.forEach(row -> entityManager.persist(map(row)));
+        entityManager.flush();
+        entityManager.clear();
+    });
+}
+```
+
+Chunking changes atomicity: chunk 1 can commit while chunk 2 fails. Decide
+whether partial progress is allowed and design checkpointing, restart and
+idempotency before selecting the boundary. If callbacks, cascades and entity
+invariants are unnecessary, bulk SQL or JDBC may be a better tool.
 
 ### Entity identity and equality
 
@@ -2041,6 +2939,41 @@ Never include lazy associations in `equals`, `hashCode` or `toString`; that can
 trigger queries, recurse through bidirectional graphs or fail outside a
 context.
 
+The tempting implementation below is unsafe because two new objects both have
+`null` ids, and because `hashCode` changes after persistence assigns an id:
+
+```java
+// Do not copy this generated-id equality implementation.
+@Override
+public boolean equals(Object other) {
+    return other instanceof Payment that && Objects.equals(id, that.id);
+}
+
+@Override
+public int hashCode() {
+    return Objects.hash(id);
+}
+```
+
+If those methods were added to `Payment`, this apparently ordinary use could
+break:
+
+```java
+Set<Payment> payments = new HashSet<>();
+Payment payment = new Payment(tenantId, reference, amount); // id is null
+payments.add(payment);
+
+entityManager.persist(payment);  // generated id may now change hashCode
+assert payments.contains(payment); // can now be false
+```
+
+There is no universal equality template: generated ids, assigned immutable
+keys, inheritance and Hibernate proxies impose different constraints. State
+the chosen identity model, keep the fields used by `hashCode` stable while the
+object is in a set/map, and test transient, managed, detached and proxied cases.
+The running `Payment` deliberately keeps Java's default reference equality;
+that is often safer than an incorrect entity-wide equality contract.
+
 ### Repository proxy behavior
 
 Spring Data creates a proxy for the repository interface. Method names may be
@@ -2049,6 +2982,9 @@ delegate to the persistence provider. A repository method name is an API, not
 a guarantee of efficient SQL.
 
 ```java
+record PaymentSummary(UUID id, String reference, PaymentStatus status,
+                      BigDecimal amount) { }
+
 interface PaymentRepository extends JpaRepository<Payment, UUID> {
     Optional<Payment> findByTenantIdAndId(String tenantId, UUID id);
 
@@ -2063,8 +2999,43 @@ interface PaymentRepository extends JpaRepository<Payment, UUID> {
 }
 ```
 
+`findByTenantIdAndId` is a **derived query**: Spring parses the Java property
+names and creates the JPQL. `@Query` supplies JPQL explicitly. The constructor
+expression returns a record rather than managed entities, while `Pageable`
+provides the requested limit and ordering and `Slice` reports whether another
+window exists. JPQL names the Java entity and its fields (`Payment`,
+`tenantId`), not the SQL table and column names (`payment`, `tenant_id`).
+
 Tenant scoping in the query prevents unauthorized rows from becoming managed.
 Method-level post-filtering does not.
+
+`save` is frequently misunderstood. Conceptually, Spring Data performs this
+decision (simplified pseudocode):
+
+```java
+if (entityInformation.isNew(payment)) {
+    entityManager.persist(payment);
+    return payment;
+} else {
+    return entityManager.merge(payment);
+}
+```
+
+New-state detection commonly examines a nullable optimistic-lock version field
+(introduced in §12), if one exists, and otherwise the identifier. An entity
+with an application-assigned id may therefore look existing. Such a model can
+implement Spring Data's `Persistable` interface to report explicitly whether
+it is new. Also remember the return-value distinction: `persist` manages the
+argument, whereas `merge` returns the managed copy.
+
+For the running `Payment`, the generated id is `null` before first persistence,
+so `save` recognizes it as new and delegates to `persist`. Once the provider
+assigns the UUID, that same Java object is managed.
+
+Repository interfaces should express bounded data-access operations, while a
+service transaction composes them into one use case. CRUD method
+`@Transactional` settings do not replace that service boundary, and a derived
+method name says nothing about indexes, row counts, locking or fetch shape.
 
 ---
 
@@ -2426,6 +3397,36 @@ behavior—not an annotation preference.
 
 ## 13. Spring transactions
 
+### Transaction vocabulary and guarantees
+
+A transaction groups resource operations into one outcome. In this chapter the
+resource is normally one relational database; a JDBC connection carries the
+physical database transaction.
+
+| Term | Meaning |
+|---|---|
+| resource manager | The system that owns transactional data and guarantees commit/rollback, normally the database. |
+| transaction manager | Spring adapter that starts, joins, suspends and completes transactions for a resource technology. |
+| physical transaction | The database transaction associated with a connection. |
+| logical transaction scope | One `@Transactional` method boundary participating in a physical transaction. |
+| propagation | Rule for whether a logical scope joins, creates, suspends or rejects a transaction. |
+| isolation | Rules controlling what concurrent transactions may observe. |
+| rollback-only | State recording that a transaction may no longer commit successfully. |
+
+The familiar ACID properties belong primarily to the database, not to the
+annotation:
+
+| Property | Practical meaning |
+|---|---|
+| atomicity | All writes in the transaction commit, or none of them do. |
+| consistency | Committed data satisfies database constraints; application code must still encode business invariants. |
+| isolation | Concurrent transactions interact according to the selected database isolation and locking/version rules. |
+| durability | After a successful commit, the database preserves the result according to its durability contract. |
+
+Rollback reverses enlisted resource work. It does not rewind Java heap
+mutations, retract an email, cancel an ordinary HTTP request or unsend a normal
+Kafka record.
+
 ### What a Spring transaction actually coordinates
 
 Transaction advice asks a `PlatformTransactionManager` to begin, join,
@@ -2445,6 +3446,31 @@ caller -> transactional proxy
 Spring does not invent a database transaction in memory. It binds relevant
 resource state to the execution context and applies consistent demarcation.
 
+Typical manager choices are:
+
+| Manager | Coordinates |
+|---|---|
+| `JpaTransactionManager` | A JPA `EntityManager` and normally its underlying JDBC connection. |
+| `DataSourceTransactionManager` / `JdbcTransactionManager` | JDBC work against one `DataSource`. |
+| JTA transaction manager | Compatible XA resources participating in a distributed transaction. |
+
+For an ordinary imperative application, Spring associates transaction state
+with the current thread. Repository calls on that thread can therefore share
+the same transaction-bound `EntityManager`/connection. Work moved to
+`@Async`, a raw executor or another thread does not silently join it. Reactive
+transaction managers use the reactive context instead of a thread-local model.
+
+`@Transactional` is proxy metadata, as explained in §5. The boundary activates
+only when a call crosses an eligible Spring proxy; self-invocation and objects
+created with `new` do not gain transaction behavior.
+
+The examples use Spring's
+`org.springframework.transaction.annotation.Transactional`. With no attributes,
+it means `REQUIRED` propagation, the database's default isolation, a read-write
+transaction, the manager's default timeout, and rollback for `RuntimeException`
+or `Error` but not ordinary checked exceptions. Each of those defaults can be
+overridden deliberately; the later subsections explain the consequences.
+
 ### Put the boundary around a use case
 
 ```java
@@ -2453,11 +3479,24 @@ class TransferService {
     private final AccountRepository accounts;
     private final LedgerRepository ledger;
     private final OutboxRepository outbox;
+    private final TransferRequestRepository requests;
+
+    TransferService(AccountRepository accounts,
+                    LedgerRepository ledger,
+                    OutboxRepository outbox,
+                    TransferRequestRepository requests) {
+        this.accounts = accounts;
+        this.ledger = ledger;
+        this.outbox = outbox;
+        this.requests = requests;
+    }
 
     @Transactional
     public TransferId transfer(TransferCommand command) {
-        TransferId existing = findClaimedId(command.idempotencyKey());
-        if (existing != null) return existing;
+        TransferRequest request = requests.claim(command.idempotencyKey());
+        if (request.isCompleted()) {
+            return request.transferId();
+        }
 
         Account debit = accounts.findForUpdate(command.debtor()).orElseThrow();
         Account credit = accounts.findForUpdate(command.creditor()).orElseThrow();
@@ -2466,7 +3505,7 @@ class TransferService {
         credit.credit(command.amount());
         LedgerEntry entry = ledger.save(LedgerEntry.forTransfer(command));
         outbox.save(OutboxEvent.transferPosted(entry));
-        claim(command.idempotencyKey(), entry.transferId());
+        request.complete(entry.transferId());
         return entry.transferId();
     }
 }
@@ -2474,7 +3513,53 @@ class TransferService {
 
 The invariant is local: account changes, ledger fact, outbox event and
 idempotency claim either commit together or roll back together. The method
-does not call a remote switch while holding locks.
+does not call a remote switch while holding locks. Here `requests.claim` is a
+domain-shaped repository operation backed by a unique idempotency key; its
+implementation must resolve concurrent duplicate claims rather than perform an
+unsafe unprotected "check then insert."
+
+### One transfer from proxy entry to commit
+
+Assume a controller calls the proxied `TransferService`. A successful execution
+looks like this:
+
+1. The transaction interceptor asks `JpaTransactionManager` to begin a
+   transaction. The manager associates an `EntityManager` and database
+   connection with the current execution.
+2. Every repository call participates in that same transaction because the
+   repositories use the transaction-bound `EntityManager`.
+3. `requests.claim` establishes idempotent ownership. The account queries lock
+   or otherwise protect the rows according to their repository contract.
+4. `debit.debit(...)`, `credit.credit(...)`, and `request.complete(...)` mutate
+   managed entities. Hibernate records pending changes; `save` queues new
+   ledger and outbox entities.
+5. When the method returns, commit first requires a JPA flush. Hibernate sends
+   the needed `INSERT` and `UPDATE` statements through JDBC, where constraints
+   can still reject them.
+6. If flush succeeds, the database commits the physical transaction and Spring
+   returns the `TransferId` to the caller.
+7. If the target throws an exception matching the rollback rules, or the
+   transaction was marked rollback-only, Spring rolls back the database work
+   instead. The exception still propagates unless application code translates
+   it.
+
+Conceptually, the database observes one boundary:
+
+```sql
+begin;
+insert into transfer_request (...) values (...);       -- unique key claim
+select ... from account where id in (?, ?) for update;
+update account set balance = ... where id = ?;
+update account set balance = ... where id = ?;
+insert into ledger_entry (...) values (...);
+insert into outbox_event (...) values (...);
+update transfer_request set transfer_id = ?, status = 'COMPLETED' where ...;
+commit;
+```
+
+The exact SQL and ordering depend on the mappings and provider. The essential
+claim is narrower: all statements use the same database transaction, and no
+success is reported until flush and commit succeed.
 
 ### Logical and physical transactions
 
@@ -2579,6 +3664,14 @@ Isolation defines which concurrent effects a transaction may observe. Common
 anomalies are dirty reads, non-repeatable reads and phantoms; lost update also
 depends on the actual read/write pattern and database controls.
 
+| Anomaly | Example |
+|---|---|
+| dirty read | Transaction B reads a balance written by A before A commits; A later rolls back. |
+| non-repeatable read | B reads one account row twice and sees A's committed update the second time. |
+| phantom | B repeats a predicate query and sees rows that A inserted and committed in between. |
+| lost update | A and B read the same value, calculate independently, and one write overwrites the other. |
+| write skew | A and B update different rows after reading a shared invariant, leaving the combined state invalid. |
+
 - `READ_COMMITTED` prevents dirty reads and is a common default.
 - `REPEATABLE_READ` stabilizes rows read in a transaction, with exact behavior
   varying by database implementation.
@@ -2620,10 +3713,11 @@ transaction.
 remote call must clearly occur after commit:
 
 ```java
-PaymentId id = transactionTemplate.execute(status -> {
-    Payment payment = repository.save(new Payment(command));
+UUID id = transactionTemplate.execute(status -> {
+    Payment payment = repository.save(new Payment(
+            command.tenantId(), command.reference(), command.amount()));
     outbox.save(OutboxEvent.paymentCreated(payment));
-    return payment.id();
+    return payment.getId();
 });
 
 // local transaction has completed here
@@ -3263,10 +4357,32 @@ arbitrary incoming trace ids as authorization evidence.
 
 ## 17. Production testing
 
-### Match test scope to the risk
+### Testing pyramid: match test scope to the risk
 
 The goal is confidence with useful failure localization, not the maximum
 number of `@SpringBootTest` annotations.
+
+The conventional **testing pyramid** keeps a broad base of fast, isolated unit
+tests, a smaller middle of focused Spring slice/component tests, and fewer
+full-system tests at the top. It is a risk-allocation heuristic, not a required
+percentage: persistence, security and distributed failure semantics deserve
+integration coverage even when most business branches remain plain unit tests.
+
+Most Spring Boot projects start with `spring-boot-starter-test` in the test
+scope. It brings Spring Test and Spring Boot's test support together with JUnit
+Jupiter, Mockito, AssertJ and other common test libraries. Boot 3 commonly
+manages JUnit 5; newer Boot lines may manage a later JUnit generation while
+retaining the Jupiter programming model, so let the project's Boot dependency
+management choose compatible versions.
+
+```kotlin
+testImplementation("org.springframework.boot:spring-boot-starter-test")
+```
+
+Having the starter available does not require loading Spring in every test.
+JUnit, Mockito and AssertJ work in ordinary unit tests; annotations such as
+`@WebMvcTest`, `@DataJpaTest` and `@SpringBootTest` opt into increasingly broad
+framework support.
 
 | Scope | Loads | Best for | Does not prove |
 |---|---|---|---|
@@ -3624,6 +4740,10 @@ only when the interviewer asks.
 - **Spring versus Spring Boot?** Spring provides the container and frameworks;
   Boot supplies curated dependencies, conditional configuration, executable
   runtime and production conventions.
+- **How does a Spring Boot application start?** `SpringApplication.run`
+  prepares the environment, registers bean definitions, refreshes the context
+  to create and post-process beans, runs startup runners, and then publishes
+  readiness: **environment → definitions → beans → ready**.
 - **What is IoC?** Object construction and wiring move from application code
   to the container; dependency injection is how collaborators are supplied.
 - **Why constructor injection?** It makes required dependencies explicit,

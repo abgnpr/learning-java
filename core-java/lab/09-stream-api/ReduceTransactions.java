@@ -23,7 +23,14 @@ public final class ReduceTransactions {
     }
 
     static Totals total(Stream<Transaction> transactions) {
-        throw new UnsupportedOperationException("TODO: implement an associative reduction");
+        return transactions.reduce(
+                new Totals(0, BigDecimal.ZERO),
+                (running, txn) -> new Totals(
+                        running.count() + 1,
+                        running.net().add(txn.amount())),
+                (left, right) -> new Totals(
+                        left.count() + right.count(),
+                        left.net().add(right.net())));
     }
 
     public static void main(String[] args) {
@@ -33,8 +40,10 @@ public final class ReduceTransactions {
                 new Transaction(new BigDecimal("3.75"))
         };
 
-        check("sequential total", "Stream.of(values)", new Totals(3, new BigDecimal("12.00")), total(Stream.of(values)));
-        check("parallel total", "Stream.of(values).parallel()", new Totals(3, new BigDecimal("12.00")), total(Stream.of(values).parallel()));
+        check("sequential total", "Stream.of(values)", new Totals(3, new BigDecimal("12.00")),
+                total(Stream.of(values)));
+        check("parallel total", "Stream.of(values).parallel()", new Totals(3, new BigDecimal("12.00")),
+                total(Stream.of(values).parallel()));
         check("identity for empty stream", "Stream.empty()", new Totals(0, BigDecimal.ZERO), total(Stream.empty()));
         report("Challenge 73");
     }
