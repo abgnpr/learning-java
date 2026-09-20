@@ -6,9 +6,9 @@
 
 - [Part I. Container and Spring Boot](#part-i-container-and-spring-boot)
   - [1. Spring and Spring Boot](#1-spring-and-spring-boot)
-  - [2. IoC dependency injection and beans](#2-ioc-dependency-injection-and-beans)
-  - [3. Container startup and extension points](#3-container-startup-and-extension-points)
-  - [4. Configuration and auto-configuration](#4-configuration-and-auto-configuration)
+  - [2. Configuration and auto-configuration](#2-configuration-and-auto-configuration)
+  - [3. IoC dependency injection and beans](#3-ioc-dependency-injection-and-beans)
+  - [4. Container startup and extension points](#4-container-startup-and-extension-points)
   - [5. Aspect-oriented programming and Spring proxies](#5-aspect-oriented-programming-aop-and-spring-proxies)
 
 - [Part II. HTTP and security](#part-ii-http-and-security)
@@ -79,8 +79,9 @@ each later chapter should attach to one of them.
 
 1. **How the application comes alive:**
    [§1 Boot](#1-spring-and-spring-boot) →
-   [§3 context refresh](#3-container-startup-and-extension-points) →
-   [§2 one bean](#2-ioc-dependency-injection-and-beans) →
+   [§2 configuration](#2-configuration-and-auto-configuration) →
+   [§3 one bean](#3-ioc-dependency-injection-and-beans) →
+   [§4 context refresh and lifecycle](#4-container-startup-and-extension-points) →
    [§5 one proxied call](#5-aspect-oriented-programming-aop-and-spring-proxies).
 
 2. **How one request reaches business code:**
@@ -100,9 +101,7 @@ If time is short, be able to narrate those three stories before collecting
 isolated annotations or edge cases. Then add the production proof:
 [§15 resilience](#15-resilience) →
 [§16 observability](#16-observability-and-diagnosis) →
-[§17 testing](#17-production-testing). Configuration in
-[§4](#4-configuration-and-auto-configuration) supplies inputs to all three
-stories and can be studied after the first startup pass.
+[§17 testing](#17-production-testing).
 
 This order is conceptual rather than numeric. It deliberately follows runtime
 causality: **start the application → handle a request → commit its effects →
@@ -195,277 +194,47 @@ testing.
 
 # Part I. Container and Spring Boot
 
-Part I describes one application startup at nested zoom levels. Keep this map
-visible so the chapters do not feel like separate startup sequences:
+Part I follows one application from `main` to its first service call:
 
 ```text
-OUTER APPLICATION  §1  SpringApplication.run: environment -> definitions -> ready
-  CONTEXT          §3  refresh: change recipes -> install processors -> build beans
-    ONE BEAN       §2  construct -> inject -> initialize -> exposed bean
-      ONE CALL     §5  caller -> proxy/interceptors -> target
-
-CONFIGURATION      §4  properties and conditions decide which recipes enter the context
+SpringApplication.run(...)
+  -> configuration and bean definitions are collected
+  -> context refresh creates and wires beans
+       -> some beans are exposed through proxies
+  -> application runners execute
+  -> the application becomes ready
+  -> another bean calls a service through its exposed reference
 ```
 
-Each level owns a different question:
-
-- **§1:** What does Spring Boot do from `main` to readiness?
-
-- **§3:** What happens inside the context's `refresh()` step?
-
-- **§2:** What happens to one object created during refresh?
-
-- **§5:** What happens when another object later calls an exposed proxy?
-
-- **§4:** Which external values and auto-configuration conditions shape the
-  definitions used by the first three levels?
-
-When a later section mentions an earlier level, treat it as a handoff, not a
-new sequence to memorize.
+Chapters 1–4 explain how the application is assembled. Chapter 5 starts after
+startup and explains what happens when a proxied bean is called.
 
 ## 1. Spring and Spring Boot
 
-### What Spring owns
+### What each one does
 
-The Spring Framework provides the programming model and infrastructure:
+The Spring Framework supplies the container and the programming model. It can
+create objects, connect their dependencies, manage their lifecycle and add
+infrastructure around method calls. Spring MVC, transaction management and
+Spring's testing support are also Framework features.
 
-- an IoC container and dependency injection;
+Spring Boot assembles those features into an application. It manages compatible
+dependency versions, contributes configuration when suitable libraries are on
+the classpath, starts an embedded server and provides production integrations
+such as health checks and metrics.
 
-- bean lifecycle and extension points;
+| Spring Framework | Spring Boot |
+|---|---|
+| Defines beans, dependency injection, AOP, transactions and MVC | Configures those facilities using classpath, properties and existing beans |
+| Gives explicit mechanisms | Supplies common defaults and lets application code replace them |
+| Can be used without Boot | Uses the Framework underneath |
 
-- AOP and proxy infrastructure;
+A useful way to remember the relationship is: **Spring provides the machinery;
+Boot decides how much of it can be assembled automatically.**
 
-- transaction abstraction;
+### The application class
 
-- Spring MVC and WebFlux;
-
-- testing support, events, validation integration and data-access helpers.
-
-### What Spring Boot adds
-
-Spring Boot is an opinionated assembly and operational layer over Spring. It
-adds:
-
-- curated, version-aligned **starters**;
-
-- conditional **auto-configuration**;
-
-- executable applications with embedded servers;
-
-- externalized configuration and configuration metadata;
-
-- Actuator endpoints, metrics, health and production conventions;
-
-- test slices and integration with common infrastructure.
-
-The division is worth stating precisely, because it is the difference between
-a candidate who has used Boot and one who can debug it:
-
-| | Spring Framework | Spring Boot |
-|---|---|---|
-| Supplies | mechanisms: container, AOP, transactions, MVC | defaults, wiring and packaging for those mechanisms |
-| Decides | nothing on its own — you declare every bean | which beans to contribute, from classpath and properties |
-| Removed if absent | the application has no container | the application still runs, configured by hand |
-| Failure mode | missing bean, wiring error | a default you did not know existed, or one that backed off |
-
-Boot adds no runtime capability that Spring lacks. It removes the ceremony of
-declaring beans that almost every application declares identically, which is
-why Boot problems are rarely "Spring cannot do this" and usually "something
-was configured that I did not write."
-
-**Interview answer:** Spring provides the container and application
-frameworks. Spring Boot chooses sensible defaults and configures them based
-on the classpath, properties and beans, while allowing explicit application
-configuration to override those defaults.
-
-### `@SpringBootApplication`
-
-It composes three annotations:
-
-```java
-@SpringBootConfiguration   // @Configuration specialization
-@EnableAutoConfiguration  // import Boot auto-configurations
-@ComponentScan            // scan this package and descendants
-public @interface SpringBootApplication { }
-```
-
-Each contributes a different source of bean definitions, and they arrive in
-that order of authority:
-
-```text
-@ComponentScan          your @Service/@Repository/@Component classes
-        +
-@SpringBootConfiguration your @Bean methods
-        |
-        |  both are application definitions: they register first
-        v
-@EnableAutoConfiguration Boot's conditional classes evaluate LAST
-        |
-        v
-   a default is contributed only where you left a gap
-```
-
-That ordering is the whole reason `@ConditionalOnMissingBean` works. Boot's
-defaults are evaluated after application definitions are known, so a bean you
-declare is not overwritten — the auto-configuration that would have supplied
-it simply never fires. "Backing off" is not Boot deferring to you at runtime;
-it is a condition that evaluated false because your definition was already
-registered.
-
-Placement of the application class matters because `@ComponentScan` defaults
-to the annotated class's own package and its descendants:
-
-```text
-com.bank
-  payments
-    PaymentApplication      @SpringBootApplication lives here
-    PaymentService          found: descendant of com.bank.payments
-  shared
-    AuditRecorder           NOT found: sibling, not descendant
-```
-
-Put the application class in the root package (`com.bank`) and both are
-scanned. Leave it in `com.bank.payments` and `AuditRecorder` is invisible
-until an explicit `@ComponentScan`, `@Import` or an auto-configuration import
-brings it in. The failure is not a compile error — it is a
-`NoSuchBeanDefinitionException` at startup, or worse, an injected collection
-that is quietly empty.
-
-### Starter versus auto-configuration
-
-These are related but different, and the distinction is a common interview
-probe:
-
-- A **starter** is a dependency descriptor — a POM with no code of its own.
-  It brings a coherent, version-aligned set of jars.
-
-- **Auto-configuration** is code inside those jars that conditionally
-  contributes bean definitions.
-
-The two are separable in both directions. A starter without matching
-auto-configuration just puts jars on the classpath; auto-configuration
-without its starter is inert because its `@ConditionalOnClass` guard fails.
-
-```text
-spring-boot-starter-data-jpa   (a POM: no classes)
-        |
-        | brings jars onto the classpath
-        v
-HikariCP, Hibernate, spring-orm, spring-boot-autoconfigure
-        |
-        | Boot evaluates conditions against that classpath
-        v
-DataSourceAutoConfiguration    @ConditionalOnClass(DataSource.class)
-HibernateJpaAutoConfiguration  @ConditionalOnMissingBean(EntityManagerFactory)
-        |
-        v
-DataSource, EntityManagerFactory, JpaTransactionManager beans
-```
-
-Adding a JDBC starter puts JDBC, a pool and supporting libraries on the
-classpath. Auto-configuration then sees a `DataSource` type and database
-properties and may create a `DataSource`, transaction manager and template.
-If the application defines its own relevant bean, Boot commonly **backs
-off**. The mechanics of the conditions themselves are [§4](#4-configuration-and-auto-configuration).
-
-Two consequences worth carrying into an interview. First, a dependency you
-added for one class can start a web server or a database pool, because the
-condition tests the classpath, not your intent. Second, when a bean is not
-what you expect, the question is not "what did Spring do" but "which
-condition matched" — and `--debug` prints the condition evaluation report
-that answers it, in positive and negative matches.
-
-### Spring Boot startup — one story, not eight facts
-
-Do not start by reciting event names. Remember one transformation:
-
-> **Configuration becomes recipes; recipes become objects; objects become
-> ready.**
-
-```text
-main()
-  -> SpringApplication.run(...)
-  -> ENVIRONMENT       properties, arguments and active profiles
-  -> BEAN DEFINITIONS  configuration, scan, imports and auto-configuration
-  -> REFRESH           process recipes; create, wire, initialize and proxy beans
-  -> RUNNERS           ApplicationRunner / CommandLineRunner
-  -> READY             ApplicationReadyEvent; accept traffic
-```
-
-That is the interview spine. Expand it as four beats:
-
-1. **Prepare.** `run` determines the application type, prepares the
-   `Environment`, and creates the appropriate `ApplicationContext`. Properties
-   and profiles must be known now because they decide which configuration is
-   active. Ordinary application beans do not exist yet.
-
-2. **Register recipes.** Boot loads `BeanDefinition`s from the application
-   class: explicit configuration, component scanning, imports and conditional
-   auto-configuration. These are construction recipes, not the objects. This
-   is where conditions match and Boot defaults back off.
-
-3. **Refresh and build.** The context finalizes definition metadata, registers
-   bean post-processors, and creates the remaining eager singletons. Each bean
-   is constructed, dependencies are injected, initialization callbacks run,
-   and a post-processor may expose a proxy. A web context also creates and
-   starts its embedded server as part of refresh.
-
-4. **Run and become ready.** After refresh Boot publishes
-   `ApplicationStartedEvent`, calls `ApplicationRunner` and
-   `CommandLineRunner`, then publishes `ApplicationReadyEvent` and changes
-   readiness to accepting traffic. An exception instead produces
-   `ApplicationFailedEvent`.
-
-**A spoken answer:**
-
-> `main` delegates to `SpringApplication.run`. Boot first prepares the
-> environment and profiles, then creates the right application context and
-> registers bean definitions from configuration, component scanning and
-> auto-configuration. Refresh turns those recipes into wired, initialized
-> beans; bean post-processors can wrap them with proxies, and a web context
-> starts the embedded server. Finally Boot runs the runners and publishes the
-> ready event. In short: **environment → definitions → beans → ready**.
-
-Keep the levels separate. `SpringApplication.run` is the whole Boot journey;
-`ApplicationContext.refresh()` is the large middle step that turns definitions
-into a running context. Only zoom into refresh if the interviewer asks about
-post-processors, bean lifecycle or proxies. Its internals are
-[§3](#3-container-startup-and-extension-points).
-
-The order explains the common follow-ups:
-
-- **When does auto-configuration run?** While definitions are being selected
-  and registered, before ordinary application singletons are created.
-
-- **When are proxies created?** During bean post-processing inside refresh,
-  after the target is instantiated and initialized but before ordinary callers
-  receive the final exposed bean.
-
-- **`@PostConstruct` or a runner?** `@PostConstruct` is one bean's
-  initialization callback during refresh. Runners execute after the whole
-  context has refreshed and are the better hook for bounded application-level
-  startup work.
-
-- **Is an open port the same as readiness?** No. The web server is initialized
-  during refresh, but Boot does not announce readiness until runners finish.
-  A platform honoring readiness will not route traffic earlier; direct traffic
-  or a misconfigured platform still can.
-
-- **What if startup work fails?** The ready state is never reached; startup
-  fails and the context is closed rather than advertising a healthy partial
-  application.
-
-A runner can therefore delay readiness or fail startup. Keep it bounded and
-reserve it for work that truly belongs between "context built" and "ready."
-Schema migration is normally delegated to Flyway or Liquibase at their defined
-startup phase rather than improvised in a runner.
-
-**Blind recall drill:** close the page and rebuild only these arrows first:
-`run → environment → definitions → refresh/beans → runners → ready`. Then add
-one sentence to each arrow. If those six anchors are intact, the details have
-somewhere to attach.
-
-### A clean application edge
+A typical Boot application starts here:
 
 ```java
 @SpringBootApplication
@@ -474,727 +243,124 @@ public class PaymentApplication {
         SpringApplication.run(PaymentApplication.class, args);
     }
 }
-
-@ConfigurationProperties("payments")
-@Validated
-public record PaymentProperties(
-        @NotNull URI switchBaseUrl,
-        @NotNull Duration requestTimeout,
-        @Min(1) int maxInFlight) { }
-
-@Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties(PaymentProperties.class)
-class PaymentConfiguration {
-    @Bean
-    Clock clock() {
-        return Clock.systemUTC();
-    }
-}
 ```
 
-Everything the application needs from the outside world — configuration
-values and the current time — enters as a validated, typed object injected at
-the composition root, the entry point where the object graph is assembled.
-The domain service therefore depends on `Clock`, not `Instant.now()`, and on
-the typed properties record, not scattered strings: bad configuration fails
-startup rather than the first payment, and tests are deterministic.
+`@SpringBootApplication` combines three roles:
 
-Each decision in that snippet answers a likely follow-up:
+- `@SpringBootConfiguration` marks the application's main configuration.
 
-- **`record` with `@Validated`.** Constructor binding makes the properties
-  immutable, and the constraints are checked during startup. A missing
-  `switchBaseUrl` or a `maxInFlight` of `0` aborts the boot with a report of
-  which property failed, rather than surfacing as a null or a division at the
-  first payment. `@EnableConfigurationProperties` registers the record as a
-  bean, since `@ConfigurationProperties` alone does not; binding rules are
-  [§4](#4-configuration-and-auto-configuration).
+- `@ComponentScan` finds application components below the package containing
+  the application class.
 
-- **`URI` and `Duration`, not `String` and `long`.** Relaxed binding parses
-  `1500ms` or `PT1.5S` into a `Duration`, so unit ambiguity never reaches the
-  code. A malformed URL is a startup failure, not a runtime one.
+- `@EnableAutoConfiguration` imports Boot's conditional configuration.
 
-- **`proxyBeanMethods = false`.** By default a `@Configuration` class is
-  CGLIB-subclassed so that one `@Bean` method calling another returns the
-  singleton instead of a fresh object. No method here calls another, so the
-  proxy buys nothing: turning it off skips the subclass and its startup cost.
-  Set it when `@Bean` methods are independent; leave the default when one
-  calls another for its bean. The unmanaged-object failure this risks is
-  [§3](#3-container-startup-and-extension-points).
+Package placement matters because component scanning starts from the
+application class's package:
 
-- **`Clock` as a bean.** `Instant.now()` is a static call, so a test cannot
-  control it and "expires after 30 minutes" cannot be tested without waiting.
-  An injected `Clock` is replaced with `Clock.fixed(...)` in a test, and the
-  production bean stays `systemUTC()`.
+```text
+com.bank                         scanned
+  PaymentApplication
+  payments.PaymentService       found
+  shared.AuditRecorder          found
 
-The same argument extends to collaborators in [§2](#2-ioc-dependency-injection-and-beans):
-whatever the object cannot construct correctly by itself should arrive
-through its constructor, checked, at the edge.
+com.shared.AuditRecorder        not found: outside com.bank
+```
+
+Putting the application class in the application's root package gives scanning
+a clear boundary. Code outside that boundary must be included deliberately
+with `@Import`, another scan, or library auto-configuration.
+
+### Starters and auto-configuration
+
+A starter and an auto-configuration solve different problems.
+
+A **starter** is a dependency descriptor. For example,
+`spring-boot-starter-data-jpa` brings in Spring Data JPA, Hibernate and the
+supporting libraries using versions managed by Boot.
+
+An **auto-configuration** is code. It looks at the classpath, configuration
+properties and beans already registered, then contributes definitions when its
+conditions match.
+
+```text
+JPA starter added
+  -> JPA and database classes appear on the classpath
+  -> Boot evaluates database auto-configurations
+  -> matching conditions contribute DataSource, JPA and transaction beans
+```
+
+Adding a dependency can therefore change application startup even when no
+application code refers to it. Conversely, having an auto-configuration class
+in a jar does nothing when its conditions do not match.
+
+Boot commonly uses `@ConditionalOnMissingBean` for defaults. If the application
+already defines the relevant bean, the condition is false and Boot does not add
+its default. This is called **backing off**; Boot is deciding what to register,
+not replacing an object later at runtime.
+
+### From `main` to ready
+
+`SpringApplication.run(...)` drives the whole startup. The stable sequence is:
+
+```text
+prepare environment
+  -> create ApplicationContext
+  -> load application and auto-configuration definitions
+  -> refresh the context and create beans
+  -> start application runners
+  -> publish readiness
+```
+
+First, Boot builds the `Environment` from configuration sources and determines
+which profiles are active. Those values must be available early because they
+affect which definitions are registered.
+
+Next, Boot creates the appropriate `ApplicationContext` and loads definitions
+from component scanning, `@Bean` methods, imports and auto-configuration. A
+definition is a recipe for an object; most application objects do not exist
+yet.
+
+The context is then refreshed. During refresh, Spring processes definitions,
+installs container extension points and creates the non-lazy singleton beans.
+This is where dependency injection, lifecycle callbacks and proxy creation
+happen. Chapters 2–4 explain the inputs to refresh and what happens inside it.
+
+After refresh, Boot calls `ApplicationRunner` and `CommandLineRunner` beans.
+When they finish, it publishes `ApplicationReadyEvent` and changes its
+readiness state to accepting traffic. A runner can therefore delay readiness
+or fail startup, so runner work should be bounded.
+
+An initialized web server is not by itself proof that the application is ready.
+Traffic should be controlled by a readiness probe that reflects the Boot
+readiness state.
 
 ---
 
-## 2. IoC dependency injection and beans
+## 2. Configuration and auto-configuration
 
-This chapter zooms into the objects created during refresh. §3 owns the
-context-wide refresh sequence; here the questions are narrower: how Spring
-chooses a dependency, constructs one bean, initializes it and exposes the
-finished reference.
+Configuration affects startup before most application beans exist. Boot loads
+values into the `Environment`; Spring then uses those values while deciding
+which definitions to register and how to construct their objects.
 
-### IoC and DI
+### External configuration
 
-**Inversion of Control** means application code no longer controls object
-construction and wiring. The container owns that lifecycle. **Dependency
-Injection** is the technique by which the container supplies collaborators.
+Boot can read configuration from packaged files, profile-specific files,
+environment variables, system properties, command-line arguments and test
+overrides. Later, higher-precedence sources can override earlier ones.
 
-Without DI:
+The complete precedence list is best treated as reference material. During a
+failure, the useful question is: **which property source supplied the final
+value?** Startup diagnostics and secured Actuator environment endpoints can
+answer that question. Secret values must remain sanitized.
 
-```java
-class PaymentService {
-    private final PaymentRepository repository = new OraclePaymentRepository();
-}
-```
+Command-line `--server.port=9090`, for example, overrides a packaged
+`server.port` value. An environment variable is convenient in a container
+platform because it changes deployment configuration without rebuilding the
+application image.
 
-With constructor injection:
+### Bind related values as one type
 
-```java
-@Service
-class PaymentService {
-    private final PaymentRepository repository;
-    private final FraudClient fraudClient;
-
-    PaymentService(PaymentRepository repository, FraudClient fraudClient) {
-        this.repository = repository;
-        this.fraudClient = fraudClient;
-    }
-}
-```
-
-Constructor injection is the default choice because dependencies are explicit,
-required fields can be `final`, invalid partially initialized objects cannot
-exist, and a unit test can call `new PaymentService(fakeRepo, fakeFraud)`.
-One constructor needs no `@Autowired`.
-
-Field injection hides dependencies, prevents ordinary construction and often
-allows a class with too many responsibilities to look deceptively small.
-Setter injection is appropriate for a genuinely optional or reconfigurable
-dependency, which is uncommon in business services.
-
-### Stereotypes
-
-`@Component` is the generic stereotype. `@Service`, `@Repository` and
-`@Controller` specialize it to communicate architectural intent.
-
-- `@Service` identifies application/business behavior.
-
-- `@Repository` identifies persistence code and participates in Spring's
-  persistence-exception translation where applicable.
-
-- `@Controller` returns views unless a method uses `@ResponseBody`.
-
-- `@RestController` is `@Controller + @ResponseBody` for every handler.
-
-The annotation does not enforce clean architecture. A controller can still
-contain SQL; it is simply a bad design with a correct stereotype.
-
-### Candidate selection
-
-Injection resolves **by type first**. One bean of the required type is the
-easy case; the interesting question is what happens when there are two:
-
-```java
-interface PaymentRail {
-    Rail rail();                       // the domain key this bean serves
-    Receipt send(Payment payment);
-}
-
-@Component("impsRail")
-class ImpsRail implements PaymentRail { /* ... */ }
-
-@Component("neftRail")
-class NeftRail implements PaymentRail { /* ... */ }
-```
-
-A constructor asking for one `PaymentRail` now fails at startup with
-`NoUniqueBeanDefinitionException`, naming both candidates. That failure is the
-container refusing to guess, and every mechanism below is a way of answering
-it. Resolution narrows the candidate set in a fixed order:
-
-```text
-all beans assignable to PaymentRail        -> impsRail, neftRail
-        |
-        |  @Qualifier("...") at the injection point?
-        v  narrow to beans with that qualifier               [wins]
-        |
-        |  exactly one @Primary among what remains?
-        v  take it                                           [default]
-        |
-        |  does the parameter name match a bean name?
-        v  fall back to that                                 [fragile]
-        |
-        v
-   still 0 -> NoSuchBeanDefinition   still 2+ -> NoUniqueBeanDefinition
-```
-
-Read top-down, that ordering is the answer to "qualifier or primary?":
-`@Primary` is a **producer-side default** for the whole context, `@Qualifier`
-is a **consumer-side override** at one injection point. The qualifier is more
-specific, so it wins.
-
-```java
-@Component
-@Primary                                  // the default rail, context-wide
-class ImpsRail implements PaymentRail { /* ... */ }
-
-@Service
-class RefundService {
-    private final PaymentRail rail;
-
-    RefundService(PaymentRail rail) {                  // gets ImpsRail
-        this.rail = rail;
-    }
-}
-
-@Service
-class BulkSalaryService {
-    private final PaymentRail rail;
-
-    BulkSalaryService(@Qualifier("neftRail") PaymentRail rail) {  // overrides
-        this.rail = rail;
-    }
-}
-```
-
-The parameter-name fallback is real but should not be designed for: renaming
-a constructor parameter is a refactor that silently changes which bean is
-injected, and it depends on parameter names surviving compilation. Prefer an
-explicit qualifier.
-
-For a genuinely dynamic choice, inject **every** candidate instead of one.
-Spring populates a `List<T>` with all beans of the type, and a
-`Map<String, T>` keyed by bean name:
-
-```java
-@Service
-class Router {
-    private final Map<String, PaymentRail> rails;
-
-    Router(Map<String, PaymentRail> rails) {           // impsRail -> ImpsRail
-        this.rails = Map.copyOf(rails);                // neftRail -> NeftRail
-    }
-}
-```
-
-Adding a third rail bean extends the map with no change to `Router`. Order a
-`List<T>` with `@Order` or `Ordered` when the sequence matters, as in a chain
-of validators; an unordered list must not be relied on for precedence.
-
-That convenience carries the trap the section exists for. A bean name is a
-wiring identifier, not a domain value, so this hands external input the keys
-to the container:
-
-```java
-Receipt route(String railFromRequest) {
-    return rails.get(railFromRequest).send(payment);   // NPE on a typo, and
-}                                                      // callers now depend
-                                                       // on bean names
-```
-
-A request field that reaches `Map.get` means a JSON typo becomes a
-`NullPointerException`, and renaming a `@Component` becomes a breaking API
-change. Validate into a closed type at the edge and key on that:
-
-```java
-enum Rail { IMPS, NEFT }                     // the closed domain type
-
-@Service
-class Router {
-    private final Map<Rail, PaymentRail> rails;
-
-    Router(List<PaymentRail> discovered) {
-        this.rails = discovered.stream()
-                .collect(toUnmodifiableMap(PaymentRail::rail, identity()));
-    }
-
-    Receipt route(Rail rail, Payment payment) {
-        PaymentRail selected = rails.get(rail);
-        if (selected == null) {
-            throw new UnsupportedRailException(rail);
-        }
-        return selected.send(payment);
-    }
-}
-```
-
-Each rail declares its own key (`PaymentRail::rail`), so the map is keyed by
-domain values the compiler checks, an unmapped rail fails with a domain
-exception rather than an NPE, and bean names stay an internal wiring detail.
-
-### Scopes and thread safety
-
-The default scope is **singleton per `ApplicationContext`**, not one instance
-per JVM or per classloader. Other common scopes are prototype, request and
-session.
-
-Singleton does not imply thread-safe. Every request thread can enter the same
-service object:
-
-```java
-@Service
-class BadSequenceService {
-    private long next;                // shared mutable state
-    long next() { return ++next; }    // data race, not atomic
-}
-```
-
-Keep singleton services stateless. Put durable counters in a store with the
-required atomic semantics, and operational counters in Micrometer. A request-
-scoped bean is not a cure for business data that must survive processes or
-restarts.
-
-Injecting a shorter-lived bean into a singleton requires indirection such as a
-scoped proxy or `ObjectProvider<T>`; otherwise construction-time resolution
-cannot supply a fresh instance for each request.
-
-### Lifecycle
-
-Between `new PaymentService(...)` and the moment a controller calls it, the
-container does a surprising amount of work. Following one bean through it
-explains a whole family of otherwise unrelated puzzles.
-
-**First the container builds the object.** It calls the constructor, then
-supplies anything the constructor did not take — field and setter
-dependencies, property values — and then hands the bean any context it asked
-for through an `Aware` interface, such as its own bean name. At the end of
-this the object is complete in the Java sense: every field is set, and it
-would work if you called it directly.
-
-**Then the container decorates it.** Every `BeanPostProcessor` in the context
-gets to see the object twice: once before initialization, once after. Between
-those two visits, the bean's own initialization callback runs — `@PostConstruct`,
-or `afterPropertiesSet()`, or a custom init method. So the sequence around
-initialization is:
-
-```text
-  1  instantiate            constructor runs
-  2  populate               remaining dependencies and properties set
-  3  aware callbacks        BeanNameAware, ApplicationContextAware
-        |
-        v  the object is complete, but plain
-  4  BPP before-init        postProcessBeforeInitialization
-  5  YOUR init callback     @PostConstruct
-  6  BPP after-init         postProcessAfterInitialization
-        |
-        v  a post-processor may have returned a proxy instead
-  7  in use                 other beans hold whatever step 6 returned
-  8  destroy callback       @PreDestroy, on context close
-```
-
-Step 6 is where the interesting thing happens. A post-processor may return
-something *other* than the object it was given — typically a proxy wrapping
-it, carrying the transaction, security or caching behavior your annotations
-asked for. [§3](#3-container-startup-and-extension-points) places that moment
-inside refresh; [§5](#5-aspect-oriented-programming-aop-and-spring-proxies)
-explains the later invocation. The container registers the returned reference
-as the bean, so from step 7 onward other beans normally hold the proxy. The
-original target still exists inside it.
-
-That single detail answers the questions people usually meet separately.
-
-Why does `@Transactional` do nothing when called from `@PostConstruct`?
-
-```java
-@Service
-class RailCache {
-    private final RailRepository repository;
-
-    RailCache(RailRepository repository) {
-        this.repository = repository;
-    }
-
-    @PostConstruct
-    void warm() {
-        load();                  // step 5: a plain Java call on the target
-    }
-
-    @Transactional               // annotation present, advice absent
-    void load() {
-        repository.findAllRails();
-    }
-}
-```
-
-Look at the numbers: `warm()` is step 5, the proxy appears at step 6. The
-annotation is real, but the thing that acts on it has not been created yet,
-and `this.load()` runs on the bare object regardless. The repository call
-either joins whatever transaction it finds or opens its own, which is rarely
-what the annotation was asking for. It is the same reason an internal
-self-call skips advice, arriving one step earlier
-([§5](#5-aspect-oriented-programming-aop-and-spring-proxies)).
-
-Why is a `new`-ed object never quite the same? It never entered this sequence.
-No injection at step 2, no post-processors at steps 4 and 6, so no proxy and
-no callbacks — which is precisely what makes the second `Ledger` from a
-lite-mode configuration a silent problem.
-
-And why is `@PostConstruct` the right place for setup that a constructor
-cannot do? Because step 2 has already finished. Dependencies are guaranteed
-present, so it is safe to validate wiring or derive state from a collaborator
-there. Java's `@PostConstruct` is worth preferring over `InitializingBean` —
-it keeps the class free of Spring interfaces — and for a class you cannot
-modify, `@Bean(initMethod = "...")` names the method from outside.
-
-Keep that callback fast, though. Network calls and long-running work in a
-constructor or `@PostConstruct` make startup fragile: they run before the
-application is ready, they can fail the context, and a bean that is slow to
-initialize delays everything waiting on it. Startup work that genuinely must
-happen belongs in a lifecycle component or a runner, with an explicit failure
-policy.
-
-Shutdown mirrors the sequence, but only partly, and the gaps are worth
-knowing:
-
-| Scope | Destruction callback |
-|---|---|
-| singleton | on context close |
-| prototype | **never** — the container builds it, hands it over, and forgets it |
-| request/session | when the web scope ends |
-
-A prototype is tracked long enough to be created, not long enough to be
-disposed of, so one holding a socket or file handle leaks unless its caller
-closes it. And no callback of any kind runs if the process dies before the
-context closes — which is why an orderly shutdown is something the deployment
-arranges, not something `@PreDestroy` guarantees ([§15](#15-resilience)).
-
-### Circular dependencies
-
-A constructor cycle cannot be built. To construct `PaymentService` the
-container needs a finished `NotificationService`, and to construct that it
-needs a finished `PaymentService`:
-
-```java
-@Service
-class PaymentService {
-    PaymentService(NotificationService notifications) { /* ... */ }
-}
-
-@Service
-class NotificationService {
-    NotificationService(PaymentService payments) { /* ... */ }
-}
-```
-
-Startup fails with `BeanCurrentlyInCreationException`, naming the cycle. Field
-and setter cycles were historically resolved by handing out a
-partially-initialized reference, which is fragile around proxies — the early
-reference can be the raw target while everyone else holds the proxy — and
-modern Boot rejects cycles by default rather than papering over them.
-
-Treat the failure as a design signal. The cycle above says neither service
-owns the rule "a completed payment notifies the payer," and the fix is to
-decide who does.
-
-**Extract the shared rule into a third service** when both sides genuinely
-need it. The new service depends on both; neither depends on the other:
-
-```java
-@Service
-class PaymentCompletionService {
-    PaymentCompletionService(PaymentService payments,
-                             NotificationService notifications) { /* ... */ }
-}
-```
-
-**Reverse one dependency with a domain event** when the callee should not
-know its callers. `PaymentService` announces what happened instead of naming
-who cares:
-
-```java
-@Service
-class PaymentService {
-    private final ApplicationEventPublisher events;
-
-    PaymentService(ApplicationEventPublisher events) {
-        this.events = events;
-    }
-
-    void settle(Payment payment) {
-        events.publishEvent(new PaymentSettled(payment.id()));
-    }
-}
-
-@Component
-class NotificationListener {
-    @EventListener
-    void on(PaymentSettled event) { /* notify the payer */ }
-}
-```
-
-The compile-time arrow now points one way: the listener knows the event,
-`PaymentService` knows nothing about notification. Adding a second listener
-changes no existing class.
-
-**Separate orchestration from capabilities** when the cycle is really a
-layering mistake — two peers calling each other because neither is in charge.
-Promote the sequence into a caller and leave the two as capabilities that do
-not reference each other.
-
-**As a tactical last resort**, break the construction-time edge while planning
-the real correction:
-
-```java
-@Service
-class PaymentService {
-    private final ObjectProvider<NotificationService> notifications;
-
-    PaymentService(ObjectProvider<NotificationService> notifications) {
-        this.notifications = notifications;      // resolved on use, not now
-    }
-
-    void settle(Payment payment) {
-        notifications.getObject().notifyPayer(payment);
-    }
-}
-```
-
-`ObjectProvider<T>` defers lookup to call time, and `@Lazy` on the injection
-point achieves the same by injecting a proxy that resolves on first use.
-Both leave the cycle in the design and hide it from startup, so they buy time
-rather than fix anything.
-
----
-
-## 3. Container startup and extension points
-
-This chapter opens the `REFRESH` box from §1. It owns the context-wide
-transition from registered recipes to a running container. For the lifecycle
-of one object created inside that transition, return to §2; for what an AOP
-proxy does when called later, continue to §5.
-
-### Definitions are recipes; beans are objects
-
-A `BeanDefinition` describes how to create a bean: class or factory method,
-scope, constructor arguments, property values, qualifiers, init/destroy
-methods, laziness and role. A `BeanDefinitionRegistry` stores those recipes.
-
-A `BeanFactory` uses the recipes to create and wire objects. An
-`ApplicationContext` builds on the factory and adds automatic post-processor
-detection, environment/profiles, resources, message resolution, events and
-lifecycle integration.
-
-```text
-scan / @Import / @Bean / auto-configuration
-                 |
-                 v
-      BeanDefinitionRegistry
-                 |
-       definitions may change
-                 |
-                 v
-             BeanFactory
-                 |
-       instances are constructed
-                 |
-                 v
-   initialization and proxy wrapping
-```
-
-This distinction explains why Spring can reason about thousands of future
-objects before constructing most of them.
-
-### The important refresh phases
-
-`refresh()` is the **definitions → beans** section inside the larger Boot
-startup story. Do not memorize another eight-step list. Remember three verbs:
-**change recipes, install processors, build objects**.
-
-```text
-BeanDefinitions
-      |
-      |  1. CHANGE RECIPES
-      |     registry post-processors may add definitions
-      |     factory post-processors may modify definitions
-      v
-complete definition metadata
-      |
-      |  2. INSTALL PROCESSORS
-      |     register BeanPostProcessors before ordinary beans exist
-      v
-BeanFactory ready to create managed objects
-      |
-      |  3. BUILD OBJECTS
-      |     construct -> inject -> initialize -> post-process/proxy
-      v
-eager singletons + lifecycle/server infrastructure -> refreshed context
-```
-
-In slightly more depth:
-
-1. **Change recipes.** `BeanDefinitionRegistryPostProcessor`s can register
-   more definitions; Spring's configuration-class processor discovers
-   configuration, scans and imports here. Remaining
-   `BeanFactoryPostProcessor`s can modify the completed metadata before
-   ordinary application objects are created.
-
-2. **Install processors.** Spring discovers and registers
-   `BeanPostProcessor`s early so they can participate in every later bean's
-   initialization. Context services such as event and message infrastructure
-   are prepared around this part of refresh.
-
-3. **Build objects.** Spring creates remaining non-lazy singleton beans,
-   resolves dependencies, invokes initialization callbacks and lets bean
-   post-processors return the exposed object—sometimes a proxy. Web-server and
-   lifecycle hooks also run within refresh; successful completion publishes
-   the refreshed context and leaves it running.
-
-The boundary to say aloud is more important than internal method names:
-**factory post-processors work on definitions before ordinary objects exist;
-bean post-processors work on instances and can wrap them.**
-
-### `BeanFactoryPostProcessor` versus `BeanPostProcessor`
-
-| Extension | Operates on | Runs | Typical purpose |
-|---|---|---|---|
-| `BeanDefinitionRegistryPostProcessor` | registry and definitions | earliest | register more definitions |
-| `BeanFactoryPostProcessor` | definitions/metadata | before ordinary bean creation | resolve placeholders or alter recipes |
-| `BeanPostProcessor` | bean instances | around initialization | injection callbacks, validation, proxy wrapping |
-
-Calling `getBean()` inside a factory post-processor creates an object too
-early. That object can miss later post-processing and therefore miss AOP
-proxies. Dependencies of a bean post-processor can suffer the same early-
-initialization problem.
-
-An illustrative processor that changes metadata—not application code—is:
-
-```java
-@Component
-class DefaultLazyProcessor implements BeanFactoryPostProcessor {
-    @Override
-    public void postProcessBeanFactory(
-            ConfigurableListableBeanFactory factory) {
-        for (String name : factory.getBeanDefinitionNames()) {
-            BeanDefinition definition = factory.getBeanDefinition(name);
-            if (definition.getRole() == BeanDefinition.ROLE_APPLICATION) {
-                definition.setLazyInit(true);
-            }
-        }
-    }
-}
-```
-
-This is educational, not a blanket production recommendation: global lazy
-startup moves configuration failures into first traffic and can create a
-latency spike.
-
-### Where refresh hands off to proxies
-
-The context-wide story ends at the exposed bean reference. During the final
-part of one bean's lifecycle, a `BeanPostProcessor` may return a proxy instead
-of the raw target:
-
-```text
-PaymentService target
-        |
-        |  BeanPostProcessor selects transaction/security advisors
-        |
-        v
-exposed PaymentService proxy -> injected into callers
-```
-
-That is the same lifecycle boundary shown in §2, not another startup phase.
-The bean name remains the same while the exposed runtime object may change.
-Refresh only creates and publishes that reference; §5 owns what happens when a
-caller later crosses the proxy.
-
-### `FactoryBean<T>`
-
-`FactoryBean<T>` lets a Spring bean manufacture another object whose
-construction is complex or framework-controlled. Looking up `client` returns
-the product; looking up `&client` returns the factory itself.
-
-```java
-class SignedClientFactory implements FactoryBean<SignedClient> {
-    @Override public SignedClient getObject() { return buildClient(); }
-    @Override public Class<?> getObjectType() { return SignedClient.class; }
-    @Override public boolean isSingleton() { return true; }
-}
-```
-
-Do not confuse `FactoryBean` with `BeanFactory`: the first is an application
-extension that creates one product; the second is the container.
-
-### Full and lite configuration
-
-```java
-@Configuration(proxyBeanMethods = true)
-class FullConfiguration {
-    @Bean Ledger ledger() { return new Ledger(); }
-    @Bean PostingService postingService() {
-        return new PostingService(ledger());
-    }
-}
-```
-
-With proxying enabled, Spring intercepts the inter-bean `ledger()` call and
-returns the managed singleton. With `proxyBeanMethods = false`, the Java call
-constructs a second `Ledger`. Lite mode avoids configuration-class proxying
-and is safe when `@Bean` methods receive dependencies as parameters:
-
-```java
-@Configuration(proxyBeanMethods = false)
-class LiteConfiguration {
-    @Bean Ledger ledger() { return new Ledger(); }
-    @Bean PostingService postingService(Ledger ledger) {
-        return new PostingService(ledger);
-    }
-}
-```
-
-Prefer parameter injection; it makes method-call semantics irrelevant.
-
-The failure is quiet, which is what makes it an interview question. Lite mode
-with an inter-bean call produces a second `Ledger` that no one registered: it
-is not a singleton, it receives no lifecycle callbacks, no `BeanPostProcessor`
-sees it, and so it carries no transaction, security or caching proxy. A
-`@Transactional` method on such an object simply does not start a transaction.
-Nothing throws — the container never learns the object exists.
-
-| | `proxyBeanMethods = true` (full) | `proxyBeanMethods = false` (lite) |
-|---|---|---|
-| Configuration class | CGLIB subclass created | used as written |
-| Inter-bean method call | routed to the container, returns the singleton | an ordinary Java call, constructs a new object |
-| Class/method constraints | not `final`, needs a non-private constructor | none |
-| Startup cost | subclass generated per configuration class | none |
-| Safe when | any `@Bean` method calls another | `@Bean` methods take dependencies as parameters |
-
-Two details finish the answer. The interception is per configuration class, so
-`this.ledger()` inside a proxied class is intercepted while a call to another
-configuration class's method is not. And a `@Bean` method on a plain
-`@Component` is never proxied at all — that is the *lite* case by definition,
-which is why `@Bean` methods belong on `@Configuration` classes.
-
-Boot's own auto-configuration classes use lite mode throughout, for the
-startup cost: it removes one generated subclass per configuration class in a
-context that may hold hundreds. Application code inherits the same reasoning —
-declare `proxyBeanMethods = false` and pass dependencies as parameters, or
-leave the default and let the container hand back singletons.
-
----
-
-## 4. Configuration and auto-configuration
-
-### Externalized configuration
-
-Configuration varies by environment; code should not. Boot combines property
-sources such as packaged configuration, profile-specific files, environment
-variables, system properties, command-line arguments and test overrides.
-Higher-precedence sources override lower ones. The exact full ordering is a
-reference lookup; the operational rule is to know **which source won**.
-
-Command-line `--server.port=9090`, for example, overrides the value in a
-packaged `application.yml`. Actuator's environment/configuration reports and
-startup logs can help diagnose unexpected values, but sensitive values must
-be sanitized and endpoints secured.
-
-### Typed properties over scattered `@Value`
+Suppose the application needs these settings:
 
 ```yaml
 payment-switch:
@@ -1203,6 +369,8 @@ payment-switch:
   read-timeout: 1500ms
   max-in-flight: 80
 ```
+
+Bind the group to one validated type:
 
 ```java
 @ConfigurationProperties("payment-switch")
@@ -1214,98 +382,65 @@ public record SwitchProperties(
         @Min(1) int maxInFlight) { }
 ```
 
-`@ConfigurationProperties` gives relaxed binding, type conversion, metadata,
-nested structure and validation. `${name}` is a property placeholder;
-`#{expression}` is a Spring Expression Language expression. Do not evaluate
-untrusted text as SpEL.
+This gives the application typed values, one place for validation and a clear
+description of the configuration it expects. A malformed duration or missing
+URL fails startup instead of surfacing during the first request.
 
-**Relaxed binding** means one property matches many spellings, so YAML can
-stay kebab-case while Java stays camelCase, and an operator can override with
-an environment variable:
+The properties type must also be registered. Common choices are
+`@EnableConfigurationProperties(SwitchProperties.class)` on a configuration
+class or `@ConfigurationPropertiesScan` on the application class.
+
+Boot's relaxed binding maps conventional external names to Java names. For
+example, these refer to the same field in the appropriate property source:
 
 ```text
-max-in-flight   maxInFlight   max_in_flight   MAX_IN_FLIGHT   MAXINFLIGHT
-        |
-        v
-   int maxInFlight
+payment-switch.max-in-flight
+paymentSwitch.maxInFlight
+PAYMENT_SWITCH_MAX_IN_FLIGHT
 ```
 
-That last form is why the pattern matters operationally: `PAYMENT_SWITCH_MAX_IN_FLIGHT`
-is a legal environment variable name, and a container platform can set it
-without the application knowing. `@Value("${payment-switch.max-in-flight}")`
-binds one exact string with no such latitude.
+Use `@Value` for an isolated value or expression. Prefer
+`@ConfigurationProperties` when several values form one configuration concept.
 
-**The class must be registered**, and the annotation alone does not do it.
-Three ways, and an interview will accept any of them named correctly:
-
-- `@EnableConfigurationProperties(SwitchProperties.class)` on a configuration
-  class — explicit, and the form auto-configuration uses;
-
-- `@ConfigurationPropertiesScan` on the application class — scans for the
-  annotation the way component scanning finds `@Component`;
-
-- `@Component` on the properties class itself — works, but mixes a stereotype
-  into a value object.
-
-A `record` binds through its canonical constructor, which makes the object
-immutable and means a missing value fails at construction. Java-bean binding
-(a class with setters) is the alternative, and it is the one that needs a
-no-argument constructor and mutable state. Constructor binding cannot be
-combined with `@Autowired` on the same class — properties are values, not
-service collaborators.
-
-Prefer typed properties over `@Value` for anything with more than one field:
-
-| | `@ConfigurationProperties` | `@Value` |
-|---|---|---|
-| Binds | a whole tree to one object | one expression to one field |
-| Naming | relaxed | exact match only |
-| Validation | JSR-380 on the type, at startup | none |
-| Metadata/IDE completion | generated | none |
-| Failure timing | startup, naming the property | injection, or later as a bad value |
-
-`@Value` remains reasonable for a single unrelated string. It is the wrong
-tool for a group of related settings, because each field fails separately and
-nothing describes the group as a unit.
-
-Secrets belong in a secret manager or platform-provided source, not Git,
-container images, exception messages or logs. Configuration binding does not
-make a value safe to expose.
+Secrets should come from an approved secret store or platform-provided property
+source. Binding a secret into a typed object does not make it safe to log or
+expose through an endpoint.
 
 ### Profiles
 
-Profiles select bean/configuration variants, not arbitrary branches scattered
-through business code. Useful examples are `local` infrastructure or a
-platform adapter. Avoid a matrix such as `prod-bank-a-region-2-dr` that makes
-the application impossible to reason about. Prefer ordinary typed properties
-for values and explicit strategies for business variants.
+A profile selects a set of bean definitions or configuration files. It is
+useful for infrastructure differences such as a local stub:
 
 ```java
 @Bean
 @Profile("local")
-FraudClient stubFraudClient() {
+FraudClient localFraudClient() {
     return request -> FraudDecision.accepted();
 }
 ```
 
-Never let a permissive local security bean activate because a production
-profile was misspelled. Fail closed and validate essential configuration.
+Profiles become difficult to reason about when they encode many independent
+business choices in names such as `prod-bank-a-region-2-dr`. Use typed
+properties for values and explicit strategy objects for business variants.
+
+Security-sensitive defaults should fail closed. A misspelled production
+profile must not silently activate a permissive local bean.
 
 ### How auto-configuration decides
 
-An auto-configuration class is imported by Boot and guarded by conditions:
+Boot discovers auto-configuration classes from import metadata in libraries;
+application component scanning is not responsible for finding them. Each class
+uses conditions to state when its definitions are relevant.
 
-- `@ConditionalOnClass` — a library/API is present;
+Common conditions include:
 
-- `@ConditionalOnMissingBean` — the application did not provide its own bean;
+- `@ConditionalOnClass`: a required API is present;
 
-- `@ConditionalOnProperty` — a property enables or selects behavior;
+- `@ConditionalOnMissingBean`: the application has not supplied its own bean;
 
-- `@ConditionalOnWebApplication` — the expected application type exists;
+- `@ConditionalOnProperty`: a setting enables or selects the feature;
 
-- custom conditions — a deliberate extension point, used sparingly.
-
-Conceptually:
+- `@ConditionalOnWebApplication`: the expected web application type is in use.
 
 ```java
 @AutoConfiguration
@@ -1321,189 +456,468 @@ class SignedClientAutoConfiguration {
 }
 ```
 
-Modern Boot discovers auto-configuration through import metadata in the jar;
-application component scanning is not what finds it. Conditions are evaluated
-against the application context being built. Ordering can arrange evaluation
-relative to other auto-configurations, but it does not force a condition to
-match.
+If `SignedClient` is absent, the auto-configuration is irrelevant. If the class
+is present but the application already defines a `SignedClient`, the default
+backs off. If both conditions match, the definition is registered and its bean
+is created during refresh like any other bean.
 
-### Diagnosing the magic
+### Diagnose the decision, do not guess
 
-When a bean is missing or surprising:
+When an expected auto-configured bean is missing:
 
-1. Confirm the dependency and its version are present.
+1. Confirm that the dependency and expected version are present.
 
-2. Inspect the configuration-properties value and active profiles.
+2. Check active profiles and the resolved configuration properties.
 
-3. Enable the condition evaluation report (`--debug`) or inspect the Actuator
-   conditions endpoint in a secured environment.
+3. Enable the condition evaluation report with `--debug`, or inspect the
+   secured Actuator `conditions` endpoint.
 
-4. Find the candidate auto-configuration and read each matched/unmatched
-   condition.
+4. Find the relevant auto-configuration and read why each condition matched or
+   did not match.
 
-5. Check whether an application bean caused back-off.
+5. Check whether an application bean caused the default to back off.
 
-6. Check package scanning and exclusions.
+6. Check explicit exclusions and package scanning for application components.
 
-Do not fix an unexplained condition by copying a whole auto-configuration
-class into application code. Identify the failed premise.
+Do not copy an auto-configuration class into application code merely to make
+the bean appear. First identify which premise was false.
 
-### Configuration failure policy
+Invalid configuration and unavailable infrastructure need different policies.
+A missing issuer URL or invalid timeout should normally fail startup. A valid
+but temporarily unreachable dependency may instead keep the application
+unready until it recovers, depending on the deployment contract.
 
-A required database URL, issuer, key alias or downstream timeout should fail
-validation at startup. A dynamically unavailable dependency is different:
-the application may start unready and become ready after recovery, depending
-on the platform contract. Distinguish **invalid configuration** from
-**temporarily unavailable infrastructure**.
+---
+
+## 3. IoC dependency injection and beans
+
+The application context is a registry of named objects called **beans**. A bean
+is not a special kind of Java object; it is an object whose construction and
+lifecycle are managed by Spring.
+
+### Why dependency injection exists
+
+Without dependency injection, a class chooses and constructs its own
+collaborators:
+
+```java
+class PaymentService {
+    private final PaymentRepository repository =
+            new OraclePaymentRepository();
+}
+```
+
+`PaymentService` is now tied to one repository implementation. Replacing the
+repository for a test or a different database requires changing the class.
+
+With constructor injection, the class states what it needs and leaves the
+choice to its caller:
+
+```java
+@Service
+class PaymentService {
+    private final PaymentRepository repository;
+    private final FraudClient fraudClient;
+
+    PaymentService(PaymentRepository repository, FraudClient fraudClient) {
+        this.repository = repository;
+        this.fraudClient = fraudClient;
+    }
+}
+```
+
+Spring creates the bean, finds matching collaborators and calls the
+constructor. A unit test can make the same call with fakes. This is dependency
+injection; the inversion of control is that `PaymentService` no longer controls
+the assembly of the object graph.
+
+Constructor injection is the normal choice for required dependencies. It makes
+them visible, permits `final` fields and prevents a usable instance from being
+created without them. A single constructor does not need `@Autowired`.
+
+Field injection hides required inputs and makes ordinary construction awkward.
+Setter injection is useful only when a dependency is genuinely optional or
+replaceable after construction.
+
+### How a class becomes a bean
+
+Spring needs a bean definition before it can create an object. Common sources
+of definitions are:
+
+- component scanning of classes annotated with `@Component` or a specialized
+  stereotype;
+
+- `@Bean` methods in configuration classes;
+
+- explicit imports;
+
+- Boot auto-configuration.
+
+The main stereotypes communicate the role of a scanned class:
+
+| Annotation | Intended role |
+|---|---|
+| `@Component` | general managed component |
+| `@Service` | application or business service |
+| `@Repository` | persistence component; also enables eligible persistence-exception translation |
+| `@Controller` | MVC controller, commonly returning views |
+| `@RestController` | MVC controller whose handler return values are written to the response body |
+
+The annotation registers the class; it does not enforce the architecture. A
+controller containing SQL is still poor design even though Spring can create
+it successfully.
+
+Use a `@Bean` method when construction needs third-party code or explicit setup:
+
+```java
+@Configuration(proxyBeanMethods = false)
+class TimeConfiguration {
+    @Bean
+    Clock clock() {
+        return Clock.systemUTC();
+    }
+}
+```
+
+Spring manages the returned `Clock` in the same way it manages a scanned bean.
+
+### How Spring chooses a dependency
+
+Spring first looks for beans assignable to the required type. With exactly one
+candidate, injection is straightforward. With none, startup normally fails
+with `NoSuchBeanDefinitionException`. With several, Spring needs more
+information.
+
+```java
+interface PaymentRail {
+    Receipt send(Payment payment);
+}
+
+@Component
+class ImpsRail implements PaymentRail { /* ... */ }
+
+@Component
+class NeftRail implements PaymentRail { /* ... */ }
+```
+
+A constructor that requests one `PaymentRail` is ambiguous. The usual ways to
+resolve it are:
+
+- mark one candidate `@Primary` when it is the application-wide default;
+
+- put `@Qualifier("neftRail")` at an injection point when that consumer needs
+  a particular candidate;
+
+- inject all candidates as `List<PaymentRail>` or `Map<String, PaymentRail>`
+  when the application genuinely needs a set of strategies.
+
+`@Primary` expresses a default on the producing side. `@Qualifier` expresses a
+choice on the consuming side and is more specific.
+
+```java
+@Service
+class BulkSalaryService {
+    private final PaymentRail rail;
+
+    BulkSalaryService(@Qualifier("neftRail") PaymentRail rail) {
+        this.rail = rail;
+    }
+}
+```
+
+For runtime routing, do not expose bean names as business values. Convert input
+to a domain type and build a domain-keyed map:
+
+```java
+enum Rail { IMPS, NEFT }
+
+interface PaymentRail {
+    Rail rail();
+    Receipt send(Payment payment);
+}
+
+@Service
+class RailRouter {
+    private final Map<Rail, PaymentRail> rails;
+
+    RailRouter(List<PaymentRail> implementations) {
+        this.rails = implementations.stream()
+                .collect(toUnmodifiableMap(PaymentRail::rail, identity()));
+    }
+
+    Receipt route(Rail rail, Payment payment) {
+        PaymentRail implementation = rails.get(rail);
+        if (implementation == null) {
+            throw new UnsupportedRailException(rail);
+        }
+        return implementation.send(payment);
+    }
+}
+```
+
+Bean names remain wiring details, while the API works with the closed set of
+values defined by `Rail`.
+
+Use `Optional<T>` for a genuinely optional single dependency and
+`ObjectProvider<T>` when lookup must be lazy or repeated. Do not use either one
+to hide a dependency that the application cannot function without.
+
+### Scope and shared state
+
+The default bean scope is **singleton per application context**. One singleton
+service can be called concurrently by many request threads, so singleton does
+not mean thread-safe.
+
+```java
+@Service
+class BadSequenceService {
+    private long next;
+
+    long next() {
+        return ++next; // shared mutation and a data race
+    }
+}
+```
+
+Keep singleton services stateless. Durable counters and business state belong
+in a store with the required concurrency guarantees; operational counters
+belong in a metrics system.
+
+Other scopes include prototype, request and session. Injecting a request-scoped
+object into a singleton requires indirection, normally a scoped proxy or an
+`ObjectProvider`, so the current request's instance is resolved at call time.
+
+### Circular dependencies
+
+Constructor injection exposes cycles immediately:
+
+```text
+PaymentService -> NotificationService -> PaymentService
+```
+
+Neither object can be constructed first, so startup fails. That is usually a
+design problem, not a container setting to work around.
+
+Typical corrections are:
+
+- extract a third service that owns the workflow involving both components;
+
+- publish a domain event when one component should announce an outcome without
+  knowing its consumers;
+
+- separate orchestration from the two capabilities being orchestrated.
+
+`@Lazy` or `ObjectProvider<T>` can defer one lookup and break the construction
+cycle, but the runtime dependency cycle still exists. Treat that as a tactical
+bridge, not the design goal.
+
+---
+
+## 4. Container startup and extension points
+
+Chapter 3 described the objects Spring creates. This chapter follows the
+container work that turns definitions into those objects.
+
+### Definitions are recipes
+
+A `BeanDefinition` records how Spring should create a bean: its type or factory
+method, scope, constructor arguments, qualifiers, lifecycle methods and other
+metadata. A `BeanDefinitionRegistry` holds those recipes. A `BeanFactory` uses
+them to create and connect objects.
+
+An `ApplicationContext` builds on the bean factory. It adds environment and
+profile support, resource loading, events, message resolution and application
+lifecycle integration.
+
+```text
+component scan / @Bean / @Import / auto-configuration
+                         |
+                         v
+                 BeanDefinitions
+                         |
+                         v
+                    BeanFactory
+                         |
+                         v
+                  managed objects
+```
+
+Keeping definitions separate from instances lets Spring inspect and modify the
+plan before it constructs ordinary application beans.
+
+### Refresh in three stages
+
+`ApplicationContext.refresh()` is the central container operation during Boot
+startup. Its implementation has many steps, but three stages explain the
+extension model:
+
+```text
+1. COMPLETE OR CHANGE DEFINITIONS
+   registry and factory post-processors inspect the recipes
+
+2. INSTALL BEAN POST-PROCESSORS
+   processors that will participate in bean creation are registered
+
+3. CREATE REMAINING SINGLETONS
+   construct -> inject -> initialize -> expose
+```
+
+Configuration-class processing, component scanning and imports contribute to
+the first stage. Bean post-processors must be installed before normal beans are
+created because those processors implement much of annotation injection,
+lifecycle handling and proxy creation.
+
+The final stage creates the remaining non-lazy singletons. Web-server and
+lifecycle infrastructure are also completed during refresh. When refresh
+succeeds, the context contains the references that other beans will use.
+
+### The lifecycle of one bean
+
+For one ordinary singleton, the relevant sequence is:
+
+```text
+instantiate
+  -> inject dependencies and properties
+  -> invoke aware callbacks
+  -> BeanPostProcessor: before initialization
+  -> @PostConstruct / afterPropertiesSet / custom init method
+  -> BeanPostProcessor: after initialization
+  -> expose the resulting reference for use
+  -> @PreDestroy / destroy method when the context closes
+```
+
+A post-processor may return the original object or a replacement reference.
+Spring AOP infrastructure commonly returns a proxy that wraps the original
+target. Other beans then receive the proxy, not the raw target.
+
+```text
+PaymentService target
+        |
+        | post-processing adds transaction advice
+        v
+PaymentService proxy  -> reference injected into callers
+```
+
+This timing explains why an advised method should not be invoked from
+`@PostConstruct`. Initialization runs on the target while the final proxy is
+still being prepared, and a call through `this` would bypass that proxy anyway.
+
+Use `@PostConstruct` for fast local initialization that requires injected
+dependencies. Avoid slow network calls there: they delay context refresh and
+make startup depend on remote availability. Application-level work that must
+run after the context is built belongs in a bounded runner or an appropriate
+lifecycle component.
+
+Destruction callbacks run for managed singletons when the context closes
+normally. Spring does not manage destruction of prototype beans after handing
+them to the caller, and no callback is guaranteed after an abrupt process
+termination.
+
+### Factory post-processors and bean post-processors
+
+The similar names refer to different stages:
+
+| Extension point | Operates on | Typical use |
+|---|---|---|
+| `BeanDefinitionRegistryPostProcessor` | the definition registry | add more bean definitions |
+| `BeanFactoryPostProcessor` | bean definitions | change metadata before normal objects exist |
+| `BeanPostProcessor` | bean instances | injection support, lifecycle callbacks and proxy wrapping |
+
+Creating ordinary beans from a factory post-processor is dangerous because it
+pulls them into existence before all bean post-processors are installed. Such a
+bean can miss later processing and proxy creation.
+
+Application code rarely needs to implement these interfaces. Their main value
+is explanatory: many Spring annotations work because infrastructure
+post-processors interpret them at the correct stage.
+
+### `@Configuration` and inter-bean calls
+
+Consider two beans declared in one configuration class:
+
+```java
+@Configuration
+class LedgerConfiguration {
+    @Bean
+    Ledger ledger() {
+        return new Ledger();
+    }
+
+    @Bean
+    PostingService postingService() {
+        return new PostingService(ledger());
+    }
+}
+```
+
+With the default `proxyBeanMethods = true`, Spring subclasses the configuration
+class. The call to `ledger()` is intercepted and returns the managed singleton
+rather than constructing another `Ledger`.
+
+When `proxyBeanMethods = false`, the class is not enhanced. Calling one `@Bean`
+method from another is then an ordinary Java call and creates a second object.
+The safer lite-mode style is parameter injection:
+
+```java
+@Configuration(proxyBeanMethods = false)
+class LedgerConfiguration {
+    @Bean
+    Ledger ledger() {
+        return new Ledger();
+    }
+
+    @Bean
+    PostingService postingService(Ledger ledger) {
+        return new PostingService(ledger);
+    }
+}
+```
+
+Spring resolves the parameter from the container, so the code does not depend
+on configuration-class method interception. This style is explicit and is
+widely used by Boot auto-configuration.
+
+### `FactoryBean<T>`
+
+A `FactoryBean<T>` is itself a bean that creates another object when
+construction must be delegated to framework-specific factory logic. Looking up
+`client` returns the product; looking up `&client` returns the factory.
+
+Do not confuse it with `BeanFactory`: `FactoryBean` creates one kind of product,
+while `BeanFactory` is the container that manages all bean definitions and
+instances.
 
 ---
 
 ## 5. Aspect-oriented programming (AOP) and Spring proxies
 
-The container work is finished now: definitions were registered, the target
-was created, and callers received the exposed bean reference. This chapter
-starts at **call time**. Its question is not how the application starts, but
-what happens when an invocation crosses that reference.
+At this point startup is complete. The container has created a
+`PaymentService` and may have exposed a proxy around it. This chapter follows a
+call from another bean to that exposed reference.
 
-### What AOP means and why it exists
+### Why Spring uses proxies
 
-**AOP** means **Aspect-Oriented Programming**. It is a way to keep behavior
-that applies across many classes separate from the business behavior inside
-those classes.
+Transactions, method authorization, caching, retry and asynchronous execution
+all need behavior around a method call. Writing that wrapper inside every
+business method would mix infrastructure with business logic and repeat the
+same policy across many classes.
 
-Object-oriented code usually decomposes a system by responsibility:
-`PaymentService` settles payments, `RefundService` creates refunds, and
-`AccountService` changes accounts. Some requirements cut across all those
-vertical responsibilities:
-
-- start and complete a database transaction;
-
-- verify the caller's authority;
-
-- record duration and outcome;
-
-- retry a narrowly defined transient failure;
-
-- read or populate a cache.
-
-These are **cross-cutting concerns**. Without a shared mechanism, every service
-can become responsible for repeating and correctly ordering the same wrapper
-code. In conceptual ordinary Java, one method might look like this (where the
-three collaborators are application infrastructure helpers):
-
-```java
-Receipt settle(SettlementCommand command) {
-    authorization.require("PAYMENT_WRITE");
-    long started = System.nanoTime();
-    try {
-        return transactions.inTransaction(() -> doSettle(command));
-    } finally {
-        metrics.record("payment.settle", System.nanoTime() - started);
-    }
-}
-```
-
-That explicit code is understandable in isolation. Repeating variants of it in
-fifty methods creates **scattering**—one policy lives in many classes—and
-**tangling**—business workflow is mixed with infrastructure workflow. A change
-to the transaction, authorization or measurement policy then requires many
-edits and is easy to apply inconsistently.
-
-AOP extracts a stable wrapper policy and applies it at selected method
-boundaries:
-
-```text
-without AOP
-  PaymentService -> authorization + transaction + timing + payment logic
-  RefundService  -> authorization + transaction + timing + refund logic
-  AccountService -> authorization + transaction + timing + account logic
-
-with AOP
-  payment call -> [authorization -> transaction -> timing] -> payment logic
-  refund call  -> [the configured interceptor policies]     -> refund logic
-  account call -> [the configured interceptor policies]     -> account logic
-```
-
-AOP does not create a capability that ordinary Java lacks. An engineer could
-write a decorator around every service manually. Spring AOP automates creation
-and selection of those decorators, which is especially valuable for framework
-policies such as `@Transactional`, method security, caching, retry and
-`@Async`. Most Spring developers **use** AOP through those features far more
-often than they write a custom aspect.
-
-Each horizontal policy is one *aspect* of the application that cuts across
-otherwise unrelated classes—hence the name aspect-oriented programming.
-
-Use AOP when the policy is uniform, cross-cutting and naturally wraps a method
-call. Keep domain decisions—payment state transitions, fee calculation,
-compensation and idempotency—in explicit business code where control flow is
-visible.
-
-### The small AOP vocabulary
-
-The terminology maps onto that wrapper model:
-
-| Term | Meaning |
-|---|---|
-| aspect | A module representing one cross-cutting concern, such as timing or authorization. |
-| join point | A place where behavior could be attached; Spring AOP supports method-execution join points. |
-| pointcut | A rule selecting which method-execution join points should be wrapped. |
-| advice/interceptor | The wrapper code that runs before, after or around the selected invocation. |
-| target | The application object containing the actual business method. |
-| proxy | The object given to callers; it runs interceptors and delegates to the target. |
-| advisor | Spring's pairing of a pointcut with advice. |
-
-You do not need this vocabulary to call an annotated service, but it makes
-startup logs, stack traces and proxy failures much easier to reason about.
-
-### The mechanism behind Spring annotations
-
-Spring usually implements AOP by putting a **proxy** in front of a managed bean.
-The proxy behaves like a generated decorator. A call crossing it can run one or
-more interceptors before and after the target method:
+Spring AOP places the wrapper in a proxy:
 
 ```text
 caller
   -> proxy
-       -> security check
-       -> open/join transaction
-       -> invoke target
-       -> commit or roll back
-       -> record observation
+       -> run matching interceptors
+       -> call target method
+       -> complete matching interceptors
   <- result or exception
 ```
 
-This nesting is illustrative rather than guaranteed; advisor ordering decides
-which concern wraps which other concern.
+An annotation such as `@Transactional` is metadata. It does not start a
+transaction by itself. Transaction infrastructure finds that metadata and
+adds an interceptor to an eligible bean's proxy.
 
-Transactions, method authorization, caching, retry and `@Async` commonly use
-this mechanism. An annotation such as `@Transactional` is metadata describing
-the desired boundary; it does not open a transaction by itself. The interceptor
-invoked by the proxy supplies the runtime behavior.
-
-```text
-reference injected into caller
-          |
-          v
-   PaymentService proxy       <- Spring infrastructure object
-   [transaction interceptor]
-          |
-          v
-   PaymentService target      <- application object and business method
-```
-
-This distinction explains the central rule of the chapter:
-
-> Advice runs only when a call reaches the proxy. A direct call on the target
-> has no opportunity to be intercepted.
-
-Spring's proxy-based AOP supports method execution on Spring beans when the call
-arrives through the proxy. It does not intercept field access, constructors,
-arbitrary objects created with `new`, or calls that remain inside the target.
-
-### One call from proxy entry to target return
-
-Consider a transactional application service:
+### One transactional call
 
 ```java
 record SettlementCommand(UUID paymentId) { }
@@ -1511,10 +925,9 @@ record Receipt(UUID paymentId) { }
 
 @Service
 class PaymentService {
-
     @Transactional
     public Receipt settle(SettlementCommand command) {
-        // Stand-in for the application's ordinary business logic.
+        // business and persistence work
         return new Receipt(command.paymentId());
     }
 }
@@ -1524,110 +937,109 @@ class SettlementCoordinator {
     private final PaymentService payments;
 
     SettlementCoordinator(PaymentService payments) {
-        this.payments = payments; // normally a proxy reference
+        this.payments = payments;
     }
 
-    Receipt settle(UUID id) {
-        return payments.settle(new SettlementCommand(id));
+    Receipt settle(UUID paymentId) {
+        return payments.settle(new SettlementCommand(paymentId));
     }
 }
 ```
 
-By application readiness, §2–§3 have already explained how the target became
-an exposed proxy and how `SettlementCoordinator` received that reference. The
-new action here is the call:
+`SettlementCoordinator` normally receives the exposed `PaymentService` proxy.
+The call proceeds as follows:
 
-1. `SettlementCoordinator` invokes `payments.settle(...)` on the exposed
-   reference.
+1. The coordinator calls `settle(...)` on the proxy.
 
-2. The proxy finds the matching transaction advisor and invokes its
-   interceptor.
+2. The proxy finds the matching transaction interceptor.
 
-3. The interceptor starts or joins a transaction, then calls the target's
-   business method.
+3. The interceptor starts or joins a transaction and calls the target method.
 
-4. A normal target return makes the interceptor attempt commit before the
-   proxy call returns; a matching failure causes rollback and propagation.
+4. When the target returns or throws, the interceptor applies the transaction
+   completion rules before control returns to the coordinator.
 
-The coordinator does not manually invoke an aspect, and the target does not
-open its own proxy. Business code declares the boundary while infrastructure
-owns the repeated wrapper mechanics. Section 13 owns the exact transaction
-and rollback rules; this chapter owns only the fact that the call crosses the
-interceptor before reaching the target.
-
-At runtime, the call stack is conceptually:
+The exact propagation and rollback rules belong to §13. The important point
+here is that the call reached the interceptor before it reached the target.
 
 ```text
 SettlementCoordinator
   -> PaymentService proxy
        -> TransactionInterceptor
-            -> PaymentService.settle
-       <- commit/rollback
-  <- Receipt or exception
+            -> PaymentService target
+       <- commit or roll back
+  <- result or exception
 ```
 
-Calling `new PaymentService().settle(...)` would execute the Java method but
-would not create a Spring bean, a proxy or a transaction.
+Calling `new PaymentService().settle(...)` calls an ordinary Java object. The
+container did not create or expose that instance, so no Spring proxy surrounds
+the call.
 
-### JDK and class-based proxies
+### The small AOP vocabulary
 
-| Proxy style | Runtime shape | Main constraint |
+| Term | Meaning in Spring AOP |
+|---|---|
+| target | the application object containing the method |
+| proxy | the object given to callers; it runs interceptors and delegates to the target |
+| advice/interceptor | code that runs before, after or around a method call |
+| pointcut | a rule selecting which method executions receive advice |
+| advisor | a pointcut paired with advice |
+| aspect | a component that groups a cross-cutting policy and its selection rule |
+
+Spring AOP supports method-execution join points on Spring-managed beans. Full
+AspectJ weaving is a separate bytecode mechanism and is not assumed here.
+
+### Proxy types and method constraints
+
+Spring can expose two common proxy shapes:
+
+| Proxy type | Shape | Main consequence |
 |---|---|---|
-| JDK dynamic proxy | Implements one or more target interfaces and delegates to the target. | It is assignable to those interfaces, not the target class; calls must use methods exposed by them. |
-| class-based proxy | Generates a subclass of the target and overrides interceptable methods. | Cannot override a `final` method or subclass a `final` class. |
+| JDK dynamic proxy | implements the target's interfaces | callers use an interface implemented by the proxy |
+| class-based proxy | generated subclass of the target class | the class and advised methods must be overridable |
 
-The core Spring Framework can choose a JDK proxy when a target exposes an
-interface. Spring Boot normally configures class-based proxies by default via
-`spring.aop.proxy-target-class=true`; project configuration and individual
-features can change that choice. The `PaymentService` example above therefore
-does not need an interface merely to receive transaction advice.
+Class-based proxies cannot advise `final` methods and cannot subclass a `final`
+class. Private methods cannot be advised through either proxy style. Public,
+non-final service methods are the least surprising proxy boundary.
 
-Class-based proxies cannot override `final` methods; neither proxy style can
-intercept `private` methods. Modern Spring supports more visibility cases for
-class-based proxies than older versions, but public service methods remain the
-least surprising boundary.
+Spring Boot commonly enables class-based proxies by default, but application
+and feature configuration can change the proxy type. Business design should
+not rely on guessing which one was chosen.
 
-Code should depend on service interfaces for design reasons where a useful
-abstraction exists, not merely to satisfy old proxy folklore. Spring can use
-class-based proxies without an interface.
+### Self-invocation bypasses the proxy
 
-Do not make correctness depend on guessing which proxy style Boot selected.
-Keep advised service boundaries externally callable and non-final, and inject
-them through a stable type. The proxy and target are distinct objects even
-when a debugger renders them similarly.
-
-### Self-invocation
+Once a proxy delegates to its target, a call from one target method to another
+uses `this`. It does not travel back out through the proxy.
 
 ```java
 @Service
 class SettlementService {
-
     public void settleBatch(List<UUID> paymentIds) {
         for (UUID paymentId : paymentIds) {
-            settleOne(paymentId);       // call on this, bypasses proxy
+            settleOne(paymentId); // direct call on this
         }
     }
 
     @Transactional
-    public void settleOne(UUID paymentId) { /* ... */ }
+    public void settleOne(UUID paymentId) {
+        // database work
+    }
 }
 ```
 
-The external call enters the proxy once for `settleBatch`. The internal Java
-call `this.settleOne(...)` never re-enters it, so no transaction interceptor
-runs for `settleOne`. If `settleBatch` itself is not transactional, the work is
-non-transactional. If it is transactional, the inner method merely runs in
-that existing transaction; any distinct propagation settings on `settleOne`
-are ignored. The same proxy-bypass trap applies to method security, caching,
-retry and async advice.
+If `settleBatch` is not transactional, `settleOne` does not acquire a
+transaction through its annotation. The same rule affects method security,
+caching, retry and `@Async`.
 
-Prefer an explicit collaborator:
+Move the advised operation to a collaborator when it needs an independently
+intercepted boundary:
 
 ```java
 @Service
 class SingleSettlementService {
     @Transactional
-    public void settle(UUID paymentId) { /* ... */ }
+    public void settle(UUID paymentId) {
+        // database work
+    }
 }
 
 @Service
@@ -1639,140 +1051,59 @@ class BatchSettlementService {
     }
 
     public void settleBatch(List<UUID> paymentIds) {
-        paymentIds.forEach(single::settle); // crosses collaborator proxy
+        paymentIds.forEach(single::settle); // crosses the collaborator proxy
     }
 }
 ```
 
-With the code exactly as shown, `settleBatch` has no transaction and each call
-to `single.settle` starts and commits its own default `REQUIRED` transaction.
-Earlier IDs can therefore commit before a later ID fails. If the entire batch
-must be atomic, put one transaction around the batch and let the collaborator
-join it; if each item must be independently retryable, keep the per-item
-boundary and design partial progress explicitly.
+As written, each item has its own transaction. If the whole batch must be
+atomic, put the transaction around the batch instead. Transaction placement is
+a business decision, not merely a workaround for self-invocation.
 
-Self-injecting the proxy or calling `AopContext.currentProxy()` couples
-business code to interception machinery and usually hides a missing boundary;
-`AopContext.currentProxy()` also requires proxy exposure to be enabled.
+Self-injection and `AopContext.currentProxy()` can force a call back through the
+proxy, but they couple business code to the interception mechanism. A separate
+collaborator usually makes the intended boundary clearer.
 
-### Optional: writing a custom aspect
+### Other reasons advice appears to be missing
 
-Most applications can consume Spring's existing transactional, security,
-caching and observability support without defining an aspect. When an
-application genuinely owns a cross-cutting policy, `@Aspect` provides a way to
-declare it. This example times selected service methods:
+When an annotation seems ineffective, check the call rather than the annotation
+first:
 
-```java
-@Aspect
-@Component
-class ServiceTimingAspect {
-    private final MeterRegistry meters;
+- Was the object created and managed by Spring, or with `new`?
 
-    ServiceTimingAspect(MeterRegistry meters) {
-        this.meters = meters;
-    }
+- Did the caller receive the exposed proxy, or a raw target reference?
 
-    @Around("execution(public * *(..)) && " +
-            "within(com.bank.payment.service..*)")
-    Object time(ProceedingJoinPoint invocation) throws Throwable {
-        long started = System.nanoTime();
-        try {
-            return invocation.proceed();
-        } finally {
-            meters.timer("payment.service",
-                         "method", invocation.getSignature().getName())
-                  .record(System.nanoTime() - started, TimeUnit.NANOSECONDS);
-        }
-    }
-}
-```
+- Did the call come from another object, or from `this`?
 
-`@Around` is advice that controls when the selected method proceeds.
-`execution(public * *(..))` selects public methods with any return type, name
-and arguments; `within(com.bank.payment.service..*)` limits them to types in
-that package and its subpackages. `invocation.proceed()` continues the remaining
-interceptor chain and eventually calls the target. Around advice can technically
-skip, repeat or replace that call, which is powerful enough to demand restraint;
-the `finally` block here records both successful and failed invocations.
+- Can the selected proxy type intercept that method?
 
-Keep pointcuts narrow and test both matches and non-matches. A pointcut matching
-every application method creates overhead; a metric label containing payment
-IDs creates unbounded cardinality. For application-defined aspects, the usual
-Boot entry point is `spring-boot-starter-aop`; Boot enables proxy-based
-`@Aspect` support when the required AspectJ types are present. Infrastructure
-features such as transaction management register their own advisors when
-enabled.
+- Is the feature enabled and is its infrastructure present?
 
-The example's `MeterRegistry` also requires Micrometer and an actual registry,
-normally supplied through Boot's Actuator/metrics setup. That dependency is
-specific to the timing action, not to AOP itself.
+- Did another interceptor change the thread, exception or ordering?
 
-Despite the `@Aspect` name and AspectJ expression syntax, this configuration
-still uses Spring proxies; it does not weave the target class's bytecode. Full
-AspectJ weaving is a separate mechanism that can advise constructors, fields
-and other join points. Most Spring applications only need proxy-based AOP.
+Initialization is another special case. `@PostConstruct` runs before the final
+proxy is available for normal use, so it should not depend on an advised
+self-call.
 
-### Other proxy traps
+Interceptor order also changes behavior. Retry outside a transaction can start
+a fresh transaction for each attempt. A transaction outside retry can keep all
+attempts inside one transaction that may already be marked rollback-only.
+`@Async` moves execution to another thread, so thread-local transaction and
+security state do not automatically follow.
 
-- An object created with `new` is not a managed bean and receives no advice.
+### When AOP fits
 
-- `@PostConstruct` executes during initialization; do not assume the bean's
-  final proxy is intercepting self-calls there.
+AOP is a good fit for stable, cross-cutting policy that naturally surrounds a
+method call: transactions, authorization, observation and carefully defined
+retry or caching rules.
 
-- A caught exception may prevent transaction advice from seeing the failure.
+Keep business workflow explicit. Payment state transitions, fee calculation,
+compensation and idempotency should be visible in ordinary application code,
+not hidden inside an aspect.
 
-- Advice order matters. Retry outside a transaction creates one transaction
-  per attempt; transaction outside retry can retain the same doomed
-  transaction across attempts.
-
-- `@Async` changes threads. Thread-local transaction and security state do not
-  automatically become one shared context.
-
-- The runtime class in a debugger may be generated. Inspect the proxy and its
-  advisors before blaming the database.
-
-A focused diagnostic can prove the boundary without relying on the generated
-class name:
-
-```java
-@Service
-class TransactionProbe {
-    @Transactional
-    public boolean transactionActive() {
-        return TransactionSynchronizationManager
-                .isActualTransactionActive();
-    }
-}
-
-@SpringBootTest
-class ProxyBoundaryTest {
-    @Autowired PaymentService payments;
-    @Autowired TransactionProbe probe;
-
-    @Test
-    void transactionAdviceRunsAcrossTheProxy() {
-        assertThat(AopUtils.isAopProxy(payments)).isTrue();
-        assertThat(probe.transactionActive()).isTrue();
-    }
-}
-```
-
-The first assertion only proves that some proxy exists. The second calls the
-probe from outside its bean and verifies transaction advice actually ran. For
-business behavior, an integration test proving rollback after an exception is
-stronger still.
-
-### When not to use AOP
-
-Use AOP for stable cross-cutting policies with clear boundaries. Do not hide
-core business workflow in an aspect. A transfer's state transition,
-compensation and idempotency belong in explicit code; transaction and
-authorization checks can wrap that code.
-
-**Senior answer:** When an annotation appears ineffective, I verify that the
-object is Spring-managed, the call crosses the proxy, the method is
-interceptable, the feature is enabled, and advice ordering matches the
-intended boundary.
+Most applications only consume Spring's existing advisors. If an application
+defines a custom aspect, keep its pointcut narrow and test both methods that
+should match and methods that must not match.
 
 ---
 
