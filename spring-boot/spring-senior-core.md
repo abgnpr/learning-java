@@ -516,9 +516,44 @@ Constructor injection is the normal choice for required dependencies. It makes
 them visible, permits `final` fields and prevents a usable instance from being
 created without them. A single constructor does not need `@Autowired`.
 
-Field injection hides required inputs and makes ordinary construction awkward.
-Setter injection is useful only when a dependency is genuinely optional or
-replaceable after construction.
+Spring can inject through a constructor, a method or a field. The difference is
+visible in ordinary Java:
+
+```java
+// Required dependency: the object cannot exist without it.
+@Service
+class ConstructorInjectedService {
+    private final PaymentRepository repository;
+
+    ConstructorInjectedService(PaymentRepository repository) {
+        this.repository = repository;
+    }
+}
+
+// Optional extension: Spring calls the method only when AuditSink exists.
+@Service
+class SetterInjectedExporter {
+    private Optional<AuditSink> audit = Optional.empty();
+
+    @Autowired(required = false)
+    void setAudit(AuditSink audit) {
+        this.audit = Optional.of(audit);
+    }
+}
+
+// Supported, but the required input is hidden from the constructor.
+@Service
+class FieldInjectedService {
+    @Autowired
+    private PaymentRepository repository;
+}
+```
+
+Constructor injection keeps required dependencies explicit and makes a plain
+unit test call the same construction path as Spring. Method injection is useful
+for a genuinely optional extension point. Field injection works, but ordinary
+construction cannot supply the field, the field cannot be `final`, and the
+class hides what it needs to function.
 
 ### How a class becomes a bean
 
@@ -561,6 +596,16 @@ class TimeConfiguration {
 ```
 
 Spring manages the returned `Clock` in the same way it manages a scanned bean.
+An import makes another configuration class's definitions part of this context:
+
+```java
+@Configuration(proxyBeanMethods = false)
+@Import({PaymentsConfiguration.class, FraudConfiguration.class})
+class ApplicationModules { }
+```
+
+Auto-configuration is the fourth source; §2 shows how its conditional
+configuration classes contribute definitions only when their conditions match.
 
 ### How Spring chooses a dependency
 
@@ -570,46 +615,6 @@ with `NoSuchBeanDefinitionException`. With several, Spring needs more
 information.
 
 ```java
-interface PaymentRail {
-    Receipt send(Payment payment);
-}
-
-@Component
-class ImpsRail implements PaymentRail { /* ... */ }
-
-@Component
-class NeftRail implements PaymentRail { /* ... */ }
-```
-
-A constructor that requests one `PaymentRail` is ambiguous. The usual ways to
-resolve it are:
-
-- mark one candidate `@Primary` when it is the application-wide default;
-
-- put `@Qualifier("neftRail")` at an injection point when that consumer needs
-  a particular candidate;
-
-- inject all candidates as `List<PaymentRail>` or `Map<String, PaymentRail>`
-  when the application genuinely needs a set of strategies.
-
-`@Primary` expresses a default on the producing side. `@Qualifier` expresses a
-choice on the consuming side and is more specific.
-
-```java
-@Service
-class BulkSalaryService {
-    private final PaymentRail rail;
-
-    BulkSalaryService(@Qualifier("neftRail") PaymentRail rail) {
-        this.rail = rail;
-    }
-}
-```
-
-For runtime routing, do not expose bean names as business values. Convert input
-to a domain type and build a domain-keyed map:
-
-```java
 enum Rail { IMPS, NEFT }
 
 interface PaymentRail {
@@ -617,6 +622,50 @@ interface PaymentRail {
     Receipt send(Payment payment);
 }
 
+@Component
+@Primary
+class ImpsRail implements PaymentRail { /* ... */ }
+
+@Component("neftRail")
+class NeftRail implements PaymentRail { /* ... */ }
+```
+
+Without another selection rule, a constructor that requests one `PaymentRail`
+would be ambiguous. Here `@Primary` makes `ImpsRail` the default. The common
+selection forms look like this:
+
+```java
+@Service
+class RailConsumers {
+    RailConsumers(
+            PaymentRail defaultRail, // ImpsRail because it is @Primary
+            @Qualifier("neftRail") PaymentRail salaryRail,
+            List<PaymentRail> allRails,
+            Map<String, PaymentRail> railsByBeanName) {
+        // allRails contains both implementations.
+        // railsByBeanName contains "impsRail" and "neftRail".
+    }
+}
+```
+
+The resolution sequence is therefore concrete:
+
+- Spring first finds candidates assignable to `PaymentRail`;
+
+- `@Qualifier` narrows candidates for that injection point;
+
+- otherwise one `@Primary` candidate wins a single-valued injection;
+
+- arrays, collections and maps receive all matching candidates rather than
+  choosing one.
+
+`@Primary` expresses a default on the producing side. `@Qualifier` expresses a
+choice on the consuming side and is more specific.
+
+For runtime routing, do not expose bean names as business values. Convert input
+to a domain type and build a domain-keyed map:
+
+```java
 @Service
 class RailRouter {
     private final Map<Rail, PaymentRail> rails;
@@ -643,6 +692,25 @@ Use `Optional<T>` for a genuinely optional single dependency and
 `ObjectProvider<T>` when lookup must be lazy or repeated. Do not use either one
 to hide a dependency that the application cannot function without.
 
+```java
+@Component
+class AuditAccess {
+    private final Optional<AuditSink> optionalAudit;
+    private final ObjectProvider<AuditFormatter> formatters;
+
+    AuditAccess(Optional<AuditSink> optionalAudit,
+                ObjectProvider<AuditFormatter> formatters) {
+        this.optionalAudit = optionalAudit;
+        this.formatters = formatters;
+    }
+
+    void record(AuditEvent event) {
+        optionalAudit.ifPresent(audit -> audit.write(event));
+        formatters.orderedStream().forEach(formatter -> formatter.format(event));
+    }
+}
+```
+
 ### Scope and shared state
 
 The default bean scope is **singleton per application context**. One singleton
@@ -667,6 +735,30 @@ belong in a metrics system.
 Other scopes include prototype, request and session. Injecting a request-scoped
 object into a singleton requires indirection, normally a scoped proxy or an
 `ObjectProvider`, so the current request's instance is resolved at call time.
+
+```java
+@Component
+@RequestScope(proxyMode = ScopedProxyMode.TARGET_CLASS)
+class RequestIdentity {
+    String tenantId() { /* derive from the current request */ }
+}
+
+@Service // singleton
+class AuditService {
+    private final RequestIdentity requestIdentity; // actually a scoped proxy
+
+    AuditService(RequestIdentity requestIdentity) {
+        this.requestIdentity = requestIdentity;
+    }
+
+    void record(AuditEvent event) {
+        auditStore.append(requestIdentity.tenantId(), event);
+    }
+}
+```
+
+The singleton holds the proxy. Each method call resolves the `RequestIdentity`
+belonging to the current request rather than retaining one request's object.
 
 ### Circular dependencies
 
@@ -863,6 +955,11 @@ widely used by Boot auto-configuration.
 A `FactoryBean<T>` is itself a bean that creates another object when
 construction must be delegated to framework-specific factory logic. Looking up
 `client` returns the product; looking up `&client` returns the factory.
+
+```java
+GatewayClient client = context.getBean("gatewayClient", GatewayClient.class);
+FactoryBean<?> factory = context.getBean("&gatewayClient", FactoryBean.class);
+```
 
 Do not confuse it with `BeanFactory`: `FactoryBean` creates one kind of product,
 while `BeanFactory` is the container that manages all bean definitions and
@@ -1199,6 +1296,44 @@ drivers and APIs. Mixing blocking JDBC into an event loop removes that benefit.
 
 Timeouts, retries and saturation controls for downstream work are covered in
 Part IV.
+
+### Choose and configure the outbound HTTP client
+
+`RestClient` is the synchronous choice for a blocking MVC application.
+`WebClient` is designed for a non-blocking reactive path. An HTTP service
+interface can provide a typed API on top of either supported client. Choosing
+`WebClient` and then calling `block()` does not make a JDBC application
+reactive.
+
+Build clients through Spring's configured builder so framework customizers and
+trace propagation are retained. Configure the underlying request factory for
+the waits it actually controls:
+
+```java
+@Bean
+RestClient paymentSwitchClient(
+        RestClient.Builder builder,
+        SwitchProperties properties) {
+
+    HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(properties.connectTimeout())
+            .build();
+
+    JdkClientHttpRequestFactory requestFactory =
+            new JdkClientHttpRequestFactory(httpClient);
+    requestFactory.setReadTimeout(properties.readTimeout());
+
+    return builder
+            .baseUrl(properties.baseUrl().toString())
+            .requestFactory(requestFactory)
+            .build();
+}
+```
+
+The JDK request factory illustrates connect and read bounds. A pooled Apache or
+Jetty client also needs a pool-acquisition bound and a pool sized from expected
+concurrency. The overall operation deadline still sits above the client and
+all of its retry attempts.
 
 ---
 
@@ -2057,7 +2192,14 @@ If the use case needs each rail, fetch it deliberately:
        where p.status = :status
        """)
 List<Payment> findWithRail(PaymentStatus status);
+
+@EntityGraph(attributePaths = "rail")
+List<Payment> findByStatus(PaymentStatus status);
 ```
+
+Both methods make `rail` part of this query's fetch plan: one through JPQL and
+one through repository metadata. Neither requires changing the association to
+eager for every use case.
 
 For a read-only list, a projection often makes the requested columns clearer
 and avoids managed entities:
@@ -2079,6 +2221,36 @@ N+1 is an access-pattern problem, not proof that lazy loading itself is wrong.
 An eager mapping can still issue secondary selects or retrieve far more data
 than the use case needs.
 
+### Choose the repository query and result shape
+
+Spring Data can derive a query from a repository method name:
+
+```java
+interface PaymentRepository extends JpaRepository<Payment, UUID> {
+    Slice<PaymentSummary> findByTenantIdAndStatusOrderByReferenceAscIdAsc(
+            String tenantId,
+            PaymentStatus status,
+            Pageable page);
+}
+
+interface PaymentSummary {
+    UUID getId();
+    String getReference();
+    BigDecimal getAmount();
+}
+```
+
+The method name describes a predicate and ordering; the return type describes
+how much pagination metadata Spring Data must produce. A `Slice` fetches enough
+rows to say whether another slice exists. A `Page` also reports totals and may
+need an additional count query. Use a `Page` only when the caller needs that
+total.
+
+Derived names are useful while the condition stays readable. Use `@Query`, a
+specification or a custom repository implementation when joins, projections or
+dynamic predicates would turn the method name into an encoded query language.
+Whichever API declares the query, inspect the SQL it actually generates.
+
 ### Avoid row multiplication
 
 Joining a parent to two to-many collections multiplies result rows. Ten
@@ -2097,11 +2269,11 @@ For large ordered result sets, keyset pagination avoids scanning and discarding
 an ever-growing offset:
 
 ```sql
-select id, created_at, status, amount
+select id, reference, status, amount
 from payment
 where tenant_id = :tenant
-  and (created_at, id) < (:last_created_at, :last_id)
-order by created_at desc, id desc
+  and (reference, id) > (:last_reference, :last_id)
+order by reference asc, id asc
 fetch first :limit rows only
 ```
 
@@ -2116,6 +2288,25 @@ whether inserts can be batched. Measure the driver's actual batches.
 Bulk update/delete is efficient for set-based work but bypasses managed entity
 state and often bypasses callbacks or ordinary version handling. Define those
 semantics explicitly and clear stale context state afterward.
+
+```java
+@Modifying(flushAutomatically = true, clearAutomatically = true)
+@Query("""
+       update Payment p
+          set p.status = :settled
+        where p.status = :pending
+          and p.tenantId = :tenantId
+       """)
+int settlePendingForTenant(
+        String tenantId,
+        PaymentStatus pending,
+        PaymentStatus settled);
+```
+
+`flushAutomatically` sends compatible pending changes before the bulk query.
+`clearAutomatically` prevents already-managed `Payment` objects from remaining
+stale afterward. Neither option restores entity callbacks or version checks;
+include version semantics explicitly when the invariant requires them.
 
 ### Keep reads inside an explicit boundary
 
@@ -2386,6 +2577,24 @@ while the outer transaction may still hold one. Under load, nested use can
 exhaust the pool. `NESTED` uses a savepoint; it is not an independent commit and
 cannot survive an outer rollback.
 
+An independent boundary must be reached through another proxied bean:
+
+```java
+@Service
+class IndependentAuditService {
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void record(AuditEntry entry) {
+        auditEntries.save(entry);
+    }
+}
+
+// TransferService receives this bean and calls independentAudit.record(...).
+// Putting record() on TransferService and calling this.record() would bypass advice.
+```
+
+The audit commit can now survive rollback of the suspended outer transaction,
+but the extra connection and independent outcome must be intentional.
+
 ### Rollback rules
 
 By default, Spring rolls back for `RuntimeException` and `Error`, not ordinary
@@ -2434,6 +2643,17 @@ impossible.
 A transaction timeout bounds work according to transaction-manager support. It
 does not replace pool-acquisition, SQL-statement or HTTP-client timeouts.
 
+```java
+@Transactional(readOnly = true, timeout = 2)
+public PaymentView loadPayment(String tenantId, UUID paymentId) {
+    return payments.findView(tenantId, paymentId).orElseThrow();
+}
+```
+
+The timeout is expressed in seconds and begins at the transaction boundary.
+`readOnly` remains a hint; authorization and database permissions still decide
+whether a write is allowed.
+
 When several transaction managers exist, select the intended one explicitly:
 
 ```java
@@ -2458,6 +2678,35 @@ return payments.findView(paymentId);
 Programmatic demarcation makes sequencing explicit but couples the code to the
 Spring transaction API. Declarative boundaries remain simpler for ordinary
 use-case methods.
+
+### After-commit hooks are not durable handoff
+
+A transaction-bound event can run local, best-effort work only after a commit:
+
+```java
+record PaymentSettled(UUID paymentId) { }
+
+@Transactional
+public void settle(UUID paymentId) {
+    Payment payment = payments.findById(paymentId).orElseThrow();
+    payment.settle();
+    events.publishEvent(new PaymentSettled(paymentId));
+}
+
+@Component
+class PaymentCacheInvalidation {
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    void evict(PaymentSettled event) {
+        cache.evict(event.paymentId());
+    }
+}
+```
+
+The listener does not run before a successful commit, which is useful for
+dispensable local work such as cache invalidation. It is still process memory:
+the process can die after the database commit and before or during the listener.
+Required publication belongs in a durable outbox, not only in an after-commit
+callback.
 
 ### Stop the local transaction at the database
 
@@ -2744,6 +2993,8 @@ These controls solve different problems:
 | timeout | how long may this wait continue? | cancel or abandon the attempt and classify its outcome |
 | retry | is another attempt both safe and useful? | stop when attempts or deadline are exhausted |
 
+### Circuit breaker
+
 A circuit breaker moves through a small state machine:
 
 ```text
@@ -2757,10 +3008,52 @@ CLOSED --enough relevant failures/slow calls--> OPEN
 Only dependency-health failures should influence it. A valid insufficient-
 funds response says nothing about whether the payment switch is healthy.
 
+The state transition needs enough evidence to mean something. A representative
+Resilience4j configuration makes the decisions explicit:
+
+```java
+CircuitBreakerConfig switchBreaker = CircuitBreakerConfig.custom()
+        .slidingWindowSize(50)
+        .minimumNumberOfCalls(20)
+        .failureRateThreshold(50)
+        .slowCallDurationThreshold(Duration.ofMillis(800))
+        .slowCallRateThreshold(50)
+        .waitDurationInOpenState(Duration.ofSeconds(10))
+        .permittedNumberOfCallsInHalfOpenState(5)
+        .recordExceptions(IOException.class, TimeoutException.class)
+        .ignoreExceptions(RejectedPaymentException.class)
+        .build();
+```
+
+The numbers are an example, not defaults to copy. Set the slow-call threshold
+from the remaining deadline, choose a sample/window that reacts without
+flapping, and test the open and half-open behavior. An open breaker rejects
+quickly; it does not repair the dependency or reduce incoming demand by itself.
+
+### Bulkheads and rate limits
+
 A semaphore bulkhead limits concurrent calls without introducing another
 queue. A thread-pool bulkhead adds an executor and therefore another bounded
 queue, another context-propagation point and another place where time can be
 spent. Choose it deliberately rather than treating more threads as isolation.
+
+```java
+BulkheadConfig switchConcurrency = BulkheadConfig.custom()
+        .maxConcurrentCalls(40)
+        .maxWaitDuration(Duration.ZERO)
+        .build();
+
+RateLimiterConfig clientRate = RateLimiterConfig.custom()
+        .limitRefreshPeriod(Duration.ofSeconds(1))
+        .limitForPeriod(100)
+        .timeoutDuration(Duration.ZERO)
+        .build();
+```
+
+The bulkhead bounds simultaneous ownership of local resources. The rate
+limiter bounds admissions over time. An in-process rate limit applies per
+replica; a tenant-wide or fleet-wide quota needs coordination at a gateway or
+shared service. Neither control authenticates the caller.
 
 ### Compose one policy and test its observed order
 
@@ -2806,6 +3099,8 @@ Measure active capacity, queue depth, acquisition wait and rejection at each
 stage. Then limit admission where the overload can be rejected cheaply. A
 bounded queue makes overload visible; an unbounded queue converts it into high
 latency and eventually memory pressure.
+
+### Keep fallbacks honest
 
 A fallback is safe only when it preserves the API's meaning. Returning cached
 reference data with an explicit freshness rule can be safe. Returning
@@ -2899,6 +3194,36 @@ Percentiles need histogram/distribution configuration and suitable buckets.
 Do not average instance-local percentiles and call the result a fleet
 percentile.
 
+```java
+Counter accepted = Counter.builder("payments.accepted")
+        .tag("rail", rail)
+        .register(registry);
+
+Timer switchLatency = Timer.builder("payments.switch.duration")
+        .publishPercentileHistogram()
+        .register(registry);
+
+accepted.increment();
+PaymentReply reply = switchLatency.record(() -> switchClient.send(command));
+```
+
+The `rail` value is safe only if it comes from a bounded set. The timer records
+both count and duration; a separate counter for the same calls would usually be
+redundant.
+
+### Connect golden signals to a service objective
+
+The four golden signals provide a compact first view:
+
+- **latency:** how long successful and failed work takes;
+
+- **traffic:** how much request or message work arrives;
+
+- **errors:** how often outcomes fail, separated by meaningful cause;
+
+- **saturation:** how close threads, pools, queues and dependencies are to
+  their usable capacity.
+
 Start service objectives with a user-visible event. For example:
 
 > Over 28 days, 99.9% of valid payment-status requests return the correct
@@ -2909,6 +3234,11 @@ system also needs correctness indicators: oldest unpublished outbox event,
 payments stuck in an intermediate state, reconciliation mismatches and failed
 compensations. HTTP availability can be green while money is stuck.
 
+Alert on sustained error-budget burn over both a fast and a slow window rather
+than on one failure or an ever-increasing raw counter. The fast window detects
+a severe incident quickly; the slow window prevents a small persistent failure
+from consuming the whole objective unnoticed.
+
 ### Trace boundaries where time or ownership changes
 
 A trace links spans for work performed across HTTP, messaging and database
@@ -2916,6 +3246,31 @@ boundaries. Instrument meaningful operations rather than every private method.
 Spring Boot integrates Micrometer Observation with metrics and tracing, and
 auto-configured HTTP client builders carry trace propagation for supported
 clients.
+
+```java
+@Component
+class RiskObservation {
+    private final ObservationRegistry observations;
+
+    RiskObservation(ObservationRegistry observations) {
+        this.observations = observations;
+    }
+
+    RiskDecision evaluate(
+            String rail,
+            UUID paymentId,
+            Supplier<RiskDecision> call) {
+
+        return Observation.createNotStarted("risk.evaluate", observations)
+                .lowCardinalityKeyValue("rail", rail)
+                .highCardinalityKeyValue("payment.id", paymentId.toString())
+                .observe(call);
+    }
+}
+```
+
+`rail` has a bounded value set and can become a metric tag. `payment.id` is
+high-cardinality context for a trace and must not become a metric dimension.
 
 Custom threads, executors and manually constructed clients can lose context.
 Test that propagation explicitly. Low-cardinality observation fields may feed
@@ -2927,6 +3282,18 @@ aggregate detection mechanism. A stable business reference remains useful for
 domain lookup even when two asynchronous processing attempts have different
 trace ids.
 
+### Correlate asynchronous work without inventing one endless trace
+
+Propagate standard trace context in message headers where the messaging
+instrumentation supports it. Keep a stable event id and business reference in
+the event contract for deduplication and investigation. A redelivery may create
+a new processing span linked to the producer or earlier attempt; it need not be
+one indefinitely long parent-child trace.
+
+Treat incoming trace headers as correlation data, not authorization evidence.
+Bound their size, and never trust an asserted trace or business id in place of
+the authenticated message or channel identity.
+
 ### Expose Actuator as an administrative surface
 
 Actuator endpoints can reveal configuration, bean mappings, environment
@@ -2934,6 +3301,24 @@ values, thread dumps and heap contents. Expose only what operators require,
 authenticate sensitive endpoints, restrict their network path and audit
 runtime changes such as log-level updates. A public health response does not
 justify public access to every component detail.
+
+```yaml
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info,prometheus"
+  endpoint:
+    health:
+      show-details: when_authorized
+      probes:
+        add-additional-paths: true
+```
+
+Exposure only makes an endpoint reachable; the management network and security
+chain must still authorize it. Additional probe paths on the main server help
+detect a failure that exists on the application port but not on a separate
+management port.
 
 Liveness and readiness answer different questions:
 
@@ -3100,6 +3485,32 @@ dependent tests or leak state between suites.
 Automatic rollback is convenient cleanup, not proof that production commit
 semantics were exercised.
 
+### Guard query counts and fetch plans
+
+An N+1 regression test needs several parent rows, a cleared persistence context
+and an observed statement budget. With Hibernate statistics enabled for the
+test profile, the core shape is:
+
+```java
+@Test
+void listsTwentyPaymentsWithoutNPlusOne() {
+    fixtures.persistPaymentsWithRails(20);
+    entityManager.flush();
+    entityManager.clear();
+
+    statistics.clear();
+    List<PendingPaymentRow> rows = queries.findPendingRows(PENDING);
+
+    assertThat(rows).hasSize(20);
+    assertThat(statistics.getPrepareStatementCount()).isLessThanOrEqualTo(2);
+}
+```
+
+A one-row fixture cannot reveal N+1. Keep setup SQL outside the measured
+window, and assert a budget rather than the exact generated SQL text. Hibernate
+statistics are shared by the session factory, so isolate this measurement from
+parallel database tests or use a per-test datasource query listener.
+
 ### Reproduce the failures the design claims to handle
 
 Security coverage should distinguish missing or invalid credentials (401),
@@ -3142,6 +3553,35 @@ Idempotency tests need both time and concurrency:
 - a downstream retry carries the same business identity.
 
 Assert one ledger entry or payment row, not merely two equal HTTP responses.
+
+### Keep contracts, fixtures and parallel tests deterministic
+
+Consumer/provider contract tests verify the HTTP or event shape agreed by
+independently deployed services. They do not prove production routing, timeout
+behavior or dependency capacity, so retain a smaller set of end-to-end tests.
+
+Fixtures should make time and identity explicit. For example, application code
+that injects `Clock` can receive a fixed test bean without changing the domain
+code:
+
+```java
+@TestConfiguration(proxyBeanMethods = false)
+class FixedTimeConfiguration {
+    @Bean
+    @Primary
+    Clock testClock() {
+        return Clock.fixed(
+                Instant.parse("2026-01-15T10:00:00Z"),
+                ZoneOffset.UTC);
+    }
+}
+```
+
+Use fixture builders or focused `@Sql` scripts, generate unique business keys,
+and reset committed data explicitly when test rollback cannot own it. Parallel
+tests must not mutate the same rows, ports, system properties, singleton stubs
+or static clocks. Retrying a flaky test hides a race in the test system rather
+than repairing it.
 
 ### Test deployment and recovery behavior
 
@@ -3289,6 +3729,8 @@ build.
 
 - [Spring MVC](https://docs.spring.io/spring-framework/reference/web/webmvc.html)
 
+- [Spring REST clients](https://docs.spring.io/spring-framework/reference/integration/rest-clients.html)
+
 - [Spring Security servlet architecture](https://docs.spring.io/spring-security/reference/servlet/architecture.html)
 
 - [Spring Security method authorization](https://docs.spring.io/spring-security/reference/servlet/authorization/method-security.html)
@@ -3296,6 +3738,8 @@ build.
 ### Persistence and transactions
 
 - [Spring transaction management](https://docs.spring.io/spring-framework/reference/data-access/transaction.html)
+
+- [Transaction-bound events](https://docs.spring.io/spring-framework/reference/data-access/transaction/event.html)
 
 - [Spring Data JPA](https://docs.spring.io/spring-data/jpa/reference/)
 
