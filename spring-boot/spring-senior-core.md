@@ -1,31 +1,38 @@
 # Spring Senior Backend Reference
 
 - [How to use this book](#how-to-use-this-book)
-- [0. The complete runtime picture](#0-the-complete-runtime-picture)
+
+- [0. Two flows to keep in mind](#0-two-flows-to-keep-in-mind)
+
 - [Part I. Container and Spring Boot](#part-i-container-and-spring-boot)
   - [1. Spring and Spring Boot](#1-spring-and-spring-boot)
   - [2. IoC dependency injection and beans](#2-ioc-dependency-injection-and-beans)
   - [3. Container startup and extension points](#3-container-startup-and-extension-points)
   - [4. Configuration and auto-configuration](#4-configuration-and-auto-configuration)
   - [5. Aspect-oriented programming and Spring proxies](#5-aspect-oriented-programming-aop-and-spring-proxies)
+
 - [Part II. HTTP and security](#part-ii-http-and-security)
   - [6. The servlet request path](#6-the-servlet-request-path)
   - [7. API boundaries validation and exceptions](#7-api-boundaries-validation-and-exceptions)
   - [8. Spring Security architecture](#8-spring-security-architecture)
   - [9. Route and method authorization](#9-route-and-method-authorization)
+
 - [Part III. Persistence and consistency](#part-iii-persistence-and-consistency)
   - [10. JPA and the persistence context](#10-jpa-and-the-persistence-context)
   - [11. Mapping fetching and query performance](#11-mapping-fetching-and-query-performance)
   - [12. Concurrent writes and locking](#12-concurrent-writes-and-locking)
   - [13. Spring transactions](#13-spring-transactions)
   - [14. Cross-system consistency](#14-cross-system-consistency)
+
 - [Part IV. Production engineering](#part-iv-production-engineering)
   - [15. Resilience](#15-resilience)
   - [16. Observability and diagnosis](#16-observability-and-diagnosis)
   - [17. Production testing](#17-production-testing)
   - [18. End-to-end banking scenarios](#18-end-to-end-banking-scenarios)
   - [19. Senior answer wall](#19-senior-answer-wall)
+
 - [Primary references](#primary-references)
+
 - [Study map](#study-map)
 
 ## How to use this book
@@ -36,19 +43,28 @@ trade-offs and failure semantics live together. The companion files are the
 active-recall side:
 
 - [Spring Boot basics exercises](spring-boot-basics.md)
+
 - [Container internals exercises](spring-container-internals.md)
+
 - [Spring Security exercises](spring-security-basics.md)
+
 - [JPA and Hibernate performance exercises](spring-data-jpa-performance.md)
+
 - [Deep transaction exercises](spring-boot-transactions-deep.md)
+
 - [Resilience exercises](spring-boot-resilience.md)
+
 - [Observability exercises](spring-boot-observability.md)
+
 - [Production testing exercises](spring-boot-testing-deep.md)
 
 Read a chapter here, close it, and answer the corresponding companion kit
 aloud. A senior answer should normally have three layers:
 
 1. **Mechanism** — what actually happens at runtime.
+
 2. **Consequence** — correctness, latency, security or operability impact.
+
 3. **Decision** — what you would choose and what evidence would change it.
 
 Do not begin with annotation vocabulary. Begin with the invariant or failure
@@ -66,11 +82,13 @@ each later chapter should attach to one of them.
    [§3 context refresh](#3-container-startup-and-extension-points) →
    [§2 one bean](#2-ioc-dependency-injection-and-beans) →
    [§5 one proxied call](#5-aspect-oriented-programming-aop-and-spring-proxies).
+
 2. **How one request reaches business code:**
    [§6 servlet path](#6-the-servlet-request-path) →
    [§8 authentication](#8-spring-security-architecture) →
    [§9 authorization](#9-route-and-method-authorization) →
    [§7 validation/errors](#7-api-boundaries-validation-and-exceptions).
+
 3. **How one business operation becomes durable:**
    [§13 transaction boundary](#13-spring-transactions) →
    [§10 persistence context](#10-jpa-and-the-persistence-context) →
@@ -111,72 +129,67 @@ upgrade boundary.
 
 ---
 
-## 0. The complete runtime picture
+## 0. Two flows to keep in mind
 
-Spring is easiest when treated as a set of runtime pipelines rather than a
-bag of annotations.
+Most of this book fits into two flows. First, Spring builds the application.
+Then the application handles requests. Keeping those flows separate makes the
+details easier to place: startup explains how an object becomes a Spring bean;
+request handling explains what happens when that bean is called.
+
+### Startup: Spring builds the application
+
+When `main` calls `SpringApplication.run(...)`, the controllers, services and
+repositories do not exist yet. Spring Boot reads the application's
+configuration and tells Spring which objects are needed. Spring then creates
+those objects, supplies their dependencies and prepares them for use.
 
 ```text
-configuration metadata
-  @Configuration / @Bean / component scan / auto-configuration
-                         |
-                         v
-BeanDefinitionRegistry stores recipes for objects
-                         |
-                         v
-BeanFactory creates objects and resolves dependencies
-                         |
-                         v
-BeanPostProcessors initialize or replace objects with proxies
-  transactions / method security / caching / async / retry
-                         |
-                         v
-ApplicationContext adds environment, resources, events and lifecycle
-
-HTTP request
-  -> servlet filters
-  -> Spring Security FilterChainProxy
-  -> DispatcherServlet
-  -> HandlerMapping -> controller -> service proxy -> repository proxy
-  -> transaction manager -> EntityManager -> JDBC pool -> database
-  -> response or mapped exception
-
-Production evidence crosses the whole path
-  logs + metrics + traces + health + profiles + thread/connection state
+main
+  -> Spring Boot reads configuration
+  -> Spring registers bean definitions
+  -> Spring creates beans and injects their dependencies
+  -> bean post-processors initialize or wrap some beans with proxies
+  -> the web server starts
+  -> the application is ready
 ```
 
-The five boundaries that explain most failures are:
+By the end of startup, the application has a graph of connected objects. Some
+of those objects are proxies that add behavior such as transactions, method
+security, caching or asynchronous execution. Part I examines how that graph is
+built and why a proxy sometimes changes what a method call does.
 
-- **Container boundary:** only Spring-managed objects receive injection,
-  lifecycle callbacks and proxy-based behavior.
-- **Proxy boundary:** advice runs only when an invocation crosses the proxy.
-- **Servlet/security boundary:** security filters run before MVC, so MVC
-  exception handling cannot catch most security failures.
-- **Transaction boundary:** a local transaction controls resources enlisted
-  in that transaction, not an HTTP peer or ordinary Kafka publish.
-- **Capacity boundary:** threads, connections, queues and downstream budgets
-  are finite; retries multiply demand.
+### Request handling: the application uses those objects
 
-### The payment request as one connected story
+After startup, an HTTP request follows a different flow:
 
-Suppose `POST /payments` receives an idempotency key and a transfer command.
-A robust path is:
+```text
+client
+  -> servlet container and filters
+  -> Spring Security
+  -> DispatcherServlet
+  -> controller
+  -> service
+  -> repository and JPA
+  -> connection pool
+  -> database
+  -> HTTP response
+```
 
-1. The security chain validates the bearer token and establishes an
-   `Authentication`.
-2. Route authorization requires `PAYMENT_WRITE`; MVC then deserializes and
-   validates the command.
-3. Method authorization checks account ownership at the service boundary.
-4. A transactional service claims the idempotency key, locks or version-checks
-   mutable state, records the payment and inserts an outbox row.
-5. The database commit makes those local facts atomic.
-6. A publisher sends the outbox event to Kafka and marks publication state;
-   duplicate sends remain safe.
-7. Metrics, structured logs and traces carry the same payment-safe correlation
-   identifiers without leaking account or credential data.
+Each stage hands work to the next one. Security filters can reject a request
+before a controller is called. The controller translates HTTP input into a
+Java call and delegates the business work to a service. The service may be a
+proxy, so transaction or authorization logic can run around the method. The
+repository uses JPA and a pooled database connection to execute SQL.
 
-No annotation supplies that design. Spring supplies mechanisms for each
-boundary; the engineer supplies the invariants.
+Calls to another HTTP service or message broker branch away from this path.
+They do not become part of a database transaction merely because the service
+method has `@Transactional`; cross-system consistency needs an explicit
+design, covered in Part III.
+
+In production, logs, metrics and traces show where these flows stopped or
+slowed down. Part II follows the request to the service layer, Part III follows
+state into and beyond the database, and Part IV covers failure, diagnosis and
+testing.
 
 ---
 
@@ -197,9 +210,13 @@ CONFIGURATION      §4  properties and conditions decide which recipes enter the
 Each level owns a different question:
 
 - **§1:** What does Spring Boot do from `main` to readiness?
+
 - **§3:** What happens inside the context's `refresh()` step?
+
 - **§2:** What happens to one object created during refresh?
+
 - **§5:** What happens when another object later calls an exposed proxy?
+
 - **§4:** Which external values and auto-configuration conditions shape the
   definitions used by the first three levels?
 
@@ -213,10 +230,15 @@ new sequence to memorize.
 The Spring Framework provides the programming model and infrastructure:
 
 - an IoC container and dependency injection;
+
 - bean lifecycle and extension points;
+
 - AOP and proxy infrastructure;
+
 - transaction abstraction;
+
 - Spring MVC and WebFlux;
+
 - testing support, events, validation integration and data-access helpers.
 
 ### What Spring Boot adds
@@ -225,10 +247,15 @@ Spring Boot is an opinionated assembly and operational layer over Spring. It
 adds:
 
 - curated, version-aligned **starters**;
+
 - conditional **auto-configuration**;
+
 - executable applications with embedded servers;
+
 - externalized configuration and configuration metadata;
+
 - Actuator endpoints, metrics, health and production conventions;
+
 - test slices and integration with common infrastructure.
 
 The division is worth stating precisely, because it is the difference between
@@ -311,6 +338,7 @@ probe:
 
 - A **starter** is a dependency descriptor — a POM with no code of its own.
   It brings a coherent, version-aligned set of jars.
+
 - **Auto-configuration** is code inside those jars that conditionally
   contributes bean definitions.
 
@@ -370,15 +398,18 @@ That is the interview spine. Expand it as four beats:
    `Environment`, and creates the appropriate `ApplicationContext`. Properties
    and profiles must be known now because they decide which configuration is
    active. Ordinary application beans do not exist yet.
+
 2. **Register recipes.** Boot loads `BeanDefinition`s from the application
    class: explicit configuration, component scanning, imports and conditional
    auto-configuration. These are construction recipes, not the objects. This
    is where conditions match and Boot defaults back off.
+
 3. **Refresh and build.** The context finalizes definition metadata, registers
    bean post-processors, and creates the remaining eager singletons. Each bean
    is constructed, dependencies are injected, initialization callbacks run,
    and a post-processor may expose a proxy. A web context also creates and
    starts its embedded server as part of refresh.
+
 4. **Run and become ready.** After refresh Boot publishes
    `ApplicationStartedEvent`, calls `ApplicationRunner` and
    `CommandLineRunner`, then publishes `ApplicationReadyEvent` and changes
@@ -405,17 +436,21 @@ The order explains the common follow-ups:
 
 - **When does auto-configuration run?** While definitions are being selected
   and registered, before ordinary application singletons are created.
+
 - **When are proxies created?** During bean post-processing inside refresh,
   after the target is instantiated and initialized but before ordinary callers
   receive the final exposed bean.
+
 - **`@PostConstruct` or a runner?** `@PostConstruct` is one bean's
   initialization callback during refresh. Runners execute after the whole
   context has refreshed and are the better hook for bounded application-level
   startup work.
+
 - **Is an open port the same as readiness?** No. The web server is initialized
   during refresh, but Boot does not announce readiness until runners finish.
   A platform honoring readiness will not route traffic earlier; direct traffic
   or a misconfigured platform still can.
+
 - **What if startup work fails?** The ready state is never reached; startup
   fails and the context is closed rather than advertising a healthy partial
   application.
@@ -473,9 +508,11 @@ Each decision in that snippet answers a likely follow-up:
   first payment. `@EnableConfigurationProperties` registers the record as a
   bean, since `@ConfigurationProperties` alone does not; binding rules are
   [§4](#4-configuration-and-auto-configuration).
+
 - **`URI` and `Duration`, not `String` and `long`.** Relaxed binding parses
   `1500ms` or `PT1.5S` into a `Duration`, so unit ambiguity never reaches the
   code. A malformed URL is a startup failure, not a runtime one.
+
 - **`proxyBeanMethods = false`.** By default a `@Configuration` class is
   CGLIB-subclassed so that one `@Bean` method calling another returns the
   singleton instead of a fresh object. No method here calls another, so the
@@ -483,6 +520,7 @@ Each decision in that snippet answers a likely follow-up:
   Set it when `@Bean` methods are independent; leave the default when one
   calls another for its bean. The unmanaged-object failure this risks is
   [§3](#3-container-startup-and-extension-points).
+
 - **`Clock` as a bean.** `Instant.now()` is a static call, so a test cannot
   control it and "expires after 30 minutes" cannot be tested without waiting.
   An injected `Clock` is replaced with `Clock.fixed(...)` in a test, and the
@@ -546,9 +584,12 @@ dependency, which is uncommon in business services.
 `@Controller` specialize it to communicate architectural intent.
 
 - `@Service` identifies application/business behavior.
+
 - `@Repository` identifies persistence code and participates in Spring's
   persistence-exception translation where applicable.
+
 - `@Controller` returns views unless a method uses `@ResponseBody`.
+
 - `@RestController` is `@Controller + @ResponseBody` for every handler.
 
 The annotation does not enforce clean architecture. A controller can still
@@ -992,10 +1033,12 @@ In slightly more depth:
    configuration, scans and imports here. Remaining
    `BeanFactoryPostProcessor`s can modify the completed metadata before
    ordinary application objects are created.
+
 2. **Install processors.** Spring discovers and registers
    `BeanPostProcessor`s early so they can participate in every later bean's
    initialization. Context services such as event and message infrastructure
    are prepared around this part of refresh.
+
 3. **Build objects.** Spring creates remaining non-lazy singleton beans,
    resolves dependencies, invokes initialization callbacks and lets bean
    post-processors return the exposed object—sometimes a proxy. Web-server and
@@ -1197,8 +1240,10 @@ Three ways, and an interview will accept any of them named correctly:
 
 - `@EnableConfigurationProperties(SwitchProperties.class)` on a configuration
   class — explicit, and the form auto-configuration uses;
+
 - `@ConfigurationPropertiesScan` on the application class — scans for the
   annotation the way component scanning finds `@Component`;
+
 - `@Component` on the properties class itself — works, but mixes a stereotype
   into a value object.
 
@@ -1251,9 +1296,13 @@ profile was misspelled. Fail closed and validate essential configuration.
 An auto-configuration class is imported by Boot and guarded by conditions:
 
 - `@ConditionalOnClass` — a library/API is present;
+
 - `@ConditionalOnMissingBean` — the application did not provide its own bean;
+
 - `@ConditionalOnProperty` — a property enables or selects behavior;
+
 - `@ConditionalOnWebApplication` — the expected application type exists;
+
 - custom conditions — a deliberate extension point, used sparingly.
 
 Conceptually:
@@ -1283,12 +1332,17 @@ match.
 When a bean is missing or surprising:
 
 1. Confirm the dependency and its version are present.
+
 2. Inspect the configuration-properties value and active profiles.
+
 3. Enable the condition evaluation report (`--debug`) or inspect the Actuator
    conditions endpoint in a secured environment.
+
 4. Find the candidate auto-configuration and read each matched/unmatched
    condition.
+
 5. Check whether an application bean caused back-off.
+
 6. Check package scanning and exclusions.
 
 Do not fix an unexplained condition by copying a whole auto-configuration
@@ -1323,9 +1377,13 @@ Object-oriented code usually decomposes a system by responsibility:
 vertical responsibilities:
 
 - start and complete a database transaction;
+
 - verify the caller's authority;
+
 - record duration and outcome;
+
 - retry a narrowly defined transient failure;
+
 - read or populate a cache.
 
 These are **cross-cutting concerns**. Without a shared mechanism, every service
@@ -1481,10 +1539,13 @@ new action here is the call:
 
 1. `SettlementCoordinator` invokes `payments.settle(...)` on the exposed
    reference.
+
 2. The proxy finds the matching transaction advisor and invokes its
    interceptor.
+
 3. The interceptor starts or joins a transaction, then calls the target's
    business method.
+
 4. A normal target return makes the interceptor attempt commit before the
    proxy call returns; a matching failure causes rollback and propagation.
 
@@ -1654,14 +1715,19 @@ and other join points. Most Spring applications only need proxy-based AOP.
 ### Other proxy traps
 
 - An object created with `new` is not a managed bean and receives no advice.
+
 - `@PostConstruct` executes during initialization; do not assume the bean's
   final proxy is intercepting self-calls there.
+
 - A caught exception may prevent transaction advice from seeing the failure.
+
 - Advice order matters. Retry outside a transaction creates one transaction
   per attempt; transaction outside retry can retain the same doomed
   transaction across attempts.
+
 - `@Async` changes threads. Thread-local transaction and security state do not
   automatically become one shared context.
+
 - The runtime class in a debugger may be generated. Inspect the proxy and its
   advisors before blaming the database.
 
@@ -1738,9 +1804,12 @@ Tomcat/Jetty connector and worker thread
 The exact filters vary, but the ownership boundaries are important:
 
 - A **servlet filter** surrounds the servlet and can reject before MVC.
+
 - A Spring MVC **`HandlerInterceptor`** surrounds controller handling after
   `DispatcherServlet` has mapped the request.
+
 - A **controller advice** handles MVC exceptions and model/response concerns.
+
 - An **AOP proxy** surrounds Spring bean method calls, not raw servlet traffic.
 
 Choose the earliest layer that has the information needed. Authentication
@@ -1829,11 +1898,17 @@ systems but is not the direction for new designs.
 Every production client needs:
 
 - connect, pool-acquisition and response/read timeouts;
+
 - bounded connections and pending work;
+
 - TLS and hostname verification;
+
 - authentication and safe header propagation;
+
 - error mapping that preserves retryability information;
+
 - metrics/traces with low-cardinality tags;
+
 - an idempotency decision before retries.
 
 An HTTP 500, socket reset and timeout are not equivalent. A timeout is
@@ -1863,9 +1938,13 @@ service methods when method validation is enabled.
 Business validation needs current domain state:
 
 - account is active;
+
 - debtor owns the account;
+
 - available balance covers the debit;
+
 - daily transfer limit is not exceeded;
+
 - currency pair and rail are allowed.
 
 These rules belong in the domain/application layer and often inside the same
@@ -1930,17 +2009,24 @@ authentication or authorization failure in a security filter happens before
 ### Status-code decisions
 
 - `400 Bad Request` — malformed representation or request constraint failure.
+
 - `401 Unauthorized` — authentication missing or invalid; despite the name,
   it means unauthenticated.
+
 - `403 Forbidden` — authenticated identity lacks permission.
+
 - `404 Not Found` — resource absent; sometimes also used deliberately to avoid
   exposing whether another tenant's resource exists.
+
 - `409 Conflict` — current resource state conflicts, including a surfaced
   optimistic-lock conflict.
+
 - `422 Unprocessable Content` — syntactically valid but semantically invalid
   input, when the API contract chooses this distinction.
+
 - `429 Too Many Requests` — rate or quota exceeded; include a useful retry
   signal when safe.
+
 - `503 Service Unavailable` — temporarily unable to serve, possibly with
   `Retry-After`; not a generic wrapper for every dependency error.
 
@@ -1965,6 +2051,7 @@ contract, ownership or change rate differs.
 
 - **Authentication** establishes *who* the caller is and how that claim was
   verified.
+
 - **Authorization** decides whether that authenticated caller may perform a
   particular action on a particular resource.
 
@@ -2055,8 +2142,10 @@ The wrapper types each have one job:
 
 - `DelegatingFilterProxy` is the servlet-container filter that finds a Spring
   bean and delegates to it.
+
 - `FilterChainProxy` is that Spring Security bean; it chooses one configured
   `SecurityFilterChain`.
+
 - A `SecurityFilterChain` is a matcher plus an ordered list of security
   filters for matching requests. It is not the servlet container's entire
   filter chain.
@@ -2071,9 +2160,13 @@ a safe fallback.
 `Authentication`. A successful `Authentication` generally contains:
 
 - principal — identity/user representation;
+
 - credentials — often cleared after authentication;
+
 - authorities — granted capabilities such as `PAYMENT_WRITE`;
+
 - details — request or mechanism-specific metadata;
+
 - authenticated flag.
 
 In the ordinary servlet model the context is associated with the current
@@ -2194,21 +2287,28 @@ For the running `POST` request, the end-to-end sequence is:
 
 1. The servlet container invokes `DelegatingFilterProxy` before
    `DispatcherServlet` and Spring MVC.
+
 2. `FilterChainProxy` selects the first chain whose `securityMatcher` accepts
    `/api/payments/7e5b7c0a-12c4-4d89-9f6a-1d9125034210/settlement`—the
    `/api/**` chain above.
+
 3. The bearer-token filter extracts the `Authorization` header. Absence or a
    malformed bearer credential fails authentication when this protected route
    requires it.
+
 4. The JWT decoder verifies the signature using a trusted key and validates
    time, issuer and configured audience constraints.
+
 5. `JwtAuthenticationConverter` maps `sub` to the principal name and the
    `permissions` claim to authorities. Successful authentication is stored in
    the request's `SecurityContext`.
+
 6. Request authorization evaluates matchers in declaration order. The POST
    rule requires `PAYMENT_WRITE`.
+
 7. If allowed, the chain continues to MVC and the controller. Method/object
    authorization may impose narrower ownership rules in §9.
+
 8. On completion, security infrastructure clears the thread-associated
    context so a reused servlet thread cannot inherit the previous identity.
 
@@ -2253,9 +2353,13 @@ secrets in claims.
 A resource server should validate at least:
 
 - signature with an allowed algorithm and trusted current key;
+
 - issuer (`iss`);
+
 - expiration (`exp`) and not-before (`nbf`) with controlled clock skew;
+
 - audience (`aud`) when the token is intended for specific services;
+
 - required claim types and mapping to authorities.
 
 Decoding Base64 is not validation. Accepting the algorithm chosen by an
@@ -2295,6 +2399,7 @@ need CORS processing before an authentication rejection.
 
 - An `AuthenticationEntryPoint` handles a request that needs authentication
   but has no valid authenticated identity: **401**.
+
 - An `AccessDeniedHandler` handles an authenticated caller denied access:
   **403**.
 
@@ -2369,10 +2474,13 @@ class AccountApplicationService {
 ```
 
 - `@PreAuthorize` decides before invocation and is the default choice.
+
 - `@PostAuthorize` decides using `returnObject` after invocation. Avoid it
   when executing the method already reveals data or produces side effects.
+
 - `@PreFilter` removes unauthorized elements from supported input
   collections before invocation.
+
 - `@PostFilter` removes unauthorized elements from returned collections after
   invocation.
 
@@ -2443,12 +2551,19 @@ everywhere.
 For a money-moving endpoint, be ready to state:
 
 - who issues and who validates credentials;
+
 - issuer/audience/key-rotation expectations;
+
 - route rule and method/object rule;
+
 - tenant/account scoping in the query;
+
 - CSRF decision based on credential transport;
+
 - 401 and 403 response owners;
+
 - audit data captured without sensitive payloads;
+
 - tests for missing, invalid, insufficient and cross-tenant identities.
 
 ---
@@ -2461,10 +2576,13 @@ For a money-moving endpoint, be ready to state:
 
 - **JPA/Jakarta Persistence** is the ORM specification: entities,
   `EntityManager`, JPQL, mappings and lifecycle semantics.
+
 - **Hibernate** is the most common JPA provider in Spring Boot and supplies
   additional behavior and tuning features.
+
 - **Spring Data JPA** builds repository proxies and query abstractions on top
   of JPA.
+
 - **JDBC** is the database access API underneath an ordinary Hibernate/JPA
   application.
 
@@ -2648,17 +2766,23 @@ sequence is:
 
 1. The call crosses the transactional service proxy. Spring opens or joins a
    database transaction and associates an `EntityManager` with this execution.
+
 2. The repository proxy runs JPQL through that `EntityManager`; Hibernate
    translates it to SQL and obtains a row through JDBC.
+
 3. Hibernate creates a `Payment`, records its original state, and puts it in
    the persistence context. The object returned to the service is now managed.
+
 4. `markSettled` changes an ordinary Java field. An `UPDATE` need not execute
    at the setter call.
+
 5. Before commit, Hibernate flushes the context, detects the status change,
    and sends an `UPDATE` through JDBC.
+
 6. If flush and commit succeed, the database transaction commits. With a
    transaction-scoped context, its entities become detached when that context
    closes.
+
 7. If the method fails with an exception covered by the rollback rules, the
    database work rolls back. Mutating the Java object does not override that
    outcome.
@@ -2835,8 +2959,11 @@ makes the database transaction durable/visible according to database rules.
 A flush can occur:
 
 - explicitly through `flush()`;
+
 - before commit;
+
 - before a query whose result could be affected by pending changes;
+
 - according to configured flush mode.
 
 SQL can therefore execute before the method returns, and a constraint failure
@@ -2930,7 +3057,9 @@ based solely on a generated id can change while an entity sits in a hash-based
 collection. Mutable business fields are worse. Choose identity deliberately:
 
 - a stable assigned business key can support equality when truly immutable;
+
 - generated-id equality needs careful transient-instance semantics;
+
 - entities often remain inside aggregate boundaries rather than being generic
   set keys.
 
@@ -3104,9 +3233,13 @@ Prefer conservative mappings—commonly lazy—and select an explicit fetch plan
 per query:
 
 - JPQL `join fetch`;
+
 - `@EntityGraph` or named entity graph;
+
 - DTO/interface projections;
+
 - provider batch fetching;
+
 - a separate aggregate query when two collection joins would explode rows.
 
 ### N+1
@@ -3254,10 +3387,15 @@ time, active/waiting connections, slow queries and lock waits.
 The sequence for a slow repository call is:
 
 1. Count statements and rows returned.
+
 2. Separate pool wait from SQL execution.
+
 3. Inspect the actual SQL and parameters/cardinality.
+
 4. Run the database plan with realistic statistics.
+
 5. Check indexes, sorts, joins and lock waits.
+
 6. Measure the revised query under representative data.
 
 "Add an index" is not a diagnosis until the query predicate, ordering and plan
@@ -3372,9 +3510,13 @@ T2 holds account B, waits for A
 The database aborts a victim. Prevention and recovery are both needed:
 
 - lock accounts in a deterministic order;
+
 - keep transactions and result sets small;
+
 - index predicates so updates do not lock unintended rows;
+
 - inspect database deadlock graphs;
+
 - retry the complete idempotent unit with bounded jitter.
 
 Retrying without fixing lock order can turn a rare deadlock into a retry storm.
@@ -3525,18 +3667,24 @@ looks like this:
 1. The transaction interceptor asks `JpaTransactionManager` to begin a
    transaction. The manager associates an `EntityManager` and database
    connection with the current execution.
+
 2. Every repository call participates in that same transaction because the
    repositories use the transaction-bound `EntityManager`.
+
 3. `requests.claim` establishes idempotent ownership. The account queries lock
    or otherwise protect the rows according to their repository contract.
+
 4. `debit.debit(...)`, `credit.credit(...)`, and `request.complete(...)` mutate
    managed entities. Hibernate records pending changes; `save` queues new
    ledger and outbox entities.
+
 5. When the method returns, commit first requires a JPA flush. Hibernate sends
    the needed `INSERT` and `UPDATE` statements through JDBC, where constraints
    can still reject them.
+
 6. If flush succeeds, the database commits the physical transaction and Spring
    returns the `TransferId` to the caller.
+
 7. If the target throws an exception matching the rollback rules, or the
    transaction was marked rollback-only, Spring rolls back the database work
    instead. The exception still propagates unless application code translates
@@ -3672,8 +3820,10 @@ depends on the actual read/write pattern and database controls.
 | write skew | A and B update different rows after reading a shared invariant, leaving the combined state invalid. |
 
 - `READ_COMMITTED` prevents dirty reads and is a common default.
+
 - `REPEATABLE_READ` stabilizes rows read in a transaction, with exact behavior
   varying by database implementation.
+
 - `SERIALIZABLE` aims to make concurrent outcomes equivalent to serial
   execution, with lower concurrency and possible serialization failures.
 
@@ -3740,8 +3890,11 @@ ambiguous and the remote system cannot roll back with the database.
 Preferred shapes include:
 
 - remote read first, then short local validation/write when staleness is safe;
+
 - local intent/outbox commit, then asynchronous remote work;
+
 - explicit state machine: `PENDING -> SENT -> CONFIRMED/FAILED/UNKNOWN`;
+
 - idempotent remote command with reconciliation for unknown outcomes.
 
 There is no universal "remote calls always outside transactions" rule. The
@@ -3926,9 +4079,13 @@ Distributed outcomes can remain unknown after timeouts, process crashes or
 partner outages. Production design therefore needs:
 
 - durable states including `UNKNOWN`/`PENDING_RECONCILIATION`;
+
 - scheduled status enquiry or file-based reconciliation;
+
 - immutable evidence and operator-visible aging queues;
+
 - safe manual repair with four-eyes control where required;
+
 - metrics for stuck states, duplicates and compensation failures.
 
 If the design has no answer for "the partner debited but our response timed
@@ -3962,9 +4119,13 @@ possible downstream policy:
 Timeout types protect different waits:
 
 - **connection timeout** — establishing a socket/TLS connection;
+
 - **pool-acquisition timeout** — waiting for a reusable client connection;
+
 - **response/read timeout** — waiting for response progress/data;
+
 - **database query/lock timeout** — database work or lock acquisition;
+
 - **overall deadline** — the whole operation, including retries and queues.
 
 A long library default is not a resilience strategy. Set all relevant bounds
@@ -3975,6 +4136,7 @@ and verify them with a delayed stub.
 Two questions gate a retry:
 
 1. Is the failure plausibly transient?
+
 2. Is repeating the operation safe?
 
 | Failure | Usually retry? | Reason |
@@ -4023,7 +4185,9 @@ CLOSED --threshold exceeded--> OPEN
 ```
 
 - **Closed:** calls flow and outcomes populate a sliding window.
+
 - **Open:** calls fail fast or use a safe fallback.
+
 - **Half-open:** a limited number of probes test recovery.
 
 Tune minimum sample size, failure-rate threshold, slow-call threshold,
@@ -4063,10 +4227,13 @@ Exact framework aspect order must be verified. The intended semantics matter:
 
 - one bulkhead permit should usually cover the complete logical operation,
   not let every retry evade concurrency control;
+
 - the breaker may need to observe each attempt or only the final call outcome,
   depending on what its rate is meant to describe;
+
 - a per-attempt timeout sits inside retry, while the overall deadline sits
   outside;
+
 - retry outside transaction normally creates a fresh transaction per attempt.
 
 Annotation stacking without an ordering test is not proof.
@@ -4116,8 +4283,11 @@ edge.
 A fallback must preserve the business contract. Safe examples include:
 
 - serve slightly stale product-catalog data with an explicit freshness rule;
+
 - return a pending status for an asynchronous payment workflow;
+
 - disable an optional recommendation feature;
+
 - reject safely when authorization or fraud evidence is unavailable.
 
 Inventing a zero balance, treating an unknown fraud result as approved, or
@@ -4129,10 +4299,15 @@ degradation.
 Safe termination is a sequence:
 
 1. Mark the instance unready so traffic routing drains.
+
 2. Stop accepting new work.
+
 3. Allow bounded in-flight HTTP requests and consumers to finish.
+
 4. Stop pollers/listeners and flush acknowledged work according to semantics.
+
 5. Close executors, pools and telemetry exporters.
+
 6. Terminate before the platform's hard grace deadline.
 
 Readiness removal must propagate before the process exits. Work that cannot
@@ -4148,7 +4323,9 @@ not help if Kubernetes sends traffic until the final millisecond.
 Logs, metrics and traces answer different questions:
 
 - **logs** explain discrete events with rich context;
+
 - **metrics** summarize rates, distributions and resource state cheaply;
+
 - **traces** connect latency and errors across a distributed request path.
 
 Spring Boot Actuator integrates Micrometer Observation for metrics and traces
@@ -4192,10 +4369,14 @@ repeated identical stack traces obscure the signal.
 Micrometer's common meter types include:
 
 - **counter** — monotonic event count; graph its rate;
+
 - **timer** — call count and duration distribution;
+
 - **distribution summary** — distribution of non-time values such as batch
   size;
+
 - **gauge** — current sampled value such as queue depth;
+
 - **long-task timer** — duration/count of work still running.
 
 ```java
@@ -4267,11 +4448,16 @@ Actuator can expose health, metrics, mappings, conditions, loggers, thread
 dumps, heap information and more. Exposure is an attack-surface decision:
 
 - expose only required endpoints;
+
 - separate the management port/network where appropriate;
+
 - authenticate and authorize sensitive endpoints;
+
 - sanitize environment/config values;
+
 - restrict heap/thread dumps because they can contain secrets and customer
   data;
+
 - audit operational changes such as runtime log-level modification.
 
 `/actuator/health` being public does not imply every health component or detail
@@ -4281,6 +4467,7 @@ must be public.
 
 - **Liveness** answers: should the platform restart this process? It should
   fail for an unrecoverable internal state, not for every remote outage.
+
 - **Readiness** answers: should this instance receive new traffic now? It can
   fail while starting, draining, or unable to serve its contract.
 
@@ -4298,8 +4485,11 @@ succeed while real calls are slow or authorization is broken.
 The golden signals are:
 
 - **latency** — distribution, including successful versus failed calls;
+
 - **traffic** — request/message rate;
+
 - **errors** — rate by meaningful outcome;
+
 - **saturation** — how close finite resources are to capacity.
 
 Define a service-level indicator from user-visible outcomes, for example:
@@ -4328,12 +4518,18 @@ total request 1800 ms
 Diagnostic sequence:
 
 1. Confirm scope: endpoint, tenant/region, success/error and time window.
+
 2. Compare rate and latency percentiles with the baseline.
+
 3. Inspect saturation: servlet/executor queues, JDBC/HTTP pool wait, CPU,
    memory/GC and database sessions.
+
 4. Use trace spans to allocate time to queue, SQL and downstream calls.
+
 5. Count SQL and inspect slow plans/locks when database time is implicated.
+
 6. Check deployment/config changes and dependency telemetry.
+
 7. Mitigate safely—load shed, rollback, reduce concurrency, isolate a
    dependency—then verify with the same signals.
 
@@ -4478,11 +4674,14 @@ create order dependence.
 1. **Deferred flush:** a test calls `save`, asserts nothing, then the
    test-managed transaction rolls back. A production commit-time constraint
    was never observed. Call `flush()` when asserting it.
+
 2. **False cleanup confidence:** automatic rollback hides code that committed
    independently with `REQUIRES_NEW` or used another resource.
+
 3. **Different thread:** a random-port `@SpringBootTest` sends a real request;
    the server transaction is not the test method's transaction. Test rollback
    cannot undo a committed server write.
+
 4. **Persistence-context illusion:** querying in the same context may return a
    cached managed entity. Clear before verifying database-visible state.
 
@@ -4494,10 +4693,15 @@ fixtures may be required for full network tests.
 Cover at least:
 
 - missing credential → 401;
+
 - malformed/expired/wrong-issuer or audience token → 401;
+
 - valid identity without authority → 403;
+
 - valid authority but wrong tenant/account → 403 or deliberate 404;
+
 - allowed request → correct outcome;
+
 - CORS preflight and CSRF behavior for browser credential mode.
 
 `@WithMockUser` is useful for MVC/method authorization but does not test JWT
@@ -4512,11 +4716,17 @@ Use WireMock, MockWebServer or an equivalent programmable server to assert the
 wire contract:
 
 - path, method, headers, signature and payload;
+
 - success and business rejection;
+
 - delayed response beyond read timeout;
+
 - connection reset/malformed response;
+
 - 429/503 and retry signal;
+
 - ambiguous timeout after request receipt;
+
 - retry count, backoff and idempotency-key reuse.
 
 Mocking the Java client method cannot prove HTTP serialization, TLS/header
@@ -4562,10 +4772,15 @@ test setup, then assert bounded whole-operation retry and final consistency.
 Test both sequential and concurrent duplicates:
 
 - same key + same payload returns the same payment/result;
+
 - same key + different payload is rejected;
+
 - two concurrent first requests cause one business effect;
+
 - crash-like retry after local commit returns the committed result;
+
 - downstream retry reuses the same business idempotency key;
+
 - retention expiry behavior is explicit.
 
 Assert database facts—one ledger debit, one business payment—not merely equal
@@ -4592,10 +4807,13 @@ forever in CI.
 
 - Pull request: unit tests, slices, repository tests with shared/reusable real
   database, focused contracts.
+
 - Merge/main: broader integration, migrations from representative versions,
   concurrency/idempotency and security integration.
+
 - Pre-release/nightly: load, soak, fault injection, graceful shutdown,
   backup/restore and reconciliation drills.
+
 - Production: synthetics and canaries that avoid real financial side effects,
   plus alerts derived from user-visible SLOs.
 
@@ -4616,13 +4834,18 @@ or assume the load balancer sends both requests to one instance.
 **Senior design:**
 
 1. Scope an idempotency key to authenticated client and operation.
+
 2. In the payment database, atomically insert a unique claim containing a
    request fingerprint.
+
 3. The owner performs the state transition, ledger write and outbox insert in
    the same transaction.
+
 4. A concurrent duplicate observes the claim/result; a different payload with
    the key receives a conflict.
+
 5. The publisher and consumers tolerate duplicate events.
+
 6. Metrics expose claim conflict rate and commands stuck in progress.
 
 This connects security identity, unique constraints, transaction boundaries,
@@ -4636,10 +4859,14 @@ seconds while CPU is 25%.
 **Investigation:**
 
 1. Compare release/config timing and split success/error latency.
+
 2. A trace shows most time waiting for a JDBC connection.
+
 3. Pool metrics show active at max; database query time itself is moderate.
+
 4. Statement-count logs reveal a new serializer walking a lazy audit
    collection under OSIV, causing N+1.
+
 5. Mitigate/rollback, replace entity serialization with a projection, disable
    accidental graph access, and add a query-budget test.
 
@@ -4739,31 +4966,41 @@ only when the interviewer asks.
 - **Spring versus Spring Boot?** Spring provides the container and frameworks;
   Boot supplies curated dependencies, conditional configuration, executable
   runtime and production conventions.
+
 - **How does a Spring Boot application start?** `SpringApplication.run`
   prepares the environment, registers bean definitions, refreshes the context
   to create and post-process beans, runs startup runners, and then publishes
   readiness: **environment → definitions → beans → ready**.
+
 - **What is IoC?** Object construction and wiring move from application code
   to the container; dependency injection is how collaborators are supplied.
+
 - **Why constructor injection?** It makes required dependencies explicit,
   permits immutable fields, prevents partial initialization and enables plain
   unit tests.
+
 - **What is a bean?** An object whose creation, dependency wiring, lifecycle
   and possible post-processing are managed by a Spring container.
+
 - **`BeanDefinition` versus bean?** A definition is the creation recipe in the
   registry; a bean is the resulting object, possibly exposed through a proxy.
+
 - **`BeanFactory` versus `ApplicationContext`?** The factory creates/resolves
   beans; the context adds environment, resources, events, lifecycle and
   automatic discovery of infrastructure processors.
+
 - **Factory post-processor versus bean post-processor?** The first changes
   metadata before ordinary instances exist; the second processes instances
   and can replace them with proxies.
+
 - **Starter versus auto-configuration?** A starter brings dependencies;
   auto-configuration conditionally creates bean definitions based on the
   classpath, properties and existing beans.
+
 - **How do you debug auto-configuration?** Inspect the condition report and
   check classpath, properties/profiles, existing beans, exclusions and scan
   boundaries.
+
 - **Why can an annotation be ignored?** The object may not be managed, the call
   may bypass its proxy, the method may not be interceptable, the feature may
   not be enabled, or advisor order may differ from intent.
@@ -4773,30 +5010,41 @@ only when the interviewer asks.
 - **Filter versus interceptor?** A filter surrounds the servlet and can act
   before MVC; an interceptor surrounds a mapped MVC handler inside
   `DispatcherServlet`.
+
 - **Why does controller advice miss security errors?** The security filter
   chain normally rejects before `DispatcherServlet`, so its entry point or
   access-denied handler owns that response.
+
 - **Authentication versus authorization?** Authentication verifies identity;
   authorization decides whether that identity may perform an operation on a
   resource.
+
 - **What is `SecurityFilterChain`?** It is the ordered set of security filters
   selected by `FilterChainProxy` for a request; the first matching chain wins.
+
 - **401 versus 403?** 401 means no valid authenticated identity and is handled
   by an entry point; 403 means an authenticated identity lacks permission and
   is handled by an access-denied handler.
+
 - **`hasRole` versus `hasAuthority`?** Authority compares the exact string;
   role conventionally adds `ROLE_`.
+
 - **Why route and method security?** Routes protect HTTP entry, while method
   rules protect business operations across HTTP, messaging, scheduling and
   internal callers.
+
 - **JWT validation?** Verify signature/algorithm/key plus issuer, expiration,
   not-before, audience and required claims; decoding is not trust.
+
 - **CSRF decision?** Base it on whether a browser automatically attaches the
   credential; cookie-authenticated state changes generally need protection.
+
 - **CORS?** A browser cross-origin response policy, not authentication and not
   server-to-server protection.
+
 - **`@PreFilter`/`@PostFilter`?** They remove failing elements; they do not
   reject an atomic batch or make an over-broad database query efficient.
+
 - **SpEL risk?** It can invoke properties, methods and beans, so never evaluate
   an untrusted expression string; keep expressions fixed or use typed policy
   code.
@@ -4806,48 +5054,66 @@ only when the interviewer asks.
 - **What is a persistence context?** An identity map and unit of work that
   tracks managed entities, performs dirty checking and writes changes at
   flush.
+
 - **Flush versus commit?** Flush sends pending SQL inside the transaction;
   commit makes the transaction durable. A later rollback undoes flushed work.
+
 - **What are entity states?** Transient, managed, detached and removed;
   `merge` copies detached state into and returns a managed instance.
+
 - **First-level cache?** Per persistence context and mandatory; it preserves
   identity for managed rows but is not a general query-result cache.
+
 - **Owning side?** The association side responsible for the foreign-key
   update; `mappedBy` points from the inverse side to its Java field.
+
 - **Cascade versus orphan removal?** Cascade propagates persistence operations;
   orphan removal deletes a child removed from an owned relationship.
+
 - **What is N+1?** One query loads parents and later association access issues
   up to one query per parent; fix the use-case fetch plan or projection and
   prove it with statement counts.
+
 - **Why not make everything eager?** It replaces hidden secondary queries with
   over-fetching, Cartesian products and inflexible query plans.
+
 - **OSIV trade-off?** It permits lazy access during web rendering but hides
   database work outside the service transaction; APIs should prefer explicit
   projections/fetch plans.
+
 - **Optimistic locking?** `@Version` makes the update conditional on the
   version; conflicts require a fresh transaction that rereads and reevaluates
   the whole operation.
+
 - **Pessimistic locking?** Database row locks serialize contenders but hold
   connections, reduce concurrency and can deadlock; keep them short and
   ordered.
+
 - **Does `@Transactional` stop lost updates?** Not by itself. Use an isolation
   and concurrency strategy such as versioning, row lock or conditional update
   that protects the actual invariant.
+
 - **Logical versus physical transaction?** Each annotated scope has logical
   rollback semantics; multiple `REQUIRED` scopes can share one physical
   database transaction.
+
 - **`UnexpectedRollbackException`?** An inner participant marked the shared
   transaction rollback-only, and the outer scope tried to commit; Spring
   refuses to report a false success.
+
 - **`REQUIRES_NEW` risk?** It suspends the outer scope and needs an independent
   transaction/connection, which can exhaust the pool when outer calls hold
   their connections.
+
 - **`NESTED`?** A savepoint inside one physical transaction where supported;
   it is not an independent commit and an outer rollback still wins.
+
 - **Default rollback?** Unchecked exceptions and errors roll back by default;
   checked exceptions require an explicit rule if they should roll back.
+
 - **`readOnly`?** A manager/provider optimization hint, not a portable
   prohibition or authorization boundary.
+
 - **Why avoid remote calls in DB transactions?** They hold scarce connections
   and locks across uncertain latency, and the remote effect cannot roll back
   atomically with the local database.
@@ -4857,40 +5123,56 @@ only when the interviewer asks.
 - **Why not DB plus Kafka in one `@Transactional`?** A local database manager
   cannot atomically commit an ordinary Kafka publish; dual writes have a crash
   window.
+
 - **Outbox?** Commit business state and an event row together, then publish
   asynchronously; publication remains at least once, so consumers deduplicate.
+
 - **Saga?** Persisted local transactions plus compensating business actions;
   compensation is a new auditable action, not rollback.
+
 - **Exactly once?** Broker guarantees have a boundary. External business
   effects still require idempotency or transactional deduplication.
+
 - **Timeout before retry?** An overall deadline and per-attempt timeouts bound
   cost; retry only transient failures while time remains.
+
 - **Circuit breaker?** It stops spending resources on a dependency whose
   recent relevant calls show failure/slow behavior; half-open probes recovery.
+
 - **Bulkhead?** It caps concurrency/resources for a dependency or workload so
   one failure cannot consume the whole service.
+
 - **Rate limiter?** Admission control for capacity/fairness, not identity or
   authorization.
+
 - **Safe fallback?** One that preserves the contract—pending or explicit stale
   data may be safe; invented financial or authorization answers are not.
+
 - **Logs metrics traces?** Logs explain events, metrics detect aggregate
   behavior and saturation, traces allocate one distributed request's time.
+
 - **Cardinality trap?** Never use payment/user/account ids or raw URLs as metric
   tags; every distinct value creates a time series.
+
 - **Liveness versus readiness?** Liveness asks whether restart can repair the
   process; readiness asks whether this instance should receive traffic.
+
 - **How do you diagnose a slow endpoint?** Decompose total time into queue,
   pool acquisition, SQL/locks, downstream and serialization using metrics and
   traces before choosing a fix.
+
 - **Unit/slice/integration?** Unit tests prove isolated business behavior;
   slices prove one Spring boundary; full integration proves wiring and
   cross-layer behavior with realistic infrastructure.
+
 - **Test transaction trap?** Deferred flush and test rollback can hide
   production commit failures, while random-port server work occurs in a
   different transaction and will not be rolled back by the test.
+
 - **How do you test N+1?** Use realistic multi-row fixtures, clear context,
   execute the use case and assert a bounded statement count plus plan/latency
   evidence where needed.
+
 - **How do you test idempotency?** Send same-key same-payload sequentially and
   concurrently, verify one durable business effect, and reject key reuse with
   a different payload.
@@ -4903,24 +5185,43 @@ These are authoritative starting points; use the version selector for the
 line running in the target system.
 
 - [Spring Boot project and current release](https://spring.io/projects/spring-boot/)
+
 - [Spring Boot system requirements](https://docs.spring.io/spring-boot/system-requirements.html)
+
 - [Spring Boot reference](https://docs.spring.io/spring-boot/reference/)
+
 - [Boot 4 migration guide](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide)
+
 - [Spring Framework core container](https://docs.spring.io/spring-framework/reference/core/beans.html)
+
 - [Container extension points](https://docs.spring.io/spring-framework/reference/core/beans/factory-extension.html)
+
 - [Spring AOP proxying mechanisms](https://docs.spring.io/spring-framework/reference/core/aop/proxying.html)
+
 - [Spring MVC reference](https://docs.spring.io/spring-framework/reference/web/webmvc.html)
+
 - [Declarative transactions](https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative.html)
+
 - [Spring Security servlet architecture](https://docs.spring.io/spring-security/reference/servlet/architecture.html)
+
 - [Spring Security method authorization](https://docs.spring.io/spring-security/reference/servlet/authorization/method-security.html)
+
 - [Spring Data JPA reference](https://docs.spring.io/spring-data/jpa/reference/)
+
 - [Hibernate ORM user guide](https://docs.jboss.org/hibernate/orm/current/userguide/html_single/Hibernate_User_Guide.html)
+
 - [Spring Boot observability](https://docs.spring.io/spring-boot/reference/actuator/observability.html)
+
 - [Spring Boot metrics](https://docs.spring.io/spring-boot/reference/actuator/metrics.html)
+
 - [Spring Boot tracing](https://docs.spring.io/spring-boot/reference/actuator/tracing.html)
+
 - [Spring Boot testing](https://docs.spring.io/spring-boot/reference/testing/)
+
 - [Spring Boot Testcontainers service connections](https://docs.spring.io/spring-boot/reference/testing/testcontainers.html)
+
 - [Micrometer concepts](https://docs.micrometer.io/micrometer/reference/concepts.html)
+
 - [Resilience4j documentation](https://resilience4j.readme.io/docs)
 
 ---
