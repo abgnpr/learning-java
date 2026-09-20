@@ -29,7 +29,6 @@
   - [16. Observability and diagnosis](#16-observability-and-diagnosis)
   - [17. Production testing](#17-production-testing)
   - [18. End-to-end banking scenarios](#18-end-to-end-banking-scenarios)
-  - [19. Senior answer wall](#19-senior-answer-wall)
 
 - [Primary references](#primary-references)
 
@@ -37,10 +36,13 @@
 
 ## How to use this book
 
-This is the **readable answer sheet** for a senior Java/Spring backend
-interview. It is self-contained: definitions, runtime flows, code,
-trade-offs and failure semantics live together. The companion files are the
-active-recall side:
+This guide explains Spring as four connected runtime stories: how the
+application starts, how a request reaches business code, how state becomes
+durable, and how the service behaves in production. Read a part in order the
+first time; use individual chapters later when diagnosing a particular
+problem.
+
+The companion files turn the chapters into exercises:
 
 - [Spring Boot basics exercises](spring-boot-basics.md)
 
@@ -58,24 +60,15 @@ active-recall side:
 
 - [Production testing exercises](spring-boot-testing-deep.md)
 
-Read a chapter here, close it, and answer the corresponding companion kit
-aloud. A senior answer should normally have three layers:
+For each mechanism, be able to answer three practical questions:
 
-1. **Mechanism** — what actually happens at runtime.
+1. What executes at runtime?
 
-2. **Consequence** — correctness, latency, security or operability impact.
+2. Which correctness, security or capacity promise depends on it?
 
-3. **Decision** — what you would choose and what evidence would change it.
+3. What evidence would show that the design works or is failing?
 
-Do not begin with annotation vocabulary. Begin with the invariant or failure
-you are protecting. For example: *"A debit and its outbox record must commit
-together; Kafka publication is asynchronous and the consumer is
-idempotent."* Then name the Spring mechanisms.
-
-### The minimum viable path
-
-Do not start in the middle of the book. Learn three connected runtime stories;
-each later chapter should attach to one of them.
+### Reading path
 
 1. **How the application comes alive:**
    [§1 Boot](#1-spring-and-spring-boot) →
@@ -91,40 +84,28 @@ each later chapter should attach to one of them.
    [§9 method authorization](#9-method-authorization-and-ownership).
 
 3. **How one business operation becomes durable:**
-   [§13 transaction boundary](#13-spring-transactions) →
    [§10 persistence context](#10-jpa-and-the-persistence-context) →
    [§11 SQL/fetch behavior](#11-mapping-fetching-and-query-performance) →
    [§12 concurrent writes](#12-concurrent-writes-and-locking) →
+   [§13 transaction boundary](#13-spring-transactions) →
    [§14 cross-system consistency](#14-cross-system-consistency).
 
-If time is short, be able to narrate those three stories before collecting
-isolated annotations or edge cases. Then add the production proof:
-[§15 resilience](#15-resilience) →
-[§16 observability](#16-observability-and-diagnosis) →
-[§17 testing](#17-production-testing).
+4. **How that operation survives production:**
+   [§15 resilience](#15-resilience) →
+   [§16 observability](#16-observability-and-diagnosis) →
+   [§17 testing](#17-production-testing) →
+   [§18 complete incidents](#18-end-to-end-banking-scenarios).
 
-This order is conceptual rather than numeric. It deliberately follows runtime
-causality: **start the application → handle a request → commit its effects →
-prove it behaves in production.**
+The sequence is deliberate: start the application, handle a request, commit
+its effects, and then prove that the same behavior survives failure and load.
 
-### Version boundary
+### Version note
 
-As of **1 September 2026**, the current line is Spring Boot **4.1.1** on
-Spring Framework **7.0.x** and Spring Security **7.1.x**. Boot 4.1 requires
-at least Java 17. The examples favor APIs and concepts that remain stable
-across Boot 3 and 4; version-specific package imports are omitted where they
-would distract from the mechanism.
-
-Three migration lines matter in interviews:
-
-| Line | What changes |
-|---|---|
-| Boot 2.7 → 3.x | Java 17 baseline; Framework 6; `javax.*` EE APIs become `jakarta.*`; Spring Security configuration uses `SecurityFilterChain`, not `WebSecurityConfigurerAdapter`. |
-| Boot 3.5 → 4.x | Framework 7/Security 7; Boot modules, starters, test modules and packages are more granular; Jackson 3 is preferred; several test imports and dependencies move. |
-| Existing estate → current | Upgrade compatibility is a delivery problem: Java/runtime, servlet/Jakarta APIs, dependencies, tests, observability and deployment platform all need proof. |
-
-The right interview answer is honest: state what you ran, then explain the
-upgrade boundary.
+The examples use Jakarta APIs and the component-based configuration style of
+modern Spring Boot applications. The core runtime ideas apply across Boot 3
+and 4, but package names, test modules and supported Java versions can differ.
+Use the documentation for the version selected by the project's build rather
+than copying a current-version claim into long-lived notes.
 
 ---
 
@@ -2666,251 +2647,222 @@ the payment failed without enquiry or reconciliation is not a complete design.
 
 # Part IV. Production engineering
 
+The earlier parts follow one request through Spring and into durable state.
+Production adds three complications: work arrives concurrently, dependencies
+slow down or fail, and the application changes while traffic is still flowing.
+
+This part follows the operational loop around that request:
+
+```text
+traffic
+  -> admission and deadline
+  -> application resources
+  -> database and remote dependencies
+  -> user-visible outcome
+
+signals describe the outcome
+  -> diagnosis finds the limiting step
+  -> tests reproduce the claim
+  -> the next release carries the fix
+```
+
+Resilience limits the damage, observability supplies evidence, and testing
+checks the promised behavior before production has to discover it.
+
 ## 15. Resilience
 
-### Begin with a deadline budget
+A resilient service does not make every dependency reliable. It limits how
+long work may wait, how much failed work may enter the system and which
+outcomes may be repeated safely.
 
-A caller's end-to-end deadline must cover queueing, local work, every network
-attempt and response serialization. Configure component timeouts from that
-budget:
+### Start with one end-to-end deadline
+
+Assume an API must answer within two seconds. That time is shared by queueing,
+local work, database access, remote calls, retries and response writing:
 
 ```text
-client deadline:                    2000 ms
-gateway + network allowance:         200 ms
-our queue + controller + database:   500 ms
-downstream budget remaining:        1300 ms
-
-possible downstream policy:
-  pool acquisition 100 ms
-  connection       200 ms
-  response/read    700 ms
-  one retry only if remaining deadline permits
+client deadline                         2000 ms
+  gateway and network                    200 ms
+  local queue, security and database     500 ms
+  downstream work and its retries       1100 ms
+  response allowance                     200 ms
 ```
 
-Timeout types protect different waits:
+A five-second HTTP read timeout is already wrong for this request, even if it
+is a valid library default. Each wait needs a bound that fits inside the one
+remaining deadline.
 
-- **connection timeout** — establishing a socket/TLS connection;
+| Bound | What it limits |
+|---|---|
+| pool-acquisition timeout | waiting for a JDBC or HTTP client connection |
+| connect timeout | establishing the network connection and, where applicable, TLS |
+| response/read timeout | waiting for the peer after the connection exists |
+| query or lock timeout | database execution or lock acquisition |
+| overall deadline | all attempts, queues and local work for the operation |
 
-- **pool-acquisition timeout** — waiting for a reusable client connection;
+Per-attempt timeouts cannot enforce the overall deadline by themselves. Before
+starting a retry, calculate whether enough budget remains for another useful
+attempt.
 
-- **response/read timeout** — waiting for response progress/data;
+### Retry only when the failure and operation allow it
 
-- **database query/lock timeout** — database work or lock acquisition;
+A retry needs two independent answers:
 
-- **overall deadline** — the whole operation, including retries and queues.
+1. The failure is plausibly temporary.
 
-A long library default is not a resilience strategy. Set all relevant bounds
-and verify them with a delayed stub.
+2. Repeating the complete operation is safe.
 
-### Retry only safe failures and operations
+| Outcome | Usual decision |
+|---|---|
+| validation failure or 4xx business rejection | do not retry the same request |
+| authentication or authorization failure | do not treat it as transient |
+| 429 or 503 with time remaining | retry only under a small, shared policy |
+| connection failure during a brief failover | a bounded retry may help |
+| timeout after a command was sent | outcome is unknown; enquire or reuse idempotency identity |
+| optimistic conflict or deadlock | rerun the whole operation in a fresh transaction |
+| programming error | fail; repetition only adds load |
 
-Two questions gate a retry:
+Use a small attempt limit, backoff and jitter. Jitter stops many callers from
+waking and retrying together. Keep one layer responsible for retries: if a
+gateway, service and client each make three attempts, one request can produce
+27 downstream calls.
 
-1. Is the failure plausibly transient?
+For a state-changing command, retry safety comes from the business design in
+§14: a durable idempotency key, a unique claim, or a conditional state
+transition. Reusing the same key matters. Generating a new key for every
+attempt turns one logical command into several commands.
 
-2. Is repeating the operation safe?
+### Use each resilience control for its own job
 
-| Failure | Usually retry? | Reason |
+These controls solve different problems:
+
+| Control | Question it answers | When full or open |
 |---|---|---|
-| connection refused during brief failover | bounded yes | request likely did not reach peer, but policy still needs a budget |
-| HTTP 429/503 with useful retry signal | sometimes | overload/transient; respect deadline and `Retry-After` |
-| timeout after sending payment | not blindly | outcome is unknown; use idempotency/status enquiry |
-| validation 400 | no | same input will fail again |
-| authentication 401/authorization 403 | no | not transient |
-| optimistic conflict/deadlock | bounded whole-operation retry | fresh transaction must reread and reevaluate |
-| code bug/null pointer | no | repetition increases harm |
+| rate limiter | how much work may enter during this interval? | reject, delay within a bound, or return quota information |
+| bulkhead | how much concurrency may this workload occupy? | reject or degrade without consuming unrelated capacity |
+| circuit breaker | is this dependency currently worth calling? | fail fast until limited probes show recovery |
+| timeout | how long may this wait continue? | cancel or abandon the attempt and classify its outcome |
+| retry | is another attempt both safe and useful? | stop when attempts or deadline are exhausted |
 
-Use a small maximum attempt count, exponential backoff and jitter. Jitter
-prevents synchronized clients from retrying together. Honor the remaining
-deadline before starting another attempt.
-
-Retries multiply load. Three layers each making three attempts can create up
-to 27 downstream calls for one original request. Choose one owning layer and
-make attempt metrics visible.
-
-### Idempotency before retry
-
-Reads are usually safe to repeat but not always cheap. A command is retryable
-when repeated execution has the same business effect, commonly protected by a
-durable idempotency key or conditional state transition.
+A circuit breaker moves through a small state machine:
 
 ```text
-PUT /payments/{known-id}            naturally addressable, still needs state rules
-POST /payments + Idempotency-Key    retry-safe only if server claims/stores key atomically
-POST /transfers without key         unsafe after ambiguous timeout
+CLOSED --enough relevant failures/slow calls--> OPEN
+   ^                                             |
+   |                                             | wait period
+   +------ successful probes <-------------- HALF_OPEN
+                         failed probe ----------> OPEN
 ```
 
-Idempotency is a business guarantee, not an HTTP-method slogan.
+Only dependency-health failures should influence it. A valid insufficient-
+funds response says nothing about whether the payment switch is healthy.
 
-### Circuit breaker
+A semaphore bulkhead limits concurrent calls without introducing another
+queue. A thread-pool bulkhead adds an executor and therefore another bounded
+queue, another context-propagation point and another place where time can be
+spent. Choose it deliberately rather than treating more threads as isolation.
 
-A circuit breaker avoids spending resources on a dependency that is failing
-or too slow:
+### Compose one policy and test its observed order
 
-```text
-CLOSED --threshold exceeded--> OPEN
-  ^                              |
-  |                              | wait duration
-  +----- enough probe success -- HALF_OPEN
-              probe failure ------> OPEN
-```
-
-- **Closed:** calls flow and outcomes populate a sliding window.
-
-- **Open:** calls fail fast or use a safe fallback.
-
-- **Half-open:** a limited number of probes test recovery.
-
-Tune minimum sample size, failure-rate threshold, slow-call threshold,
-open-state wait and permitted probes. A breaker is not a root-cause fix and
-does not reduce demand unless callers handle fast failures appropriately.
-
-Record only failures relevant to dependency health. A user's insufficient-
-funds response should not open the bank-switch circuit.
-
-### Bulkhead and rate limiter
-
-A bulkhead limits how much of the service one dependency/workload can occupy.
-A semaphore bulkhead caps concurrent calls; a thread-pool bulkhead isolates
-work behind its own bounded executor and queue. Reject or degrade when full—an
-unbounded queue only delays the outage.
-
-A rate limiter controls admissions per time window. It protects capacity and
-enforces quotas; it does not authenticate callers. Use caller/tenant-aware
-limits where fairness matters and avoid high-cardinality in-process state that
-cannot coordinate across replicas.
-
-### Composition order
-
-For one downstream operation, a reasonable conceptual composition is:
+For one remote call, a useful conceptual order is:
 
 ```text
 overall deadline
-  -> rate limiter
-  -> bulkhead
+  -> rate limit
+  -> concurrency bulkhead
   -> circuit breaker
-  -> retry policy
+  -> retry
        -> per-attempt timeout
        -> HTTP client
 ```
 
-Exact framework aspect order must be verified. The intended semantics matter:
+The exact order depends on the intended measurements. A breaker may observe
+each failed attempt or only the final logical-call outcome. A bulkhead permit
+usually covers the entire logical operation so retries cannot escape the
+concurrency limit. An overall deadline remains outside the retry loop.
 
-- one bulkhead permit should usually cover the complete logical operation,
-  not let every retry evade concurrency control;
+Annotations from Resilience4j or Spring Retry are implemented through advice,
+so the proxy rules from §5 apply. Stacking annotations is not proof of their
+order. Test the number of client calls, elapsed time, exception delivered to
+the caller and interaction with the transaction boundary.
 
-- the breaker may need to observe each attempt or only the final call outcome,
-  depending on what its rate is meant to describe;
+### Treat overload as a finite-resource problem
 
-- a per-attempt timeout sits inside retry, while the overall deadline sits
-  outside;
-
-- retry outside transaction normally creates a fresh transaction per attempt.
-
-Annotation stacking without an ordering test is not proof.
-
-```java
-RetryConfig retry = RetryConfig.custom()
-        .maxAttempts(3)
-        .waitDuration(Duration.ofMillis(100))
-        .retryExceptions(TransientSwitchException.class)
-        .ignoreExceptions(RejectedPaymentException.class)
-        .build();
-```
-
-Configuration syntax varies by library version. Test the observed invocation
-count and total duration, not just property binding.
-
-Resilience4j annotations and Spring Retry's `@Retryable` are proxy-based.
-Self-invocation can bypass them, exception classification must match the type
-that actually crosses the proxy, and combining both libraries can accidentally
-create nested retries. Keep one policy owner and test advisor order together
-with transaction behavior.
-
-### Saturation and queueing
-
-Finite resources form a pipeline:
+Every request moves through resources with finite capacity:
 
 ```text
-incoming rate
-  -> server threads / accept queue
-  -> application executor / queue
-  -> JDBC pool / waiters
-  -> database locks and CPU
-  -> HTTP client pool / downstream capacity
+server threads or event loop
+  -> application executor and queue
+  -> JDBC pool and database sessions
+  -> row locks, database CPU and I/O
+  -> HTTP connection pool and downstream capacity
 ```
 
-When arrival rate remains above service rate, the queue grows until latency or
-rejection does. More threads can make it worse by increasing contention and
-the number of callers waiting on a smaller pool.
+When arrival rate stays above completion rate, waiting work grows until a
+queue, timeout or memory limit ends it. Increasing the thread count may only
+create more contenders for a smaller connection pool.
 
-Watch active/max and wait time for pools, executor active/queued/rejected,
-request concurrency, downstream latency and database lock wait. Apply bounded
-queues, admission control, load shedding and backpressure at the appropriate
-edge.
+Measure active capacity, queue depth, acquisition wait and rejection at each
+stage. Then limit admission where the overload can be rejected cheaply. A
+bounded queue makes overload visible; an unbounded queue converts it into high
+latency and eventually memory pressure.
 
-### Fallback safety
+A fallback is safe only when it preserves the API's meaning. Returning cached
+reference data with an explicit freshness rule can be safe. Returning
+`PENDING` for an asynchronous payment can be safe. Inventing a zero balance,
+approving without fraud evidence, or declaring failure after an ambiguous
+remote timeout is not graceful degradation.
 
-A fallback must preserve the business contract. Safe examples include:
+### Shut down without losing ownership of work
 
-- serve slightly stale product-catalog data with an explicit freshness rule;
+During deployment, the instance must stop acquiring work before the process is
+killed:
 
-- return a pending status for an asynchronous payment workflow;
+```text
+instance becomes unready
+  -> routing and message delivery begin to drain
+  -> no new application work is accepted
+  -> in-flight work gets a bounded completion window
+  -> listeners, executors, pools and telemetry stop
+  -> process exits before the platform's hard deadline
+```
 
-- disable an optional recommendation feature;
+Spring Boot can coordinate graceful web-server shutdown, but application-owned
+executors, pollers and message listeners still need explicit lifecycle
+semantics. The platform grace period must exceed the application's drain
+window, including time for readiness changes to reach the router.
 
-- reject safely when authorization or fraud evidence is unavailable.
-
-Inventing a zero balance, treating an unknown fraud result as approved, or
-returning "payment failed" after an ambiguous timeout is not graceful
-degradation.
-
-### Graceful shutdown
-
-Safe termination is a sequence:
-
-1. Mark the instance unready so traffic routing drains.
-
-2. Stop accepting new work.
-
-3. Allow bounded in-flight HTTP requests and consumers to finish.
-
-4. Stop pollers/listeners and flush acknowledged work according to semantics.
-
-5. Close executors, pools and telemetry exporters.
-
-6. Terminate before the platform's hard grace deadline.
-
-Readiness removal must propagate before the process exits. Work that cannot
-finish must be retryable/idempotent after restart. A long shutdown timeout does
-not help if Kubernetes sends traffic until the final millisecond.
+Any item that cannot finish before termination must be safe to redeliver or
+resume. Test shutdown with real in-flight work; configuration alone cannot
+prove when offsets are committed or whether a worker accepts another item
+during drain.
 
 ---
 
 ## 16. Observability and diagnosis
 
-### Observability is evidence, not output volume
+Observability is the evidence needed to explain a user-visible outcome. It is
+not the amount of text written to a log file.
 
-Logs, metrics and traces answer different questions:
+### Give each signal a specific job
 
-- **logs** explain discrete events with rich context;
+| Signal | Best question |
+|---|---|
+| metrics | is a problem widespread, and when did it begin? |
+| traces | where did one request or message spend its time? |
+| logs | what discrete event or decision occurred? |
+| profiles and dumps | what is the process doing with CPU, memory or threads? |
 
-- **metrics** summarize rates, distributions and resource state cheaply;
+A useful path starts with an alert on a user-visible indicator, narrows the
+scope with metrics, uses a trace to allocate time, and opens logs or a database
+plan only for the implicated component.
 
-- **traces** connect latency and errors across a distributed request path.
+### Log events with bounded, safe context
 
-Spring Boot Actuator integrates Micrometer Observation for metrics and traces
-and provides operational endpoints. Instrumentation should allow an engineer
-to move from an SLO alert to a trace, then to the relevant log and resource
-signal.
-
-### Structured logs
-
-Prefer stable fields over sentences that must be parsed:
+Use stable fields rather than sentences that require parsing:
 
 ```json
 {
-  "timestamp": "2026-09-01T10:15:20.123Z",
   "level": "INFO",
   "service": "payment-api",
   "event": "payment_state_changed",
@@ -2922,243 +2874,141 @@ Prefer stable fields over sentences that must be parsed:
 }
 ```
 
-Log identifiers and state transitions, not full payment payloads. Redact or
-exclude passwords, tokens, session ids, PINs, CVV, full account/card numbers,
-private keys and sensitive personal data. Hashing a low-entropy secret does
-not necessarily anonymize it.
+The event name and field meanings form a contract with dashboards and incident
+queries. Log the unexpected exception once at the boundary that handles it;
+lower layers can translate it or add context without repeating the same stack
+trace.
 
-Use the trace id for technical correlation and a safe business reference for
-domain lookup. A client-supplied correlation id must be validated/bounded
-before logging to prevent injection and cardinality abuse.
+Never log credentials, tokens, session identifiers, PINs, CVV, private keys or
+full financial identifiers. Hashing a low-entropy secret does not make it
+anonymous. Validate and bound client-supplied correlation values before
+placing them in logs.
 
-Log an unexpected exception once at the boundary that owns handling, with its
-cause and context. Lower layers can add structured fields or translate types;
-repeated identical stack traces obscure the signal.
+### Use metrics for rates, distributions and capacity
 
-### Metrics
+Counters describe event totals and are normally viewed as rates. Timers
+describe call count and duration. Gauges sample current state such as active
+connections or queue depth. Long-task timers describe work that is still in
+progress.
 
-Micrometer's common meter types include:
+Tags must have a small bounded value set. Operation, outcome, rail and region
+may be suitable. Payment ids, account ids, exception messages and raw URLs are
+not: each distinct value creates another time series.
 
-- **counter** — monotonic event count; graph its rate;
+Percentiles need histogram/distribution configuration and suitable buckets.
+Do not average instance-local percentiles and call the result a fleet
+percentile.
 
-- **timer** — call count and duration distribution;
+Start service objectives with a user-visible event. For example:
 
-- **distribution summary** — distribution of non-time values such as batch
-  size;
+> Over 28 days, 99.9% of valid payment-status requests return the correct
+> response within 400 ms.
 
-- **gauge** — current sampled value such as queue depth;
+Its supporting signals include request outcome and latency, but a financial
+system also needs correctness indicators: oldest unpublished outbox event,
+payments stuck in an intermediate state, reconciliation mismatches and failed
+compensations. HTTP availability can be green while money is stuck.
 
-- **long-task timer** — duration/count of work still running.
+### Trace boundaries where time or ownership changes
 
-```java
-@Component
-class PaymentMetrics {
-    private final Counter accepted;
-    private final Timer switchLatency;
+A trace links spans for work performed across HTTP, messaging and database
+boundaries. Instrument meaningful operations rather than every private method.
+Spring Boot integrates Micrometer Observation with metrics and tracing, and
+auto-configured HTTP client builders carry trace propagation for supported
+clients.
 
-    PaymentMetrics(MeterRegistry registry) {
-        accepted = Counter.builder("payments.accepted")
-                .description("Accepted payment commands")
-                .register(registry);
-        switchLatency = Timer.builder("payments.switch.duration")
-                .publishPercentileHistogram()
-                .register(registry);
-    }
+Custom threads, executors and manually constructed clients can lose context.
+Test that propagation explicitly. Low-cardinality observation fields may feed
+both metrics and traces; high-cardinality business identifiers, when policy
+allows them at all, belong on traces or logs rather than metric tags.
 
-    void accepted() { accepted.increment(); }
+Sampling means a trace will not exist for every request. Metrics remain the
+aggregate detection mechanism. A stable business reference remains useful for
+domain lookup even when two asynchronous processing attempts have different
+trace ids.
 
-    <T> T timeSwitch(Supplier<T> call) {
-        return switchLatency.record(call);
-    }
-}
-```
+### Expose Actuator as an administrative surface
 
-Use bounded low-cardinality tags such as operation, outcome, rail and region.
-Never tag a metric with payment id, user id, raw URL, exception message or
-account number; each new value creates another time series and can overwhelm
-the monitoring backend.
+Actuator endpoints can reveal configuration, bean mappings, environment
+values, thread dumps and heap contents. Expose only what operators require,
+authenticate sensitive endpoints, restrict their network path and audit
+runtime changes such as log-level updates. A public health response does not
+justify public access to every component detail.
 
-Percentiles generally need distribution/histogram configuration and are not
-freely aggregatable when calculated only at each instance. Use histogram
-buckets appropriate to the service-level objective.
+Liveness and readiness answer different questions:
 
-### Tracing and context propagation
+- Liveness: is this process irrecoverably broken, so restarting it may help?
 
-A trace contains spans representing operations along one distributed request.
-Trace context is propagated through supported HTTP and messaging
-instrumentation. Custom executors, manual threads and unusual clients can lose
-it.
+- Readiness: should this instance receive new work now?
 
-```java
-@Component
-class RiskObservation {
-    private final ObservationRegistry observations;
+A shared database outage should not normally fail liveness and restart every
+healthy application instance. An optional dependency should not automatically
+make every replica unready. Decide readiness from the contract the instance
+can still serve safely.
 
-    RiskObservation(ObservationRegistry observations) {
-        this.observations = observations;
-    }
+When probes run on a separate management port, that port may be healthy while
+the main server cannot accept traffic. Expose or test probes on the main path
+when that distinction matters.
 
-    RiskDecision evaluate(String rail, Supplier<RiskDecision> call) {
-        return Observation.createNotStarted("risk.evaluate", observations)
-                .lowCardinalityKeyValue("rail", rail)
-                .observe(call);
-    }
-}
-```
+### Diagnose latency by accounting for the time
 
-Low-cardinality observation values can become metric tags and trace
-attributes. High-cardinality values may belong only on traces, subject to data
-policy. Instrument meaningful boundaries rather than every private method.
-
-Sampling means not every request has a stored trace. Metrics remain the basis
-for aggregate detection; traces provide representative causal detail.
-
-### Actuator exposure and security
-
-Actuator can expose health, metrics, mappings, conditions, loggers, thread
-dumps, heap information and more. Exposure is an attack-surface decision:
-
-- expose only required endpoints;
-
-- separate the management port/network where appropriate;
-
-- authenticate and authorize sensitive endpoints;
-
-- sanitize environment/config values;
-
-- restrict heap/thread dumps because they can contain secrets and customer
-  data;
-
-- audit operational changes such as runtime log-level modification.
-
-`/actuator/health` being public does not imply every health component or detail
-must be public.
-
-### Liveness readiness and dependency health
-
-- **Liveness** answers: should the platform restart this process? It should
-  fail for an unrecoverable internal state, not for every remote outage.
-
-- **Readiness** answers: should this instance receive new traffic now? It can
-  fail while starting, draining, or unable to serve its contract.
-
-If liveness depends on the database, a database outage can restart every
-healthy instance and amplify the incident. If readiness depends on every
-optional downstream, one optional outage can remove all service capacity.
-Classify dependencies by whether the instance can still serve a safe useful
-contract.
-
-A health endpoint is not a substitute for SLO metrics. A dependency ping can
-succeed while real calls are slow or authorization is broken.
-
-### Golden signals and SLOs
-
-The golden signals are:
-
-- **latency** — distribution, including successful versus failed calls;
-
-- **traffic** — request/message rate;
-
-- **errors** — rate by meaningful outcome;
-
-- **saturation** — how close finite resources are to capacity.
-
-Define a service-level indicator from user-visible outcomes, for example:
-"99.9% of valid payment-status reads complete successfully within 400 ms over
-28 days." Alert on meaningful error-budget burn rather than every single
-error or a raw cumulative counter.
-
-Banking workflows also need business correctness signals: payments stuck in
-pending, reconciliation mismatches, duplicate commands, outbox age and
-compensation failure. Technical uptime can be green while money is stuck.
-
-### Diagnose a slow endpoint
-
-Use one representative slow trace and aggregate metrics; then decompose:
+Suppose p99 rises to 1.8 seconds while CPU remains low. One trace decomposes
+the request as follows:
 
 ```text
-total request 1800 ms
-  security filters              8 ms
-  executor queue              520 ms
-  transaction/pool wait       610 ms
-  SQL execution               120 ms
-  downstream switch           480 ms
-  JSON/other                   62 ms
+total request                    1800 ms
+  security filters                 8 ms
+  executor queue                  520 ms
+  JDBC pool acquisition           610 ms
+  SQL execution                   120 ms
+  downstream payment switch       480 ms
+  serialization and other          62 ms
 ```
 
-Diagnostic sequence:
+The low CPU is unsurprising: most work is waiting. Diagnose in this order:
 
-1. Confirm scope: endpoint, tenant/region, success/error and time window.
+1. Define the affected endpoint, outcome, tenant or region and time window.
 
-2. Compare rate and latency percentiles with the baseline.
+2. Compare request rate, latency distribution and error rate with the previous
+   healthy period.
 
-3. Inspect saturation: servlet/executor queues, JDBC/HTTP pool wait, CPU,
-   memory/GC and database sessions.
+3. Inspect saturation and wait time for server threads, executors, connection
+   pools and database sessions.
 
-4. Use trace spans to allocate time to queue, SQL and downstream calls.
+4. Use traces to allocate time to queueing, SQL, locks and remote calls.
 
-5. Count SQL and inspect slow plans/locks when database time is implicated.
+5. Inspect statement counts and execution plans only when database evidence
+   points there.
 
-6. Check deployment/config changes and dependency telemetry.
+6. Correlate the start of the change with deployments, configuration and
+   dependency events.
 
-7. Mitigate safely—load shed, rollback, reduce concurrency, isolate a
-   dependency—then verify with the same signals.
+7. Apply a reversible mitigation and verify recovery with the same signals.
 
-Average latency can remain healthy while p99 collapses. CPU can remain low
-while every thread waits for a pool. Start with time decomposition, not a
-favorite root cause.
-
-### Correlation across asynchronous messaging
-
-An HTTP trace ends before an asynchronous consumer may run. Propagate standard
-trace context in message headers where the observability model supports it,
-and retain a separate stable business correlation key in the event schema.
-
-Retries and redelivery can create new processing spans linked to the producer
-context. Do not assume one infinitely long parent-child trace is the only
-correct representation. Ensure message headers are bounded and do not trust
-arbitrary incoming trace ids as authorization evidence.
+Begin with the time that is missing, not a favorite root cause. Average
+latency can hide a collapsed tail, and adding connections can move saturation
+from the application into the database.
 
 ---
 
 ## 17. Production testing
 
-### Testing pyramid: match test scope to the risk
+A production claim should name the cheapest test that can disprove it. Plain
+unit tests are ideal for domain rules; they cannot prove SQL locking, security
+filters or HTTP timeout behavior. Full application tests prove wiring; they
+are needlessly expensive for every branch.
 
-The goal is confidence with useful failure localization, not the maximum
-number of `@SpringBootTest` annotations.
+### Choose scope from the boundary being tested
 
-The conventional **testing pyramid** keeps a broad base of fast, isolated unit
-tests, a smaller middle of focused Spring slice/component tests, and fewer
-full-system tests at the top. It is a risk-allocation heuristic, not a required
-percentage: persistence, security and distributed failure semantics deserve
-integration coverage even when most business branches remain plain unit tests.
+| Scope | What it proves | What it deliberately omits |
+|---|---|---|
+| plain unit | domain decisions, mapping and state transitions | Spring wiring, serialization and infrastructure |
+| MVC slice | routing, JSON, validation, security integration and error shape | real database and full application startup |
+| JPA slice | mappings, repository queries and flush behavior | HTTP path and unrelated beans |
+| full context | application wiring and cross-layer behavior | realistic infrastructure unless supplied |
+| deployed/black-box | network, process lifecycle and deployment configuration | cheap coverage of every branch |
 
-Most Spring Boot projects start with `spring-boot-starter-test` in the test
-scope. It brings Spring Test and Spring Boot's test support together with JUnit
-Jupiter, Mockito, AssertJ and other common test libraries. Boot 3 commonly
-manages JUnit 5; newer Boot lines may manage a later JUnit generation while
-retaining the Jupiter programming model, so let the project's Boot dependency
-management choose compatible versions.
-
-```kotlin
-testImplementation("org.springframework.boot:spring-boot-starter-test")
-```
-
-Having the starter available does not require loading Spring in every test.
-JUnit, Mockito and AssertJ work in ordinary unit tests; annotations such as
-`@WebMvcTest`, `@DataJpaTest` and `@SpringBootTest` opt into increasingly broad
-framework support.
-
-| Scope | Loads | Best for | Does not prove |
-|---|---|---|---|
-| plain unit test | object plus fakes/mocks | business branches, state machines, policy, mapping | Spring wiring, SQL, serialization |
-| MVC slice | MVC/security subset | routing, JSON, validation, status/error contract | real DB and full app wiring |
-| JPA slice | entities/repositories | mappings, queries, constraints, fetch plans | HTTP and whole app startup |
-| full context | application configuration | wiring, auto-configuration and cross-layer behavior | production infrastructure unless supplied |
-| deployed/black-box | real server and dependencies/stubs | filters, network, transaction boundaries, operations | every rare branch cheaply |
-
-Most business logic should be testable without Spring:
+Most business rules should remain testable without Spring:
 
 ```java
 @Test
@@ -3171,13 +3021,12 @@ void rejectedPaymentCannotBeSent() {
 }
 ```
 
-### Test slices
+Use the broader test only when the behavior crosses the broader boundary.
 
-`@WebMvcTest(PaymentController.class)` loads focused MVC infrastructure and
-selected controllers. Supply service collaborators with the version-
-appropriate test override (`@MockitoBean` in current Framework/Boot; older
-Boot code commonly uses `@MockBean`). Assert serialization and error
-contracts, not service implementation.
+### Test one Spring boundary at a time
+
+An MVC slice can prove request mapping, validation, serialization, security and
+the public error contract while replacing the application service:
 
 ```java
 @WebMvcTest(PaymentController.class)
@@ -3187,599 +3036,274 @@ class PaymentControllerTest {
 
     @Test
     @WithMockUser(authorities = "PAYMENT_WRITE")
-    void rejectsInvalidAmount() throws Exception {
-        mvc.perform(post("/payments")
+    void rejectsZeroAmount() throws Exception {
+        mvc.perform(post("/api/payments")
                 .with(csrf())
+                .header("Idempotency-Key", "test-command-1")
                 .contentType(APPLICATION_JSON)
                 .content("""
                     {"debtorAccountId":"00000000-0000-0000-0000-000000000001",
                      "creditorAccountId":"00000000-0000-0000-0000-000000000002",
-                     "amount":0,"currency":"INR"}
+                     "amount":0,
+                     "currency":"INR"}
                     """))
             .andExpect(status().isBadRequest());
     }
 }
 ```
 
-Whether CSRF is required in the test must match the tested security chain and
-credential model, not habit.
+Use the bean-override annotation supported by the project's Spring version.
+Whether this request needs CSRF must match the real credential model and
+security chain.
 
-`@DataJpaTest` loads JPA/repository infrastructure, is transactional by
-default, and commonly uses an embedded database unless replacement is
-disabled or a service connection supplies the real database. Assert generated
-behavior against the production engine when dialect, locking, indexes or
-constraints matter.
+A JPA slice proves mappings and repository behavior. A full-context test proves
+that the application's real configuration starts and its layers connect. A
+mock web environment does not open a real server socket; use a random port
+when the network boundary itself matters.
 
-`@SpringBootTest` loads the full application context. With a mock web
-environment it does not prove a real socket/server path; with a random port,
-the client and server execute on different threads. Boot 4 modularized test
-starters/packages and introduced `RestTestClient` support, so use the imports
-and client appropriate to the project line.
+### Use the production database engine for database promises
 
-### Testcontainers and the real database
+An in-memory database is useful only when its differences are irrelevant to
+the test. Dialect, collation, locking, constraint timing and query plans should
+be tested against the production engine.
 
 ```java
 @Testcontainers
-@SpringBootTest
-class PaymentRepositoryIntegrationTest {
+@DataJpaTest
+@ImportTestcontainers(PostgresContainers.class)
+class PaymentRepositoryTest {
+    // repository tests run against the container connection
+}
 
+interface PostgresContainers {
     @Container
     @ServiceConnection
-    static PostgreSQLContainer<?> postgres =
-            new PostgreSQLContainer<>("postgres:17");
+    PostgreSQLContainer<?> postgres =
+            new PostgreSQLContainer<>("postgres:17-alpine");
 }
 ```
 
-`@ServiceConnection` lets Boot derive connection details from a supported
-container and those details take precedence over ordinary connection
-properties. Pin a compatible image line, run the same migrations as
-production, and wait for actual readiness.
+Spring Boot service connections can derive connection details from supported
+containers. Run the same migrations as production and reset data
+deterministically. Container reuse is useful only if it does not create order-
+dependent tests or leak state between suites.
 
-Testcontainers costs more than H2 but catches real SQL dialect, collation,
-locking, constraint, sequence and execution-plan behavior. Reuse a container
-across tests when safe; reset data/schema deterministically so speed does not
-create order dependence.
+### Do not let a test transaction hide the result
 
-### Transaction rollback traps in tests
+| Trap | Why the test can pass incorrectly | Correct check |
+|---|---|---|
+| deferred flush | constraint SQL never executes before rollback | flush at the point being asserted |
+| first-level cache | reload returns the already-managed object | flush, clear and query again |
+| `REQUIRES_NEW` or another resource | test rollback does not own that commit | verify durable state and clean it explicitly |
+| random-port server | server work runs in another thread/transaction | query the committed outcome and clean it explicitly |
 
-1. **Deferred flush:** a test calls `save`, asserts nothing, then the
-   test-managed transaction rolls back. A production commit-time constraint
-   was never observed. Call `flush()` when asserting it.
+Automatic rollback is convenient cleanup, not proof that production commit
+semantics were exercised.
 
-2. **False cleanup confidence:** automatic rollback hides code that committed
-   independently with `REQUIRES_NEW` or used another resource.
+### Reproduce the failures the design claims to handle
 
-3. **Different thread:** a random-port `@SpringBootTest` sends a real request;
-   the server transaction is not the test method's transaction. Test rollback
-   cannot undo a committed server write.
+Security coverage should distinguish missing or invalid credentials (401),
+insufficient authority (403), cross-tenant access, and a permitted request.
+`@WithMockUser` proves authorization logic but not JWT signature, issuer,
+audience or claim conversion; keep a smaller integration test for decoder
+configuration.
 
-4. **Persistence-context illusion:** querying in the same context may return a
-   cached managed entity. Clear before verifying database-visible state.
+A programmable HTTP server should exercise the real wire client with delayed
+responses, resets, malformed bodies, 429/503 responses and an ambiguous
+timeout after request receipt. Assert the headers, idempotency-key reuse,
+attempt count and total duration. Mocking the Java client method cannot prove
+serialization or timeout configuration.
 
-Explicit cleanup, isolated schema/database, truncation or uniquely scoped
-fixtures may be required for full network tests.
-
-### Security tests
-
-Cover at least:
-
-- missing credential → 401;
-
-- malformed/expired/wrong-issuer or audience token → 401;
-
-- valid identity without authority → 403;
-
-- valid authority but wrong tenant/account → 403 or deliberate 404;
-
-- allowed request → correct outcome;
-
-- CORS preflight and CSRF behavior for browser credential mode.
-
-`@WithMockUser` is useful for MVC/method authorization but does not test JWT
-signature/claim conversion. Security request post-processors can create a
-mock JWT with claims/authorities for resource-server authorization. A smaller
-set of integration tests should exercise real decoder configuration against
-controlled keys or a stub issuer.
-
-### External dependency stubs
-
-Use WireMock, MockWebServer or an equivalent programmable server to assert the
-wire contract:
-
-- path, method, headers, signature and payload;
-
-- success and business rejection;
-
-- delayed response beyond read timeout;
-
-- connection reset/malformed response;
-
-- 429/503 and retry signal;
-
-- ambiguous timeout after request receipt;
-
-- retry count, backoff and idempotency-key reuse.
-
-Mocking the Java client method cannot prove HTTP serialization, TLS/header
-configuration or timeout behavior. Conversely, not every service branch needs
-a network stub; keep unit tests fast.
-
-### Query-count and N+1 regression tests
-
-Create enough parent/child rows to make N+1 observable, clear the persistence
-context, reset statement statistics, execute the use case and assert a bounded
-statement count. Avoid asserting every generated SQL string character because
-provider upgrades can make harmless changes.
+A concurrency test needs separate connections and a barrier that makes the
+operations overlap:
 
 ```text
-given 20 payments, each with a rail
-when listPaymentSummaries runs
-then result has 20 rows
-and select statement count <= 2
+transaction A: read version 3 -> wait -> update -> commit
+transaction B: read version 3 -> wait -> update -> commit
+
+assert one defined winner and one optimistic conflict
+assert the balance and ledger invariant after both finish
 ```
 
-A one-row fixture cannot reveal N+1. A statement-count test complements a
-realistic performance test; it does not prove the database plan is efficient.
+Do not share an `EntityManager` between those threads. For a deadlock or retry
+test, force the competing lock order and assert a bounded whole-operation
+retry rather than hoping a race appears.
 
-### Concurrency tests
+Idempotency tests need both time and concurrency:
 
-A credible concurrency test uses separate transactions/connections and a
-synchronization barrier so operations overlap:
+- same key and same payload, repeated sequentially, returns one outcome;
 
-```text
-thread A: begin -> read version 3 -> barrier -> update -> commit
-thread B: begin -> read version 3 -> barrier -> update -> commit
-assert: one wins, one gets optimistic conflict
-assert: invariant and audit outcome remain valid
-```
+- concurrent first uses of the key create one business effect;
 
-Do not use one shared `EntityManager`; it is not thread-safe. Repeat the
-scenario enough to expose races but make the overlap deterministic. For
-deadlock retry, deliberately acquire resources in conflicting order in the
-test setup, then assert bounded whole-operation retry and final consistency.
+- the same key with a different payload is rejected;
 
-### Idempotency tests
+- a retry after local commit returns the durable result;
 
-Test both sequential and concurrent duplicates:
+- a downstream retry carries the same business identity.
 
-- same key + same payload returns the same payment/result;
+Assert one ledger entry or payment row, not merely two equal HTTP responses.
 
-- same key + different payload is rejected;
+### Test deployment and recovery behavior
 
-- two concurrent first requests cause one business effect;
+Some claims exist only at process boundaries. Start real in-flight work, send
+the termination signal used by the platform, and verify readiness, request
+drain, listener stop, offset behavior and redelivery. Fault tests should also
+cover database unavailability, a full connection pool and an unavailable
+telemetry backend so that observability cannot take down the application.
 
-- crash-like retry after local commit returns the committed result;
+Organize the suite by feedback time:
 
-- downstream retry reuses the same business idempotency key;
+- Pull request: unit tests, slices, repository tests, focused contracts and a
+  small number of full-context checks.
 
-- retention expiry behavior is explicit.
+- Main branch: migrations, security integration, concurrency, idempotency and
+  multi-resource failure tests.
 
-Assert database facts—one ledger debit, one business payment—not merely equal
-HTTP bodies.
-
-### Contracts fixtures and isolation
-
-Use consumer/provider contract tests for independently deployed HTTP/event
-schemas, while keeping a smaller set of end-to-end tests. A contract proves
-shape and agreed semantics, not dependency performance or production routing.
-
-Prefer fixture builders or explicit SQL/migrations over an enormous shared
-context dataset. `@Sql` is useful when setup/cleanup is local and visible.
-Generate unique business identifiers, control `Clock`, random seeds and
-locale/time zone, and avoid tests whose correctness depends on execution
-order.
-
-Parallel tests must not mutate shared ports, system properties, singleton
-stubs, static clocks or the same database rows without isolation. Flaky tests
-are concurrency bugs in the test system and should be diagnosed, not retried
-forever in CI.
-
-### What to run where
-
-- Pull request: unit tests, slices, repository tests with shared/reusable real
-  database, focused contracts.
-
-- Merge/main: broader integration, migrations from representative versions,
-  concurrency/idempotency and security integration.
-
-- Pre-release/nightly: load, soak, fault injection, graceful shutdown,
+- Pre-release or scheduled: load, soak, fault injection, graceful shutdown,
   backup/restore and reconciliation drills.
 
-- Production: synthetics and canaries that avoid real financial side effects,
-  plus alerts derived from user-visible SLOs.
+- Production: safe synthetic requests, canaries and alerts derived from the
+  same user-visible objectives.
 
-Test the failure semantics you claim in an interview.
+The layers are not status labels. Each one exists because a cheaper layer
+cannot observe that particular failure.
 
 ---
 
 ## 18. End-to-end banking scenarios
 
-### Scenario 1 duplicate payment submissions
+These walkthroughs combine the earlier chapters. Each begins with an observed
+failure, follows the evidence, and ends with a prevention that can be tested.
 
-**Situation:** A mobile client times out and sends `POST /payments` twice. Two
-replicas receive the requests concurrently.
+### Scenario 1: two replicas receive the same payment
 
-**Weak answer:** synchronize the controller, check whether the payment exists,
-or assume the load balancer sends both requests to one instance.
+A mobile client times out and repeats `POST /payments`. Two replicas receive
+the same idempotency key at nearly the same time.
 
-**Senior design:**
+The authenticated client identity and operation scope the key. Both requests
+attempt to create the same durable claim with the same request fingerprint; a
+unique constraint chooses one owner. That owner writes the payment, ledger
+entry and outbox record in one transaction. The other request reads the
+in-progress or completed outcome. Reusing the key with a different payload is
+a conflict.
 
-1. Scope an idempotency key to authenticated client and operation.
+The test sends the two requests concurrently and verifies one payment, one
+ledger effect and a stable response. Metrics report claim conflicts and the
+age of claims that never reach a terminal outcome.
 
-2. In the payment database, atomically insert a unique claim containing a
-   request fingerprint.
+### Scenario 2: latency rises after a deployment
 
-3. The owner performs the state transition, ledger write and outbox insert in
-   the same transaction.
+The p99 of `GET /accounts/{id}/payments` rises from 250 ms to four seconds,
+while CPU remains at 25 percent.
 
-4. A concurrent duplicate observes the claim/result; a different payload with
-   the key receives a conflict.
+A trace shows most time waiting for a JDBC connection. Pool metrics confirm
+that all connections are active, but database execution time is moderate.
+Statement counts then reveal that a new serializer traverses a lazy audit
+collection under Open Session in View, producing N+1 queries.
 
-5. The publisher and consumers tolerate duplicate events.
+Rollback is the immediate mitigation. The fix returns a projection built
+inside the query boundary and disables accidental entity traversal. A
+multi-row query-count test prevents recurrence. Increasing the pool without
+checking database capacity would merely move the queue.
 
-6. Metrics expose claim conflict rate and commands stuck in progress.
+### Scenario 3: the partner times out after receiving a debit
 
-This connects security identity, unique constraints, transaction boundaries,
-outbox and consumer idempotency.
+The request body reached the payment switch, but the response timed out. The
+local service cannot tell whether the debit happened.
 
-### Scenario 2 endpoint latency jumps after deployment
+The service records `OUTCOME_UNKNOWN` with the same stable partner reference.
+It does not send a new command identity or report a definitive failure. A
+status enquiry or reconciliation file later moves the workflow to confirmed,
+rejected or manual investigation. A confirmed rejection may permit a new
+attempt; a confirmed debit continues the existing workflow.
 
-**Situation:** p99 for `GET /accounts/{id}/payments` rises from 250 ms to four
-seconds while CPU is 25%.
+The client sees pending semantics, operators see aging unknown outcomes, and
+tests cover both eventual partner answers. The timeout bound limits resource
+use; reconciliation supplies the missing truth.
 
-**Investigation:**
+### Scenario 4: an authorized user reads another tenant's payment
 
-1. Compare release/config timing and split success/error latency.
+The JWT contains `PAYMENT_READ`, so the route check passes. The repository then
+loads a payment by globally unique id without constraining its tenant.
 
-2. A trace shows most time waiting for a JDBC connection.
+The correction derives tenant identity from validated authentication and uses
+`findByTenantIdAndId`. Method authorization can add defense in depth, but an
+over-broad query should not load another tenant's data first. The API returns
+the deliberately chosen 403 or 404 outcome without revealing ownership.
 
-3. Pool metrics show active at max; database query time itself is moderate.
+Tests cover the same authority in two tenants, and audit events record the
+safe identifiers needed to investigate repeated cross-tenant attempts.
 
-4. Statement-count logs reveal a new serializer walking a lazy audit
-   collection under OSIV, causing N+1.
+### Scenario 5: a dependency failure becomes a retry storm
 
-5. Mitigate/rollback, replace entity serialization with a projection, disable
-   accidental graph access, and add a query-budget test.
+The payment switch returns 503 during a deployment. The gateway, service and
+HTTP client each retry three times. Attempt traffic rises far above original
+traffic, queues fill and healthy endpoints begin timing out.
 
-Low CPU was consistent with threads waiting. Raising pool size without
-checking database capacity could merely move saturation to the database.
+One layer becomes the retry owner. It uses a small jittered attempt budget
+inside the end-to-end deadline and reuses the same idempotency identity. A
+breaker stops calls during sustained failure, a bulkhead caps concurrent
+switch work, and admission control rejects excess load before the main worker
+and JDBC pools are exhausted.
 
-### Scenario 3 caught failure still rolls back
+Dashboards separate original-request rate from attempt rate. A delayed/failing
+stub test asserts total calls and duration, while a load test proves unrelated
+traffic retains capacity.
 
-**Situation:** an outer transactional method catches an exception from an
-inner `REQUIRED` service and writes an audit row, but returns an
-`UnexpectedRollbackException` at the end.
+### Scenario 6: a pod terminates during message processing
 
-**Explanation:** both logical scopes shared one physical transaction. The
-inner interceptor marked it rollback-only; catching the Java exception did not
-make it committable. The outer boundary detects the rollback at attempted
-commit and refuses to report success.
+A consumer has received a payment event when the pod receives `SIGTERM`. If it
+commits the offset before the database effect, termination can lose the work.
+If it commits after the effect, termination can cause redelivery.
 
-**Decision:** if the audit must commit independently, call a separate proxied
-bean with `REQUIRES_NEW` and capacity-test the additional connection. If it is
-operational evidence, structured logging may be enough. If it is part of the
-business invariant, keep it in the original atomic outcome rather than
-forcing independence.
+The listener stops taking new records during drain. The database change and
+deduplication record commit together; the offset follows the chosen processing
+contract. Redelivery is therefore safe. The platform grace period allows the
+normal case to finish, while an unfinished item remains available to another
+consumer.
 
-### Scenario 4 partner timeout after debit request
-
-**Situation:** the switch call times out after the request body was sent. The
-service does not know whether the partner debited.
-
-**Unsafe response:** retry immediately with a new reference or mark failed and
-reverse blindly.
-
-**Senior response:** persist `OUTCOME_UNKNOWN`, retain the same idempotent
-business reference, query partner status/reconcile, and allow only a
-contractually safe retry. A confirmed debit advances; a definitive rejection
-can compensate; an unresolved item ages into an operator queue. The HTTP
-response communicates pending/unknown semantics instead of a false failure.
-
-### Scenario 5 cross-tenant data exposure
-
-**Situation:** the JWT has `PAYMENT_READ`, and `/payments/{id}` returns a
-payment belonging to another tenant.
-
-**Root cause:** route authorization checked a coarse capability, while the
-repository loaded by globally unique id and no object-level policy constrained
-ownership.
-
-**Correction:** derive trusted tenant identity from validated authentication,
-query `findByTenantIdAndId`, optionally enforce a method policy for defense in
-depth, and test cross-tenant access. Never accept a tenant header as truth
-unless the authenticated gateway/channel contract makes it trustworthy and
-the service cannot be bypassed.
-
-### Scenario 6 deployment causes retry storm
-
-**Situation:** a downstream dependency returns 503. Gateway, service and HTTP
-client each retry three times; queues and connection pools saturate.
-
-**Correction:** assign one retry owner, enforce one end-to-end deadline, use a
-small jittered attempt budget, open a circuit on relevant dependency failures,
-bound concurrency and shed excess load. Ensure the operation is idempotent.
-Observe original request rate separately from attempt rate.
-
-### Scenario 7 graceful shutdown loses consumer work
-
-**Situation:** Kubernetes terminates a pod while a Kafka listener is handling
-a payment event. The offset was committed before the database effect.
-
-**Correction:** stop new delivery during drain, commit offsets only according
-to the chosen processing guarantee, keep the database effect idempotent, and
-fit processing plus shutdown into the platform grace period. If commit follows
-processing, a crash can redeliver; deduplication makes that safe. If commit
-precedes processing, a crash can lose work.
-
-### Scenario 8 application starts with the wrong client
-
-**Situation:** a real switch client appears in local tests despite a stub
-configuration.
-
-**Investigation:** inspect active profiles, bean definitions and the condition
-evaluation report. Determine whether the stub was outside component scanning,
-a profile name was wrong, or auto-configuration did not back off because its
-`@ConditionalOnMissingBean` checked a different type/name.
-
-**Correction:** use a typed interface, explicit profile/test bean and a
-context-startup test that asserts the selected implementation. Do not enable
-bean-definition overriding to hide ambiguity.
-
----
-
-## 19. Senior answer wall
-
-These are opening answers. Stop after the first sentence or two and expand
-only when the interviewer asks.
-
-### Container and Boot
-
-- **Spring versus Spring Boot?** Spring provides the container and frameworks;
-  Boot supplies curated dependencies, conditional configuration, executable
-  runtime and production conventions.
-
-- **How does a Spring Boot application start?** `SpringApplication.run`
-  prepares the environment, registers bean definitions, refreshes the context
-  to create and post-process beans, runs startup runners, and then publishes
-  readiness: **environment → definitions → beans → ready**.
-
-- **What is IoC?** Object construction and wiring move from application code
-  to the container; dependency injection is how collaborators are supplied.
-
-- **Why constructor injection?** It makes required dependencies explicit,
-  permits immutable fields, prevents partial initialization and enables plain
-  unit tests.
-
-- **What is a bean?** An object whose creation, dependency wiring, lifecycle
-  and possible post-processing are managed by a Spring container.
-
-- **`BeanDefinition` versus bean?** A definition is the creation recipe in the
-  registry; a bean is the resulting object, possibly exposed through a proxy.
-
-- **`BeanFactory` versus `ApplicationContext`?** The factory creates/resolves
-  beans; the context adds environment, resources, events, lifecycle and
-  automatic discovery of infrastructure processors.
-
-- **Factory post-processor versus bean post-processor?** The first changes
-  metadata before ordinary instances exist; the second processes instances
-  and can replace them with proxies.
-
-- **Starter versus auto-configuration?** A starter brings dependencies;
-  auto-configuration conditionally creates bean definitions based on the
-  classpath, properties and existing beans.
-
-- **How do you debug auto-configuration?** Inspect the condition report and
-  check classpath, properties/profiles, existing beans, exclusions and scan
-  boundaries.
-
-- **Why can an annotation be ignored?** The object may not be managed, the call
-  may bypass its proxy, the method may not be interceptable, the feature may
-  not be enabled, or advisor order may differ from intent.
-
-### Web and security
-
-- **Filter versus interceptor?** A filter surrounds the servlet and can act
-  before MVC; an interceptor surrounds a mapped MVC handler inside
-  `DispatcherServlet`.
-
-- **Why does controller advice miss security errors?** The security filter
-  chain normally rejects before `DispatcherServlet`, so its entry point or
-  access-denied handler owns that response.
-
-- **Authentication versus authorization?** Authentication verifies identity;
-  authorization decides whether that identity may perform an operation on a
-  resource.
-
-- **What is `SecurityFilterChain`?** It is the ordered set of security filters
-  selected by `FilterChainProxy` for a request; the first matching chain wins.
-
-- **401 versus 403?** 401 means no valid authenticated identity and is handled
-  by an entry point; 403 means an authenticated identity lacks permission and
-  is handled by an access-denied handler.
-
-- **`hasRole` versus `hasAuthority`?** Authority compares the exact string;
-  role conventionally adds `ROLE_`.
-
-- **Why route and method security?** Routes protect HTTP entry, while method
-  rules protect business operations across HTTP, messaging, scheduling and
-  internal callers.
-
-- **JWT validation?** Verify signature/algorithm/key plus issuer, expiration,
-  not-before, audience and required claims; decoding is not trust.
-
-- **CSRF decision?** Base it on whether a browser automatically attaches the
-  credential; cookie-authenticated state changes generally need protection.
-
-- **CORS?** A browser cross-origin response policy, not authentication and not
-  server-to-server protection.
-
-- **`@PreFilter`/`@PostFilter`?** They remove failing elements; they do not
-  reject an atomic batch or make an over-broad database query efficient.
-
-- **SpEL risk?** It can invoke properties, methods and beans, so never evaluate
-  an untrusted expression string; keep expressions fixed or use typed policy
-  code.
-
-### JPA and transactions
-
-- **What is a persistence context?** An identity map and unit of work that
-  tracks managed entities, performs dirty checking and writes changes at
-  flush.
-
-- **Flush versus commit?** Flush sends pending SQL inside the transaction;
-  commit makes the transaction durable. A later rollback undoes flushed work.
-
-- **What are entity states?** Transient, managed, detached and removed;
-  `merge` copies detached state into and returns a managed instance.
-
-- **First-level cache?** Per persistence context and mandatory; it preserves
-  identity for managed rows but is not a general query-result cache.
-
-- **Owning side?** The association side responsible for the foreign-key
-  update; `mappedBy` points from the inverse side to its Java field.
-
-- **Cascade versus orphan removal?** Cascade propagates persistence operations;
-  orphan removal deletes a child removed from an owned relationship.
-
-- **What is N+1?** One query loads parents and later association access issues
-  up to one query per parent; fix the use-case fetch plan or projection and
-  prove it with statement counts.
-
-- **Why not make everything eager?** It replaces hidden secondary queries with
-  over-fetching, Cartesian products and inflexible query plans.
-
-- **OSIV trade-off?** It permits lazy access during web rendering but hides
-  database work outside the service transaction; APIs should prefer explicit
-  projections/fetch plans.
-
-- **Optimistic locking?** `@Version` makes the update conditional on the
-  version; conflicts require a fresh transaction that rereads and reevaluates
-  the whole operation.
-
-- **Pessimistic locking?** Database row locks serialize contenders but hold
-  connections, reduce concurrency and can deadlock; keep them short and
-  ordered.
-
-- **Does `@Transactional` stop lost updates?** Not by itself. Use an isolation
-  and concurrency strategy such as versioning, row lock or conditional update
-  that protects the actual invariant.
-
-- **Logical versus physical transaction?** Each annotated scope has logical
-  rollback semantics; multiple `REQUIRED` scopes can share one physical
-  database transaction.
-
-- **`UnexpectedRollbackException`?** An inner participant marked the shared
-  transaction rollback-only, and the outer scope tried to commit; Spring
-  refuses to report a false success.
-
-- **`REQUIRES_NEW` risk?** It suspends the outer scope and needs an independent
-  transaction/connection, which can exhaust the pool when outer calls hold
-  their connections.
-
-- **`NESTED`?** A savepoint inside one physical transaction where supported;
-  it is not an independent commit and an outer rollback still wins.
-
-- **Default rollback?** Unchecked exceptions and errors roll back by default;
-  checked exceptions require an explicit rule if they should roll back.
-
-- **`readOnly`?** A manager/provider optimization hint, not a portable
-  prohibition or authorization boundary.
-
-- **Why avoid remote calls in DB transactions?** They hold scarce connections
-  and locks across uncertain latency, and the remote effect cannot roll back
-  atomically with the local database.
-
-### Distributed production behavior
-
-- **Why not DB plus Kafka in one `@Transactional`?** A local database manager
-  cannot atomically commit an ordinary Kafka publish; dual writes have a crash
-  window.
-
-- **Outbox?** Commit business state and an event row together, then publish
-  asynchronously; publication remains at least once, so consumers deduplicate.
-
-- **Saga?** Persisted local transactions plus compensating business actions;
-  compensation is a new auditable action, not rollback.
-
-- **Exactly once?** Broker guarantees have a boundary. External business
-  effects still require idempotency or transactional deduplication.
-
-- **Timeout before retry?** An overall deadline and per-attempt timeouts bound
-  cost; retry only transient failures while time remains.
-
-- **Circuit breaker?** It stops spending resources on a dependency whose
-  recent relevant calls show failure/slow behavior; half-open probes recovery.
-
-- **Bulkhead?** It caps concurrency/resources for a dependency or workload so
-  one failure cannot consume the whole service.
-
-- **Rate limiter?** Admission control for capacity/fairness, not identity or
-  authorization.
-
-- **Safe fallback?** One that preserves the contract—pending or explicit stale
-  data may be safe; invented financial or authorization answers are not.
-
-- **Logs metrics traces?** Logs explain events, metrics detect aggregate
-  behavior and saturation, traces allocate one distributed request's time.
-
-- **Cardinality trap?** Never use payment/user/account ids or raw URLs as metric
-  tags; every distinct value creates a time series.
-
-- **Liveness versus readiness?** Liveness asks whether restart can repair the
-  process; readiness asks whether this instance should receive traffic.
-
-- **How do you diagnose a slow endpoint?** Decompose total time into queue,
-  pool acquisition, SQL/locks, downstream and serialization using metrics and
-  traces before choosing a fix.
-
-- **Unit/slice/integration?** Unit tests prove isolated business behavior;
-  slices prove one Spring boundary; full integration proves wiring and
-  cross-layer behavior with realistic infrastructure.
-
-- **Test transaction trap?** Deferred flush and test rollback can hide
-  production commit failures, while random-port server work occurs in a
-  different transaction and will not be rolled back by the test.
-
-- **How do you test N+1?** Use realistic multi-row fixtures, clear context,
-  execute the use case and assert a bounded statement count plus plan/latency
-  evidence where needed.
-
-- **How do you test idempotency?** Send same-key same-payload sequentially and
-  concurrently, verify one durable business effect, and reject key reuse with
-  a different payload.
+A lifecycle test terminates the process at each important point and verifies
+the final database effect, offset and duplicate handling. Shutdown is correct
+only when those observable outcomes agree.
 
 ---
 
 ## Primary references
 
-These are authoritative starting points; use the version selector for the
-line running in the target system.
+Use the version selector on each site for the line selected by the project's
+build.
 
-- [Spring Boot project and current release](https://spring.io/projects/spring-boot/)
-
-- [Spring Boot system requirements](https://docs.spring.io/spring-boot/system-requirements.html)
+### Spring and Spring Boot
 
 - [Spring Boot reference](https://docs.spring.io/spring-boot/reference/)
 
-- [Boot 4 migration guide](https://github.com/spring-projects/spring-boot/wiki/Spring-Boot-4.0-Migration-Guide)
+- [Spring Boot system requirements](https://docs.spring.io/spring-boot/system-requirements.html)
 
 - [Spring Framework core container](https://docs.spring.io/spring-framework/reference/core/beans.html)
 
 - [Container extension points](https://docs.spring.io/spring-framework/reference/core/beans/factory-extension.html)
 
-- [Spring AOP proxying mechanisms](https://docs.spring.io/spring-framework/reference/core/aop/proxying.html)
+- [Spring AOP proxying](https://docs.spring.io/spring-framework/reference/core/aop/proxying.html)
 
-- [Spring MVC reference](https://docs.spring.io/spring-framework/reference/web/webmvc.html)
+### Web and security
 
-- [Declarative transactions](https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative.html)
+- [Spring MVC](https://docs.spring.io/spring-framework/reference/web/webmvc.html)
 
 - [Spring Security servlet architecture](https://docs.spring.io/spring-security/reference/servlet/architecture.html)
 
 - [Spring Security method authorization](https://docs.spring.io/spring-security/reference/servlet/authorization/method-security.html)
 
-- [Spring Data JPA reference](https://docs.spring.io/spring-data/jpa/reference/)
+### Persistence and transactions
 
-- [Hibernate ORM user guide](https://docs.jboss.org/hibernate/orm/current/userguide/html_single/Hibernate_User_Guide.html)
+- [Spring transaction management](https://docs.spring.io/spring-framework/reference/data-access/transaction.html)
+
+- [Spring Data JPA](https://docs.spring.io/spring-data/jpa/reference/)
+
+- [Hibernate ORM user guide](https://docs.hibernate.org/orm/current/userguide/html_single/)
+
+### Production and testing
+
+- [Spring Boot Actuator endpoints](https://docs.spring.io/spring-boot/reference/actuator/endpoints.html)
 
 - [Spring Boot observability](https://docs.spring.io/spring-boot/reference/actuator/observability.html)
 
@@ -3787,9 +3311,11 @@ line running in the target system.
 
 - [Spring Boot tracing](https://docs.spring.io/spring-boot/reference/actuator/tracing.html)
 
+- [Spring Boot graceful shutdown](https://docs.spring.io/spring-boot/reference/web/graceful-shutdown.html)
+
 - [Spring Boot testing](https://docs.spring.io/spring-boot/reference/testing/)
 
-- [Spring Boot Testcontainers service connections](https://docs.spring.io/spring-boot/reference/testing/testcontainers.html)
+- [Spring Boot Testcontainers](https://docs.spring.io/spring-boot/reference/testing/testcontainers.html)
 
 - [Micrometer concepts](https://docs.micrometer.io/micrometer/reference/concepts.html)
 
@@ -3799,20 +3325,19 @@ line running in the target system.
 
 ## Study map
 
-| Reference chapter | Active-recall companion | Evidence to produce |
+| Chapters | Companion | Exercise outcome |
 |---|---|---|
-| §1–§4 Boot/container | [Boot basics](spring-boot-basics.md) and [container internals](spring-container-internals.md) | explain startup and diagnose one conditional-bean failure |
-| §5 proxies | [Boot basics §8](spring-boot-basics.md) | reproduce self-invocation and show collaborator fix |
-| §6 and §8 MVC/API | [Boot basics §5–§6](spring-boot-basics.md) | controller test for JSON, validation and problem details |
-| §7 and §9 security | [Security kit](spring-security-basics.md) | 401/403/cross-tenant tests and filter-chain explanation |
-| §10–§12 persistence | [JPA performance kit](spring-data-jpa-performance.md) | query-count test and one concurrent-write test |
-| §13–§14 consistency | [Transaction kit](spring-boot-transactions-deep.md) | rollback-only reproduction and outbox/idempotency design |
-| §15 resilience | [Resilience kit](spring-boot-resilience.md) | delayed/failing stub proves deadline, attempts and fallback |
-| §16 observability | [Observability kit](spring-boot-observability.md) | slow-request trace plus pool/query evidence |
-| §17 testing | [Production testing kit](spring-boot-testing-deep.md) | real-database, security, concurrency and idempotency tests |
-| §18 scenarios | all companions | five-minute end-to-end design answer with failure states |
-| §19 answer wall | this reference | blind aloud rep; expand only on follow-up |
+| §1–§4 Boot and container | [Boot basics](spring-boot-basics.md) and [container internals](spring-container-internals.md) | trace startup and diagnose a conditional-bean failure |
+| §5 proxies | [Boot basics §8](spring-boot-basics.md) | reproduce self-invocation and move the advised call across a bean boundary |
+| §6 and §8 MVC/API | [Boot basics §5–§6](spring-boot-basics.md) | verify JSON, validation and problem-detail behavior |
+| §7 and §9 security | [Security kit](spring-security-basics.md) | distinguish 401, 403 and cross-tenant denial through tests |
+| §10–§12 persistence | [JPA performance kit](spring-data-jpa-performance.md) | prove a query budget and a concurrent-write invariant |
+| §13–§14 consistency | [Transaction kit](spring-boot-transactions-deep.md) | reproduce rollback-only behavior and design an outbox/idempotent consumer |
+| §15 resilience | [Resilience kit](spring-boot-resilience.md) | prove deadline, attempt count, concurrency limit and fallback behavior |
+| §16 observability | [Observability kit](spring-boot-observability.md) | explain one slow request from metrics, trace and resource evidence |
+| §17 testing | [Production testing kit](spring-boot-testing-deep.md) | verify database, security, concurrency and lifecycle boundaries |
+| §18 scenarios | all companions | diagnose a complete failure from symptom to prevention |
 
 The construction state of the companion material is recorded in the
-[Spring senior-core checklist](senior-core-checklist.md). Study readiness
-belongs in each exercise kit's rep scorecard.
+[Spring senior-core checklist](senior-core-checklist.md). Readiness belongs in
+each exercise kit's own scorecard.
