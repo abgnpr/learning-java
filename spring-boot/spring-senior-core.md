@@ -107,8 +107,7 @@ Three migration lines matter in interviews:
 | Existing estate → current | Upgrade compatibility is a delivery problem: Java/runtime, servlet/Jakarta APIs, dependencies, tests, observability and deployment platform all need proof. |
 
 The right interview answer is honest: state what you ran, then explain the
-upgrade boundary. A production Boot 2.7 system does not become current
-because a candidate memorizes a Boot 4 version number.
+upgrade boundary.
 
 ---
 
