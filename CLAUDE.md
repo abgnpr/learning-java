@@ -66,6 +66,9 @@ Pareto core path + Extensions list). Readiness: 🟢 drilled aloud ·
 | `spring-boot/spring-boot-testing-deep.md` | **Senior production-testing anti-fumble kit**: unit/slice/full scope · MVC · real-DB Testcontainers · transaction traps · security/stubs · query budgets · concurrency/idempotency · contracts/isolation | §0→§1→§2→§3→§4→§5→§6→§7→§8→§9→§10→§11 | 🟡 racked 2026-09-01 |
 | `spring-boot/spring-container-internals.md` | **Senior container anti-fumble kit**: configuration metadata · `BeanDefinitionRegistry` · factory/context · refresh/bean lifecycle · factory/bean post-processors · AOP proxies · `FactoryBean` · configuration modes · cycles | §0→§1→§2→§3→§4→§5→§6→§7→§8→§9→§10→§11 | 🟡 racked 2026-08-31 |
 | `kafka/kafka-basics-exercise.md` | the **exercise** face of the same ground (🔮/🛠/🐛/💭 + hidden solutions), where `kafka/kafka-basics.md` is the spoken answer sheet: log/partitions · **ordering** · producers · consumer groups · **offsets & commit semantics** · **delivery guarantees** · rebalancing · durability/ISR · retention/compaction · DLQ · Spring Kafka | §2→§5→§6→§7→§4 | 🟡 racked 2026-07-21 |
+| `redis/redis-basics.md` | **the Redis answer sheet, self-contained** (§1–§13): data-structure model & single-threaded execution · keys/expiry/**eviction** · the core types · **atomicity — INCR/MULTI/WATCH/Lua** · pipelining · pub-sub vs streams · persistence/durability · replication/Sentinel/**Cluster slots & hash tags** · **caching patterns & stampede** · distributed locks as leases · Jedis/Lettuce/Spring Data · **⚓ IMPS debit-cap anchor** · traps. Defines every term it uses | §4→§2→§9→§12, then §8→§7→§6→§10 | 🟡 racked 2026-09-20 |
+| `redis/redis-basics-exercise.md` | the **exercise** face of the same ground (🔮/🛠/🐛/💭 + hidden solutions), where `redis/redis-basics.md` is the spoken answer sheet; each section names the lab that proves it | §4→§2→§9→§10→§6→§8 | 🟡 racked 2026-09-20 |
+| `redis/lab/README.md` + `redis/lab/` | 15 self-testing Jedis labs against a real server: strings/TTL · hashes · sets · sorted sets · counters · WATCH/MULTI · pipelining · Lua · pub/sub · streams · consumer groups · **Sentinel failover** · **Cluster slots** · RedisJSON · vector search. 48 TODO seams, 151 embedded checks | labs 1→15 in order | 🟡 racked 2026-09-20, **0/15 labs solved** |
 
 The completed Spring senior-core construction scope is recorded in
 `spring-boot/senior-core-checklist.md`; each kit's scorecard separately
@@ -77,6 +80,16 @@ threads lab runs with `cd core-java/lab && java
 so guard them with `timeout 6`. The challenge track runs from
 `core-java/lab/` and its untouched starters fail at the marked `TODO`
 until solved. All 82 challenge sources compile together on Java 21.
+
+The Redis lab needs a server and the Jedis jars, neither committed:
+`cd redis/lab && podman compose up -d && ./get-deps.sh`, then
+`java -cp "lib/*" 01-data-types/OtpCache.java`. `lib/*.jar` is caught
+by the existing `.gitignore` rule — `get-deps.sh` refetches it from
+Maven Central. Labs 12 and 13 need bigger topologies and sit behind
+`--profile sentinel` and `--profile cluster`; lab 12 promotes the
+replica for real, so the master port alternates between runs, which
+the lab is written to expect. Each lab confines itself to keys under
+`lab:<n>:` and clears them on start.
 
 The `kafka-basics-exercise.md` and `spring-boot-basics.md` kits are
 standalone (no IMPS anchors — Skipper's call: IMPS's Spring is
@@ -98,7 +111,9 @@ has a home when it lands.
 
 Study material is grouped by subject, one folder per subject, with no `notes/`
 wrapper. `core-java/` holds its four study kits and the runnable `lab/`;
-`kafka/` holds `kafka-basics.md` and `kafka-basics-exercise.md`; `spring-boot/`
+`kafka/` holds `kafka-basics.md` and `kafka-basics-exercise.md`; `redis/` holds
+`redis-basics.md`, `redis-basics-exercise.md` and its own runnable `lab/`
+(groups 01–05, plus `compose.yaml` and `get-deps.sh`); `spring-boot/`
 holds the complete senior Spring reference, the Boot, Security, JPA,
 Transactions, Resilience, Observability, Testing and Container exercise kits,
 the senior-core build checklist and the Boot completion estimate.

@@ -1,6 +1,6 @@
 # Learning Java
 
-Interview preparation notes for Java, Spring Boot and Kafka —
+Interview preparation notes for Java, Spring Boot, Kafka and Redis —
 rapid-fire answers, study material, and hands-on labs.
 
 Callsign **HOT COFFEE**, base 6 of the interview fleet. Operating
@@ -42,6 +42,9 @@ earns it.
 | [spring-container-internals.md](spring-boot/spring-container-internals.md) | Senior container kit: definitions/registry, factory/context, refresh and bean lifecycle, post-processors, AOP proxies, `FactoryBean` and configuration modes. |
 | [kafka-basics-exercise.md](kafka/kafka-basics-exercise.md) | Log and partitions, ordering, producers, consumer groups, offsets and commit semantics, delivery guarantees, rebalancing, ISR, retention, DLQ. |
 | [kafka-basics.md](kafka/kafka-basics.md) | The self-contained Kafka answer sheet (§1–§12) — every term defined in place, sized for speaking. |
+| [redis-basics.md](redis/redis-basics.md) | The self-contained Redis answer sheet (§1–§13) — the data-structure model, expiry and eviction, atomicity, persistence, Sentinel and Cluster, caching patterns, locks and Java clients. |
+| [redis-basics-exercise.md](redis/redis-basics-exercise.md) | The exercise face of the same ground: predict, build, fix and explain drills with solutions folded away. |
+| [Redis lab index](redis/lab/README.md) | 15 self-testing Java labs against a real Redis — types, transactions, Lua, pipelines, streams, Sentinel failover, Cluster slots, JSON and vector search. |
 
 Study notes are grouped by subject, one folder each. The Core Java lab and its
 index live alongside the Core Java notes:
@@ -69,6 +72,19 @@ core-java/
 kafka/
 ├── kafka-basics-exercise.md
 └── kafka-basics.md
+
+redis/
+├── redis-basics.md
+├── redis-basics-exercise.md
+└── lab/
+    ├── README.md
+    ├── compose.yaml
+    ├── get-deps.sh
+    ├── 01-data-types/
+    ├── 02-atomicity/
+    ├── 03-messaging/
+    ├── 04-operations/
+    └── 05-modules/
 
 spring-boot/
 ├── spring-boot-basics.md
@@ -107,6 +123,20 @@ java 07-threads/StartVsRun.java
 Two stations hang on purpose. That hang is the lesson — kill them
 with `Ctrl-C`, or guard with `timeout 6`.
 
+The Redis labs run against a real server rather than a simulation, so
+they need one started first, plus the Jedis jars, which are downloaded
+rather than committed:
+
+```bash
+cd redis/lab
+podman compose up -d
+./get-deps.sh
+java -cp "lib/*" 01-data-types/OtpCache.java
+```
+
+Two of them need a larger topology — a Sentinel quorum and a six-node
+cluster — and those tiers sit behind compose profiles until asked for.
+
 ## Readiness
 
 Notes are marked 🟢 drilled aloud · 🟡 racked (exists, not drilled) ·
@@ -118,4 +148,5 @@ blind rep out loud.
 `core-java/threads-jvm.md` are through rep 1 in full; `kafka/kafka-basics.md` is
 half-way; the runnable Java challenge track is in progress. The Kafka exercise
 and Spring senior reference and Boot/Security/JPA/Transactions/Resilience/
-Observability/Testing/Container kits are racked and unrepped/unsolved.
+Observability/Testing/Container kits are racked and unrepped/unsolved, as are
+the Redis answer sheet, its exercise kit and its 15-lab track.

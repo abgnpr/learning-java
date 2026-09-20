@@ -1,0 +1,134 @@
+# Redis lab stack.
+#
+#   podman compose up -d                      # labs 1-11, 14, 15
+#   podman compose --profile sentinel up -d   # lab 12 as well
+#   podman compose --profile cluster  up -d   # lab 13 as well
+#   podman compose --profile sentinel --profile cluster up -d
+#   podman compose down -v                    # stop everything, drop the data
+#
+# The sentinel and cluster tiers share the host network on purpose: both
+# protocols hand a client the address of another node, so the address a node
+# announces has to be one the JVM on this machine can dial back.
+
+services:
+
+  # ---- the everyday target: plain Redis plus the JSON and Search modules ----
+  redis:
+    image: docker.io/redis/redis-stack-server:latest
+    container_name: redis-lab
+    ports:
+      - "6379:6379"
+    environment:
+      # Small on purpose: the eviction lab wants a ceiling it can actually hit.
+      REDIS_ARGS: "--maxmemory 128mb --maxmemory-policy allkeys-lru --appendonly yes"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6379", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  # ---- lab 12: one master, one replica, three sentinels voting on failover ----
+  sentinel-master:
+    image: docker.io/redis:7-alpine
+    container_name: redis-sentinel-master
+    profiles: ["sentinel"]
+    network_mode: host
+    command: redis-server --port 6380 --appendonly no
+
+  sentinel-replica:
+    image: docker.io/redis:7-alpine
+    container_name: redis-sentinel-replica
+    profiles: ["sentinel"]
+    network_mode: host
+    depends_on: [sentinel-master]
+    command: redis-server --port 6381 --appendonly no --replicaof 127.0.0.1 6380
+
+  sentinel-1:
+    image: docker.io/redis:7-alpine
+    container_name: redis-sentinel-1
+    profiles: ["sentinel"]
+    network_mode: host
+    depends_on: [sentinel-master, sentinel-replica]
+    command: >
+      sh -c 'printf "port 26379\nsentinel monitor mymaster 127.0.0.1 6380 2\nsentinel down-after-milliseconds mymaster 2000\nsentinel failover-timeout mymaster 6000\nsentinel parallel-syncs mymaster 1\n" > /tmp/sentinel.conf
+      && exec redis-sentinel /tmp/sentinel.conf'
+
+  sentinel-2:
+    image: docker.io/redis:7-alpine
+    container_name: redis-sentinel-2
+    profiles: ["sentinel"]
+    network_mode: host
+    depends_on: [sentinel-master, sentinel-replica]
+    command: >
+      sh -c 'printf "port 26380\nsentinel monitor mymaster 127.0.0.1 6380 2\nsentinel down-after-milliseconds mymaster 2000\nsentinel failover-timeout mymaster 6000\nsentinel parallel-syncs mymaster 1\n" > /tmp/sentinel.conf
+      && exec redis-sentinel /tmp/sentinel.conf'
+
+  sentinel-3:
+    image: docker.io/redis:7-alpine
+    container_name: redis-sentinel-3
+    profiles: ["sentinel"]
+    network_mode: host
+    depends_on: [sentinel-master, sentinel-replica]
+    command: >
+      sh -c 'printf "port 26381\nsentinel monitor mymaster 127.0.0.1 6380 2\nsentinel down-after-milliseconds mymaster 2000\nsentinel failover-timeout mymaster 6000\nsentinel parallel-syncs mymaster 1\n" > /tmp/sentinel.conf
+      && exec redis-sentinel /tmp/sentinel.conf'
+
+  # ---- lab 13: six nodes, three masters and three replicas, 16384 slots ----
+  cluster-1:
+    image: docker.io/redis:7-alpine
+    container_name: redis-cluster-1
+    profiles: ["cluster"]
+    network_mode: host
+    command: redis-server --port 7001 --cluster-enabled yes --cluster-config-file /tmp/n1.conf --cluster-node-timeout 3000 --cluster-announce-ip 127.0.0.1 --appendonly no
+
+  cluster-2:
+    image: docker.io/redis:7-alpine
+    container_name: redis-cluster-2
+    profiles: ["cluster"]
+    network_mode: host
+    command: redis-server --port 7002 --cluster-enabled yes --cluster-config-file /tmp/n2.conf --cluster-node-timeout 3000 --cluster-announce-ip 127.0.0.1 --appendonly no
+
+  cluster-3:
+    image: docker.io/redis:7-alpine
+    container_name: redis-cluster-3
+    profiles: ["cluster"]
+    network_mode: host
+    command: redis-server --port 7003 --cluster-enabled yes --cluster-config-file /tmp/n3.conf --cluster-node-timeout 3000 --cluster-announce-ip 127.0.0.1 --appendonly no
+
+  cluster-4:
+    image: docker.io/redis:7-alpine
+    container_name: redis-cluster-4
+    profiles: ["cluster"]
+    network_mode: host
+    command: redis-server --port 7004 --cluster-enabled yes --cluster-config-file /tmp/n4.conf --cluster-node-timeout 3000 --cluster-announce-ip 127.0.0.1 --appendonly no
+
+  cluster-5:
+    image: docker.io/redis:7-alpine
+    container_name: redis-cluster-5
+    profiles: ["cluster"]
+    network_mode: host
+    command: redis-server --port 7005 --cluster-enabled yes --cluster-config-file /tmp/n5.conf --cluster-node-timeout 3000 --cluster-announce-ip 127.0.0.1 --appendonly no
+
+  cluster-6:
+    image: docker.io/redis:7-alpine
+    container_name: redis-cluster-6
+    profiles: ["cluster"]
+    network_mode: host
+    command: redis-server --port 7006 --cluster-enabled yes --cluster-config-file /tmp/n6.conf --cluster-node-timeout 3000 --cluster-announce-ip 127.0.0.1 --appendonly no
+
+  # Runs once, joins the six nodes into a cluster, then exits. Re-running it on
+  # an already-formed cluster is a no-op that exits non-zero; that is expected.
+  cluster-init:
+    image: docker.io/redis:7-alpine
+    container_name: redis-cluster-init
+    profiles: ["cluster"]
+    network_mode: host
+    depends_on: [cluster-1, cluster-2, cluster-3, cluster-4, cluster-5, cluster-6]
+    restart: "no"
+    command: >
+      sh -c 'for p in 7001 7002 7003 7004 7005 7006; do
+        until redis-cli -h 127.0.0.1 -p $$p ping 2>/dev/null | grep -q PONG; do sleep 1; done
+      done
+      && if redis-cli -h 127.0.0.1 -p 7001 cluster info | grep -q "cluster_state:ok"; then
+        echo "cluster already formed"; else
+        redis-cli --cluster create 127.0.0.1:7001 127.0.0.1:7002 127.0.0.1:7003 127.0.0.1:7004 127.0.0.1:7005 127.0.0.1:7006 --cluster-replicas 1 --cluster-yes; fi'
