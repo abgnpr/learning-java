@@ -2,9 +2,9 @@
 
 <div align="center">
 
-## `35 / 111` labs complete
+## `35 / 119` labs complete
 
-`█████████░░░░░░░░░░░░░░░░░░░░░` **32%**
+`█████████░░░░░░░░░░░░░░░░░░░░░` **29%**
 
 </div>
 
@@ -16,20 +16,21 @@ Data Structures    ████████░░░░░░░░░░░░�
 OOP                ░░░░░░░░░░░░░░░                         0/8
 Exceptions         ░░░░                                    0/2
 Threads            ░░░░░░░░░░░░░░░                         0/8
-Advanced           ░░░░░░░░░░░░░░░░░░░░░░░                0/12
+Advanced           ░░░░░░░░░░░░░░░░░░░░░░░░░░░            0/14
 Stream API         █████████████░░░░░░░░░░░░░░░░░░░░░░░   7/19
 Core Contracts     ░░░░░░░░░                               0/5
 I/O + Time         ░░░░░░░░░                               0/5
 Concurrency+Async  ░░░░░░░░░░░░░                           0/7
+Version Features   ░░░░░░░░░░░                             0/6
 ```
 
 ---
 
-This directory contains 111 runnable Java labs arranged as a learning path:
-103 self-testing challenge starters and eight concurrency stations. Each lab
-uses only the Java 21 standard library. The task descriptions are
-self-contained, original practice contracts; the challenge names and ordering
-form the curriculum map.
+This directory contains 119 runnable Java labs arranged as a learning path:
+111 self-testing challenge starters and eight concurrency stations. Every
+source file states its minimum JDK when it differs from the default Java 21
+baseline. The task descriptions are self-contained, original practice
+contracts; the challenge names and ordering form the curriculum map.
 
 ## Directory map
 
@@ -47,7 +48,8 @@ form the curriculum map.
 | 10 | Core contracts and language mechanics | 5 |
 | 11 | I/O and date/time | 5 |
 | 12 | Practical concurrency and async | 7 |
-| | **Total** | **111** |
+| 13 | Java 17, 21, and 25 version features | 6 |
+| | **Total** | **119** |
 
 `Scratchpad.java` is available for experiments and is not counted as a lab.
 
@@ -102,11 +104,10 @@ A case whose input carries no information — a no-argument call such as
 
 ### The harness block
 
-Each file carries its own copy of the harness below `main`, because the
+Most challenge files carry a local harness below `main`, because the
 single-file source launcher compiles one file and cannot see a shared helper
-class: `java 02-strings/RegexIpv4.java` would not resolve it. The block is
-byte-identical in all 102 challenges and is not part of any exercise — copy it
-verbatim into a new challenge:
+class: `java 02-strings/RegexIpv4.java` would not resolve it. The harness is
+not part of the exercise:
 
 ```java
 // ---- test harness (identical in every challenge; not part of the exercise) ----
@@ -213,15 +214,21 @@ a result is unmodifiable, or of a particular runtime type:
 checkThat("result type is TreeMap", "sales", totalsByDepartment(sales) instanceof TreeMap);
 ```
 
-Compile all 102 challenge starters without writing class files into the
-repository:
+Compile the Java 21-and-earlier challenge starters without writing class files
+into the repository:
 
 ```bash
 cd core-java/lab
 challenge_build=$(mktemp -d)
 find . -name '*.java' ! -path './07-threads/*' ! -name 'Scratchpad.java' \
+  ! -path './13-version-features/ScopedValueContext.java' \
+  ! -path './13-version-features/FlexibleConstructorValidation.java' \
+  ! -path './13-version-features/CompactModuleCatalog.java' \
   -print0 | xargs -0 javac -d "$challenge_build"
 ```
+
+Run the three Java 25 source files with JDK 25 as shown in their
+[section guide](13-version-features/README.md).
 
 ## Drill protocol
 
@@ -256,8 +263,9 @@ Planned lab extensions and the payment-ledger capstone are scoped in the
 
 The order moves from syntax and standard input through collections and object
 design to concurrency, reflection, annotations, lambdas, cryptographic hashes,
-the Stream API, core contracts, I/O/time, and practical asynchronous work.
-Challenge numbers 01–99 cover sections 01–06 and 08–12; DS-A1–DS-A3 are
+the Stream API, core contracts, I/O/time, practical asynchronous work, and
+version-specific features. Challenge numbers 01–99 cover sections 01–06 and
+08–12; DS-A1–DS-A3 are
 advanced collection extensions. Section 07 uses station numbers S1–S8 and has a separate
 [predict-run-explain guide](07-threads/README.md).
 
@@ -382,6 +390,8 @@ hang; guard them with `timeout 6` or stop them with `Ctrl-C`.
 | 62 | Lambda Expressions | Medium | [LambdaPredicates.java](08-advanced/LambdaPredicates.java) | ⬜ |
 | 63 | MD5 | Medium | [Md5Digest.java](08-advanced/Md5Digest.java) | ⬜ |
 | 64 | SHA-256 | Medium | [Sha256Digest.java](08-advanced/Sha256Digest.java) | ⬜ |
+| 112 | Default-Method Resolution | Medium | [DefaultMethodResolution.java](08-advanced/DefaultMethodResolution.java) | ⬜ |
+| 113 | Optional Account Workflow | Medium | [OptionalAccountWorkflow.java](08-advanced/OptionalAccountWorkflow.java) | ⬜ |
 
 ### Stream API
 
@@ -451,6 +461,21 @@ predict-run-explain stations with deterministic TODO-based implementations.
 | 98 | Semaphore Concurrency Gate | Hard | [SemaphoreConcurrencyGate.java](12-concurrency-async/SemaphoreConcurrencyGate.java) | ⬜ |
 | 99 | Virtual-thread Blocking Fan-out | Hard | [VirtualThreadFanout.java](12-concurrency-async/VirtualThreadFanout.java) | ⬜ |
 
+### Version Features
+
+The [section guide](13-version-features/README.md) groups permanent,
+code-facing additions by minimum JDK. JVM operations and migration changes stay
+as command drills in the version guide.
+
+| # | Challenge | Difficulty | Starter | Done |
+|---:|---|---|---|:---:|
+| 114 | Random Generator Selection | Medium | [RandomGeneratorSelection.java](13-version-features/RandomGeneratorSelection.java) | ⬜ |
+| 115 | Pattern Switch Routing | Medium | [PatternSwitchRouting.java](13-version-features/PatternSwitchRouting.java) | ⬜ |
+| 116 | Sequenced Collection Views | Medium | [SequencedCollectionViews.java](13-version-features/SequencedCollectionViews.java) | ⬜ |
+| 117 | Scoped Value Context | Medium | [ScopedValueContext.java](13-version-features/ScopedValueContext.java) | ⬜ |
+| 118 | Flexible Constructor Validation | Medium | [FlexibleConstructorValidation.java](13-version-features/FlexibleConstructorValidation.java) | ⬜ |
+| 119 | Compact Source and Module Import | Easy | [CompactModuleCatalog.java](13-version-features/CompactModuleCatalog.java) | ⬜ |
+
 ## Scorecard
 
 Mark a challenge only after its checks pass and you can explain the core
@@ -474,12 +499,13 @@ are hand-kept and the script preserves them. Exit 1 means the README changed.
 | Object-Oriented Programming | 8 | 0/8 |
 | Exception Handling | 2 | 0/2 |
 | Threads and Concurrency | 8 | 0/8 |
-| Advanced | 12 | 0/12 |
+| Advanced | 14 | 0/14 |
 | Stream API | 19 | 7/19 |
 | Core Contracts | 5 | 0/5 |
 | I/O and Date/Time | 5 | 0/5 |
 | Concurrency and Async | 7 | 0/7 |
-| **Total** | **111** | **35/111** |
+| Version Features | 6 | 0/6 |
+| **Total** | **119** | **35/119** |
 
 ## Revision references
 
@@ -530,8 +556,8 @@ revisiting.
 | 31 — Java Arraylist | Capacity vs size: `new ArrayList<>(n)` reserves room but leaves size 0, so `add` works and `set` throws — and growth from the default capacity 10 costs a reallocation plus full copy each time | [Java 21 API — `java.util.ArrayList`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/ArrayList.html) | 2026-09-06 |
 | 31 — Java Arraylist | `Arrays.asList` returns a fixed-size *view* sharing storage with the array — size n, `set` writes through, `add`/`remove` rejected — and its type is `Arrays$ArrayList`, not `java.util.ArrayList` | [Java 21 API — `java.util.Arrays`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/Arrays.html#asList(T...)) | 2026-09-06 |
 | 65 — Filter and Map Pipeline | `toUpperCase(Locale.ROOT)` vs the no-arg overload: the default-locale form maps `"i"` to the dotted `"İ"` under a Turkish locale, so identical code produces different output per machine | [Java 21 API — `String.toUpperCase(Locale)`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html#toUpperCase(java.util.Locale)) | 2026-09-06 |
-| 65 — Filter and Map Pipeline | `isBlank()` and `strip()` both key off `Character.isWhitespace`, which excludes U+00A0 NO-BREAK SPACE — so a NBSP-only name is neither blank nor trimmable and survives as a one-character name | [Java 21 API — `String.isBlank()`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/lang/String.html#isBlank()) | 2026-09-06 |
-| 65 — Filter and Map Pipeline | `Stream.toList()` returns an unmodifiable list, where `collect(Collectors.toList())` returns a mutable `ArrayList` — the two are not interchangeable when the contract demands immutability | [Java 21 API — `Stream.toList()`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Stream.html#toList()) | 2026-09-06 |
+| 65 — Filter and Map Pipeline | Java 8 `trim()` removes characters at or below U+0020; Unicode-aware `strip()` and `isBlank()` arrive in Java 11 | [Java 8 API — `String.trim()`](https://docs.oracle.com/javase/8/docs/api/java/lang/String.html#trim--) | 2026-09-06 |
+| 65 — Filter and Map Pipeline | `Collectors.toList()` promises no particular list type or mutability; use `toCollection` for a concrete type or `collectingAndThen` for an unmodifiable result | [Java 8 API — `Collectors.toList()`](https://docs.oracle.com/javase/8/docs/api/java/util/stream/Collectors.html#toList--) | 2026-09-06 |
 | 76 — Grouping with a Downstream Collector | `groupingBy`'s three overloads: the map supplier is a bare `Supplier<M extends Map<K,D>>` in the middle slot, and the downstream is a `Collector` — never a method reference, since `Collector` has five abstract methods | [Baeldung — Guide to Java `groupingBy` Collector](https://www.baeldung.com/java-groupingby-collector) | 2026-09-06 |
 | 76 — Grouping with a Downstream Collector | `BigDecimal.equals` compares scale as well as value, so `0.00` is not equal to `ZERO` — and `add` takes the larger of the two scales, which is what makes `ZERO` a safe reducing identity | [Baeldung — `BigDecimal` `equals()` vs. `compareTo()`](https://www.baeldung.com/java-bigdecimal-equals-compareto-difference) | 2026-09-06 |
 | 78 — Building Maps with Duplicate Keys | `toMap`'s merge function is what makes a duplicate key legal — the two-arg overload throws `IllegalStateException` instead — and only the four-arg overload takes a map supplier | [Java 21 API — `Collectors.toMap`](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Collectors.html#toMap(java.util.function.Function,java.util.function.Function,java.util.function.BinaryOperator,java.util.function.Supplier)) | 2026-09-07 |

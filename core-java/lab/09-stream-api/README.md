@@ -38,7 +38,7 @@ source -> lazy intermediate operations -> terminal operation -> result
 
 | # | Challenge | Primary focus |
 |---:|---|---|
-| 65 | [Filter and Map Pipeline](FilterMapPipeline.java) | `filter`, `map`, `sorted`, `toList` |
+| 65 | [Filter and Map Pipeline](FilterMapPipeline.java) | `filter`, `map`, `sorted`, `collectingAndThen` |
 | 66 | [Laziness and Short-Circuiting](LazyFirstMatch.java) | `peek`, `findFirst`, demand-driven traversal |
 | 67 | [Distinct Score Page](DistinctScorePage.java) | `distinct`, `sorted`, `skip`, `limit` |
 | 68 | [Flatten Nested Data](FlatMapWords.java) | `flatMap` |

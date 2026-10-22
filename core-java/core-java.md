@@ -926,7 +926,7 @@ version?" is a certainty).
 ## §4 Java 8+ (know it cold)
 
 *Two-layer ammo. This section = the spoken rapid-fire; the
-learn-from-zero layer lives in [java-8.md](java-8.md) and the full
+deep-learning layer lives in [java-8.md](java-8.md) and the full
 version timeline in [java-versions.md](java-versions.md) — each
 bullet links its deep dive. Drill here, study there.*
 
@@ -1054,11 +1054,9 @@ bullet links its deep dive. Drill here, study there.*
   sealed classes (17) · switch expressions (14) · virtual threads
   (21). String `switch` works since 7. Full timeline + snippets:
   [java-versions.md](java-versions.md); LTS memory hook:
-  [→ §I](java-8.md#i-the-lts-list--cheap-to-memorize-certain-to-be-asked);
-  "which JDK did IMPS run?" answer:
-  [→ the two answers](java-versions.md#the-two-answers-to-have-cold).
+  [→ §K](java-8.md#k-the-lts-list--cheap-to-memorize-certain-to-be-asked).
 
-  *One-liner for the section:* Java 8 made behavior passable —
+  *One-liner for the section:* Java 8 made behavior concise —
   lambda fills a one-method interface, `::` abbreviates it,
   streams pipe it, Optional boxes the maybe, defaults let
   interfaces grow; LTS chant 8-11-17-21-25.

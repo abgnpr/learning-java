@@ -24,11 +24,12 @@ SECTIONS = [
     ("Object-Oriented Programming", "OOP", 8),
     ("Exception Handling", "Exceptions", 2),
     ("Threads and Concurrency", "Threads", 8),
-    ("Advanced", "Advanced", 12),
+    ("Advanced", "Advanced", 14),
     ("Stream API", "Stream API", 19),
     ("Core Contracts", "Core Contracts", 5),
     ("I/O and Date/Time", "I/O + Time", 5),
     ("Concurrency and Async", "Concurrency+Async", 7),
+    ("Version Features", "Version Features", 6),
 ]
 # Track heading -> Scorecard subdomain, where the two tables disagree.
 HEADING_TO_SUBDOMAIN = {"Advanced": "Advanced", "Introduction": "Introduction"}
