@@ -32,6 +32,8 @@ earns it.
 | [Core Java lab roadmap](core-java/lab/ROADMAP.md) | Planned core-contract, I/O/time and practical-concurrency labs, followed by a payment-ledger capstone. |
 | [spring-boot-basics.md](spring-boot/spring-boot-basics.md) | DI/IoC, beans and scopes, auto-config, web MVC, validation, data/JPA, transactions and proxies, testing, actuator. |
 | [spring-senior-core.md](spring-boot/spring-senior-core.md) | Complete senior Spring reference: container/runtime flows, Boot, MVC, security, JPA, transactions, cross-system consistency, resilience, observability, testing and banking scenarios. |
+| [Simple Spring project scaffold](spring-boot/scaffold/spring-simple-project-scaffold.md) | Small feature-oriented todo application using the standard controller, service, Spring Data repository and JPA entity structure. |
+| [Domain-oriented Spring project scaffold](spring-boot/scaffold/spring-domain-oriented-project-scaffold.md) | Compile-oriented order feature showing a plain-Java domain, transactional use cases, explicit Spring wiring, JPA adapter, HTTP adapter and tests. |
 | [Spring senior-core checklist](spring-boot/senior-core-checklist.md) | Completed build tracker and acceptance scope for the senior Spring interview core. |
 | [spring-security-basics.md](spring-boot/spring-security-basics.md) | Senior anti-fumble kit: filter-chain architecture, authentication, route/method authorization, SpEL, JWT, sessions, CSRF/CORS, error boundaries, tests and production scenarios. |
 | [spring-data-jpa-performance.md](spring-boot/spring-data-jpa-performance.md) | Senior persistence kit: entity states, mappings, fetch plans/N+1, projections, pagination, JDBC batching, bulk DML, locking, caches, OSIV, diagnostics and production scenarios. |
@@ -87,6 +89,9 @@ redis/
     └── 05-modules/
 
 spring-boot/
+├── scaffold/
+│   ├── spring-domain-oriented-project-scaffold.md
+│   └── spring-simple-project-scaffold.md
 ├── spring-boot-basics.md
 ├── spring-boot-observability.md
 ├── spring-boot-resilience.md
