@@ -244,7 +244,7 @@ the producer is throttled automatically. That's backpressure, for free.
 
 ⚓ **This is IMPS's Kafka shape.** Producers (NPCI/CBS callers) append to a
 topic; the consumer `poll()`s at its own pace; the partition log is the
-shared buffer. (threads-jvm.md §4 "Producer-consumer" + core-java.md §8 Kafka.)
+shared buffer. (threads-jvm.md §4 "Producer-consumer" + core-java.md §11 Kafka.)
 
 **Say it:** *"Producer-consumer is a shared buffer between them. In real code
 it's a BlockingQueue — put/take handle the waiting — nobody hand-rolls

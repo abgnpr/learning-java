@@ -2,7 +2,7 @@
 
 Threads · locks · the memory model · executors · JVM internals.
 Rapid-fire, answers sized for speaking. Extracted from
-[core-java.md](core-java.md) §5 and ordered so that no answer depends
+[core-java.md](core-java.md) §8 and ordered so that no answer depends
 on one below it.
 
 - [The map — read in this order](#the-map--read-in-this-order)
@@ -855,7 +855,7 @@ key."**
     and lose an update.
   - `AtomicInteger` closes exactly that gap: it performs the whole
     read-modify-write as a single CAS
-    ([core-java.md §2](core-java.md#2-collections)), re-reading and
+    ([core-java.md §3](core-java.md#3-collections)), re-reading and
     retrying when another thread got there first — atomicity
     without a lock.
   - the lab station where a plain flag hangs and `volatile` doesn't:
@@ -1032,7 +1032,7 @@ key."**
   - `Collections.synchronizedMap(m)` is the *old* fix: one lock
     around the whole map, so every thread serializes.
     `ConcurrentHashMap` locks per bin instead — that is the entire
-    difference. ([core-java.md §2](core-java.md#2-collections) has
+    difference. ([core-java.md §3](core-java.md#3-collections) has
     the full comparison.)
   - ⚠️ thread-safe *per call* ≠ thread-safe *per sequence*. The
     check-then-act race walks straight back in if you write

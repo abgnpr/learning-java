@@ -2,7 +2,7 @@
 // Consumer is slower than producer, so the queue FILLS and put() blocks:
 // backpressure, for free. No hand-rolled wait/notify.
 // This IS the IMPS Kafka shape: producers append, consumer polls at its pace,
-// the partition log is the shared buffer. (See core-java.md §5 / §8.)
+// the partition log is the shared buffer. (See core-java.md §8 / §11.)
 // Run:  java ProducerConsumer.java
 import java.util.concurrent.*;
 

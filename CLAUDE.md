@@ -50,7 +50,7 @@ Pareto core path + Extensions list). Readiness: 🟢 drilled aloud ·
 
 | Kit | Covers | Core path | Status |
 |---|---|---|---|
-| `core-java/core-java.md` | OOP · generics · collections · money · exceptions · I/O · Java 8+ · concurrency · hidden-answer predictions · enterprise/testing bridges; compact bullets, mastery prompts, and focused labs | §1→Generics→§2→Numbers→§3→I/O→§4→§6 | 🟡 racked — foundations, spoken recall, and linked practice |
+| `core-java/core-java.md` | OOP · generics · collections · money · exceptions · I/O · Java 8+ · concurrency · hidden-answer predictions · enterprise/testing bridges; compact bullets, mastery prompts, and focused labs | §1–§6 foundations; §7–§9 runtime; §14 integration | 🟢 original spoken theory at rep 1; added depth/practice unrepped |
 | `kafka/kafka-basics.md` | **the Kafka answer sheet, self-contained** (§1–§12): log-vs-queue · partitions/ordering · cluster/ISR/`acks` · producer · groups & offsets · **delivery guarantees** · rebalancing & liveness knobs · retention/compaction/DLQ · Spring Kafka · why-fast · **⚓ IMPS anchor** · traps. Defines every term it uses; no outbound depth pointers | §2→§5→§6→§11, then §7→§3→§8 | 🟡 **6/12 sections at rep 1** — §1, §2, §5, §6, §10, §11 done; §3, §4, §7, §8, §9, §12 unrepped (scorecard at the doc's foot is authoritative) |
 | `core-java/java-versions.md` | Java 7→25 timeline, headline feature + snippet each · LTS line 8/11/17/21/25 | Java 7→25 in order | 🟡 racked |
 | `core-java/comparator-patterns.md` | Application ordering patterns: mixed keys · reversal · nulls · case/locale · business ranks · ranked maps · selection | inventory lab → comparator policies → ranked results | 🟡 racked |

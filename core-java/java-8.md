@@ -14,7 +14,7 @@ default interface methods, `java.time`, and `CompletableFuture`.
   and syntax example in this guide is available in Java 8.
 
 - **Official release context:** use [java-versions.md](java-versions.md) for the
-  chronological view and [core-java.md §4](core-java.md#4-java-8-know-it-cold)
+  chronological view and [core-java.md §7](core-java.md#7-java-8-know-it-cold)
   for rapid interview review.
 
 ---
@@ -29,7 +29,6 @@ default interface methods, `java.time`, and `CompletableFuture`.
 
 - [§D Streams](#d-stream-api--the-payoff)
 
-- [Parallel streams, pool types, and blocking I/O](#parallel-streams)
 
 - [§E Collectors](#e-collectors--what-collect-uses)
 

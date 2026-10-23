@@ -1,62 +1,81 @@
 # Core Java Rapid-fire Kit
 
-- **Goal:** explain Java clearly, predict its behavior, choose the right API, and debug a plausible mistake.
-
-- **Prerequisites:** basic syntax, methods, and a small program you can compile and run.
-
-- **Version baseline:** unlabelled Java examples use Java 8 language and APIs. Later features carry a release label.
-
-- **Practice runtime:** most repository labs use a full JDK 21+. Java 25 labs have separate run instructions.
-
-- **Reading style:** learn the rule, trace the example, answer the mastery questions, then complete the linked drill.
-
-- **Speaking style:** give the direct answer first. Add the reason, a concrete example, and a tradeoff when asked.
-
-- **Examples:** code blocks are independent. Statement snippets omit standard imports and belong inside a method; declarations and intentionally rejected lines are labelled.
-
----
-
 ## Navigation
 
 - [§1 Bedrock — Java identity + OOP](#1-bedrock--java-identity--oop)
 
-- [Generics and type safety](#generics-and-type-safety)
+- [§2 Generics and type safety](#2-generics-and-type-safety)
 
-- [§2 Collections](#2-collections)
+- [§3 Collections](#3-collections)
 
-- [Numbers and money](#numbers-and-money)
+- [§4 Numbers and money](#4-numbers-and-money)
 
-- [§3 Exceptions](#3-exceptions)
+- [§5 Exceptions](#5-exceptions)
 
-- [I/O and resource ownership](#io-and-resource-ownership)
+- [§6 I/O and resource ownership](#6-io-and-resource-ownership)
 
-- [§4 Java 8+](#4-java-8-know-it-cold)
+- [§7 Java 8+ (know it cold)](#7-java-8-know-it-cold)
 
-- [§5 Threads + JVM](#5-threads--jvm)
+- [§8 Threads + JVM](#8-threads--jvm)
 
-- [§6 Trap wall](#6-trap-wall-the-code-output-classics-spoken)
+- [§9 Trap wall (the code-output classics, spoken)](#9-trap-wall-the-code-output-classics-spoken)
 
-- [§7 Enterprise — Spring / JDBC / REST / integration](#7-enterprise--spring--jdbc--rest--integration)
+- [§10 Enterprise — Spring / JDBC / REST / integration](#10-enterprise--spring--jdbc--rest--integration)
 
-- [§8 Kafka](#8-kafka-)
+- [§11 Kafka ⚓](#11-kafka-)
 
-- [§9 SDLC + testing](#9-sdlc--testing)
+- [§12 SDLC + testing](#12-sdlc--testing)
 
-- [Precision card](#precision-card)
+- [§13 Precision card](#13-precision-card)
 
-- [Integrated practice](#integrated-practice)
+- [§14 Integrated practice](#14-integrated-practice)
+
+- [Honesty guardrails](#honesty-guardrails-truth-law)
+
+**Why this exists:** core Java is where a technical round opens —
+theory, code-output, Java 8+, threads/JVM, enterprise, plus
+SDLC/testing. **The flagship Java answer is the IMPS switch** (solo,
+NPCI-certified) — abstract answers get stronger with "…and in my
+IMPS switch, …". Anchors marked ⚓.
+
+**How to drill:** aloud, blind, one section per sitting (`/drill`
+rapid-fire). Answers are sized for SPEAKING — say the 1–3 lines,
+then stop talking. Explain-level depth; if pressed deeper, anchor to
+IMPS code; never bluff. 🟢 per section only after a blind aloud rep
+— reading is not loading.
+
+**Practical companion:** follow the [Core Java interview practice path](lab/INTERVIEW-PATH.md)
+for language predictions, collection contracts, object design, functional Java,
+exceptions, async work, and a transaction-report exercise. Its coverage map
+distinguishes Java labs from the separate Spring/Kafka/testing tracks.
+
+**⚓ The verified IMPS stack (from build files):** Spring Boot
+**2.7.10** receivers · Kafka clients **3.x** · Oracle via
+**ojdbc8** · Redis via **Jedis 3.7** · **Gradle** multi-project
+build (NOT Maven) · JAXB + XML digital signatures for NPCI · RMI to
+CBS-interface and RRN-server. ⚠️ JDK version is NOT pinned in
+Gradle — check the deployment JDK before an interview ("which Java
+version?" is a certainty).
+
+**Version baseline:** unlabelled language/API examples use Java 8; later
+features carry release labels. Most runnable labs use JDK 21+; Java 25 labs
+have separate instructions.
+
+**Code examples:** statements, type declarations, and schematic before/after
+fragments are distinguished by context. `...` marks omitted application code;
+complete standalone programs are labelled.
 
 ---
 
 ## Learning paths
 
-- **Foundations:** §1 → generics → §2 → numbers → §3 → I/O.
+- **Foundations:** §1 → §2 → §3 → §4 → §5 → §6.
 
-- **Functional Java:** §4 → [Java 8 foundations](java-8.md) → stream and async drills.
+- **Functional Java:** §7 → [Java 8 foundations](java-8.md) → stream and async drills.
 
-- **Runtime reasoning:** §5 → [threads and JVM](threads-jvm.md) → §6 predictions.
+- **Runtime reasoning:** §8 → [threads and JVM](threads-jvm.md) → §9 predictions.
 
-- **Application interviews:** §7 → §8 → §9 → the relevant specialist guide.
+- **Application interviews:** §10 → §11 → §12 → the relevant specialist guide.
 
 - **Hands-on route:** [Core Java interview practice](lab/INTERVIEW-PATH.md).
 
@@ -64,489 +83,631 @@
 
 ## §1 Bedrock — Java identity + OOP
 
-### Java, bytecode, and the runtime
-
-- **Why is Java platform-independent?**
-
-  - `javac` normally produces JVM bytecode in `.class` files.
-
-  - A compatible JVM executes that bytecode on its own operating system and hardware.
-
-  - The JVM itself is platform-specific.
-
-  - **Boundary:** an older JVM cannot normally run class files targeting a newer release. Native libraries and platform assumptions also affect portability.
+- **Why is Java platform-independent?** — `javac` compiles to
+  bytecode; a compatible JVM runs it. "Write once, run anywhere." Follow-up
+  trap: the JVM itself IS platform-specific.
 
 - **JDK vs JRE vs JVM?**
 
-  - **JVM:** loads, verifies, and executes bytecode; manages runtime memory.
+  - JVM — executes bytecode
 
-  - **JRE:** the runtime concept — JVM plus the libraries needed to run an application.
+  - JRE — JVM + libraries (enough to *run*)
 
-  - **JDK:** runtime plus development tools such as `javac`, `jar`, `javadoc`, and diagnostic tools.
+  - JDK — JRE + compiler/tools (enough to *develop*)
 
-  - **Modern packaging:** a separately installed JRE is not universal; distributions may provide a JDK or a custom runtime image.
+  - modern packaging: the JRE remains a runtime concept; a separate
+    JRE installation is not universal — distributions may provide a
+    JDK or a custom runtime image
 
-- **What does JIT compilation do?**
+  - compatibility boundary: class-file target version, native libraries,
+    and operating-system assumptions still matter for portability
 
-  - Compiles frequently executed code into native machine code during execution.
+- **Features of Java?**
 
-  - Can optimize using runtime observations.
+  - object-oriented
 
-  - Warm-up and compilation costs matter when measuring short-lived programs.
+  - platform-independent
 
-- **Is Java purely object-oriented?**
+  - robust (GC + exceptions)
 
-  - Java has objects and primitives.
+  - secure
 
-  - `int`, `boolean`, and the other primitives are not objects; wrappers support object-based APIs.
+  - multithreaded
 
-### Entry points and program arguments
+  - portable
 
-- **Traditional entry point — Java 8–21, without preview features:**
+  - high-performance via JIT — *Just-In-Time compiler: converts hot
+    bytecode to native machine code at runtime, instead of pure
+    interpretation. Bridges the "write once run anywhere" cost. Why:
+    pure interpretation was too slow, pure native compilation broke
+    portability — JIT lets the JVM ship bytecode everywhere, then
+    earn back native speed locally.*
 
-  - `public static void main(String[] args)`.
+- **Is Java purely object-oriented?** — not strictly: primitives
+  (`int`, `char`…) aren't objects; wrappers bridge the gap.
 
-  - `public`: accessible to the launcher.
+- **Why is `main` public static void?** *(traditional Java 8–21 form, without preview features)*
 
-  - `static`: invoked without constructing the application class.
+  - `static` — JVM calls it without creating an object
 
-  - `void`: no Java return value; use an exit status deliberately when needed.
+  - `public` — so JVM can reach it
 
-  - `String... args` is an equivalent parameter declaration.
+  - `void` — returns nothing
 
-  - Overloading `main` does not make arbitrary overloads launchable.
+  - `main` can be overloaded, but JVM only calls the standard one
 
-- **Java 25+:** compact source files and instance `main` methods are permanent features.
+  - `String... args` is equivalent to `String[] args`
 
-  - The traditional entry point remains valid.
+  - **Java 25+:** compact source files and instance `main` methods are
+    permanent; eligible launch forms can omit `public`, `static`, or
+    the argument array under the launcher rules
 
-  - Launchable forms can omit `public`, `static`, or the argument array under the launcher rules.
+  - **Reference:** [Java 25 entry points](https://docs.oracle.com/en/java/javase/25/language/compact-source-files-instance-main-methods.html)
 
-  - **Reference:** [Oracle — compact source files and instance main methods](https://docs.oracle.com/en/java/javase/25/language/compact-source-files-instance-main-methods.html).
+- **Pass-by-value or reference?** — always pass-by-value. For
+  objects, the *reference* is copied: you can mutate the object,
+  you can't rebind the caller's variable.
 
-### Values, references, and parameter passing
+  ```java
+  // Statements inside a method; imports: java.util.*.
+  List<String> original = new ArrayList<>();
+  List<String> alias = original;
+  alias.add("paid");
+  alias = new ArrayList<>();
+  System.out.println(original); // [paid]
+  ```
 
-- **Is Java pass-by-value?**
+  - two references can share one object; changing one reference does
+    not change the other, and leaving a local scope need not end the
+    object's lifetime
 
-  - Always.
+- **Access modifiers, narrow → wide?** — `private` → default
+  (package) → `protected` (package + subclasses) → `public`.
 
-  - A primitive argument copies its primitive value.
+  Two independent axes decide access: **same package or not**, and
+  **subclass or not**. Four cells:
 
-  - An object argument copies a reference value.
+  |Modifier|Same class|Same pkg|Other pkg, subclass|Other pkg, rest|
+  |---|---|---|---|---|
+  |`private`|✅|❌|❌|❌|
+  |default (none)|✅|✅|❌|❌|
+  |`protected`|✅|✅|✅|❌|
+  |`public`|✅|✅|✅|✅|
 
-  - Both references may point to the same object, so mutation can be visible to the caller.
+  - "same pkg" is any class in the package — subclass or not, so a
+    subclass sitting in the same package rides that column, not the
+    `protected` one
 
-  - Reassigning the parameter cannot reassign the caller's variable.
+  - "other pkg, rest" is a class outside the package that does *not*
+    extend yours — the ordinary caller, and the only audience
+    `public` adds over `protected`
 
-```java
-// Java 8 — statements inside a method.
-List<String> original = new ArrayList<>();
-List<String> alias = original;
-alias.add("paid");
-alias = new ArrayList<>();
-System.out.println(original); // [paid]
-```
+  - each row widens the one above it: once a ❌ appears, everything
+    to its right is ❌ too
 
-- **Reference vs object?**
+  - `protected` across packages has a catch: the subclass may touch
+    the member on itself (`this.x`, or a reference typed as its own
+    class), not on an arbitrary instance of the parent
 
-  - A reference identifies an object or is `null`.
+  - applies to: fields, methods, constructors, nested classes
 
-  - Two variables can refer to one object; one variable can later refer to another.
+  - top-level classes/interfaces: only `public` or default (no
+    `private`/`protected` — nothing outside a package could reach
+    them anyway)
 
-  - The object's lifetime does not end just because one local variable leaves scope.
+  - local variables: no access modifiers — `final` is allowed; scope
+    is the enclosing block
 
-### Access modifiers
+  - nested-class boundary: classes enclosed by the same top-level
+    class can access each other's private members
 
-| Modifier | Same class | Same package | Other-package subclass | Unrelated external caller |
-|---|---|---|---|---|
-| `private` | Yes | No | No | No |
-| package access | Yes | Yes | No | No |
-| `protected` | Yes | Yes | Restricted | No |
-| `public` | Yes | Yes | Yes | Yes |
+  - containing types must also be accessible; Java 9+ module exports
+    can impose another boundary
 
-- **Package access:** no access-modifier keyword; `default` is not written on the declaration.
+- **`static`?**
 
-- **Protected across packages:** subclass code can access an instance member through itself or a reference of the subclass type or a subtype, not an arbitrary superclass reference.
+  - belongs to the class, shared by all instances
 
-- **Nested classes:** classes enclosed by the same top-level class may access each other's private members.
+  - static methods have no `this`; instance members need an explicit
+    object reference.
 
-- **Top-level classes/interfaces:** `public` or package access; no `private` or `protected`.
+- **`final`?**
 
-- **Local variables:** no access modifiers; `final` is allowed.
+  - variable: assign once
 
-- **Boundary:** the containing type must also be accessible; Java 9+ module exports can further restrict access.
+  - method: no override
 
-### static, final, and object state
+  - class: no subclass (e.g. `String`)
 
-- **`static`:** belongs to the class, rather than each instance.
+  - a final reference fixes the reference, not the object's contents
 
-  - A static method has no `this`.
+  ```java
+  final List<String> names = new ArrayList<>();
+  names.add("Ada");              // legal: changes the object
+  // names = new ArrayList<>();  // compile error: reassigns the reference
+  ```
 
-  - It can use an instance member through an explicit object reference.
+- **Four OOP pillars?**
 
-  - A static field is shared by instances of that runtime class; separate defining class loaders can define separate classes.
+  - encapsulation (data behind methods)
 
-- **`final`:** restricts reassignment, overriding, or inheritance.
+  - inheritance (is-a reuse)
 
-  - Variable: assign once, subject to definite-assignment rules.
+  - polymorphism (one call, many forms)
 
-  - Reference: the reference stays fixed; the referenced object may remain mutable.
+  - abstraction (expose what, hide how)
 
-  - Method: cannot be overridden.
+- **Abstraction vs encapsulation?** — abstraction hides complexity
+  behind an interface (design level); encapsulation hides data
+  behind access control (implementation level).
 
-  - Class: cannot be subclassed.
+- **Interface vs abstract class?**
 
-```java
-final List<String> names = new ArrayList<>();
-names.add("Ada");              // legal: changes the object
-// names = new ArrayList<>();  // compile error: reassigns the reference
-```
+  - interface — a contract/capability; no constructors or per-object
+    instance state, and a class may implement many
 
-### OOP pillars and design choices
+  - abstract class — a shared base for closely related classes; may
+    have instance fields, constructors, protected members, and both
+    abstract and concrete methods, but a class may extend only one
 
-- **Encapsulation:** keep state and its invariants behind a controlled API.
+  - since Java 8 interfaces may have `default`/`static` methods (and
+    private helper methods since Java 9), so "interface = 100%
+    abstraction" is an outdated interview answer
 
-  - A setter for every field does not automatically protect invariants.
+- **If abstract classes exist, why do we need interfaces?** — they
+  solve different design problems. An abstract class says **what an
+  object is** and shares state/implementation within one class family;
+  an interface says **what an object can do** and lets unrelated
+  classes expose the same contract.
 
-- **Abstraction:** expose the operations callers need while hiding implementation detail.
+  - Java permits only one superclass, but a class may implement many
+    interfaces — it can inherit one implementation while advertising
+    several independent capabilities
 
-- **Inheritance:** express a valid subtype relationship and inherit permitted behavior.
+  - callers can depend on the interface instead of a concrete class;
+    implementations can then be swapped, mocked, or injected without
+    changing the caller
 
-- **Polymorphism:** invoke an overridden instance method through a common supertype.
+  - an interface does not force implementors into the same class
+    hierarchy or give them unwanted state/implementation
 
-- **Composition:** hold a collaborator and delegate work to it.
+  ```java
+  interface Payable  { void pay(); }
+  interface Retryable { void retry(); }
 
-  - Use when behavior must vary independently or an inheritance relationship is unsuitable.
+  abstract class AuditedService {       // shared state + implementation
+      protected final String serviceName;
 
-- **Substitution rule:** a subtype must honor its supertype's behavioral contract.
+      protected AuditedService(String serviceName) {
+          this.serviceName = serviceName;
+      }
 
-  - A subtype that unexpectedly rejects ordinary operations can break callers even when it compiles.
+      protected void audit() { /* common logic */ }
+  }
 
-### Interface vs abstract class
+  class CardService extends AuditedService
+          implements Payable, Retryable {
+      CardService() { super("card"); }
+      public void pay()   { audit(); }
+      public void retry() { /* retry logic */ }
+  }
+  ```
 
-- **Interface:** a contract or capability that unrelated classes can implement.
+  Here `CardService` **is an** `AuditedService`, while `Payable` and
+  `Retryable` are independent things it **can do**. The two mechanisms
+  complement each other.
 
-  - A class may implement multiple interfaces.
+  **`is-a` vs `can-do` gist:**
 
-  - No constructors or per-instance fields.
+  - class inheritance usually models a strong **is-a** family
+    relationship: `SavingsAccount extends Account` → a savings account
+    is an account
 
-  - Fields are implicitly `public static final`; their referenced objects can still be mutable.
+  - an interface usually models a **can-do** capability:
+    `Invoice implements Printable` → an invoice can be printed; an
+    unrelated `Report` can implement the same capability
 
-  - Ordinary abstract methods are implicitly `public abstract`.
+  - this is a design heuristic, not a type-system rule — formally, an
+    implementing object **is also an instance of** its interface, so
+    `Payable p = new CardService()` is valid
 
-  - Java 8: `default` and `static` methods.
+  - **has-a** means composition, not inheritance: a `Car` has an
+    `Engine`, so keep an `Engine` field rather than extending `Engine`
 
-  - Java 9+: private helper methods.
+  **Decision rule:** need shared mutable state, construction, or common
+  protected implementation across a family → abstract class. Need a
+  role/API that many possibly unrelated classes can implement, or more
+  than one role → interface. Prefer composition when neither needs an
+  inheritance relationship.
 
-- **Abstract class:** shared implementation or state within a related class family.
+- **Composition + constructor injection, without a framework?**
+  Required collaborators are explicit, and tests can supply fakes.
 
-  - May have constructors, instance fields, protected members, and concrete methods.
+  ```java
+  // Type declarations; imports: java.util.Objects.
+  interface Gateway {
+      void debit(String account);
+  }
 
-  - A class can extend one class; `Object` itself has no superclass.
+  final class PaymentService {
+      private final Gateway gateway;
 
-- **Why both?**
+      PaymentService(Gateway gateway) {
+          this.gateway = Objects.requireNonNull(gateway);
+      }
 
-  - Interfaces let callers depend on capabilities without choosing a class hierarchy.
+      void pay(String account) {
+          gateway.debit(account);
+      }
+  }
+  ```
 
-  - An abstract base can share implementation among selected implementations.
+  - this is **has-a** composition plus dependency injection; Spring
+    can perform the same construction
 
-  - `is-a` and `can-do` are design heuristics; implementing an interface also creates a subtype relationship.
+  - a final collaborator reference does not make the collaborator's
+    internal state thread-safe
 
-- **Why no multiple class inheritance?**
+  - **substitution rule:** a subtype must honor its supertype's
+    behavioral contract; compiling is not proof of substitutability
 
-  - Java avoids competing superclass state, constructors, and inherited implementations.
+  - **encapsulation boundary:** setters for every field do not
+    automatically preserve invariants
 
-  - Interfaces can extend multiple interfaces; default-method conflicts have explicit rules.
+- **Why were `default` methods introduced?** — **interface evolution**.
+  Pre-8, adding an abstract method to a published interface could
+  break existing implementors on recompilation. Java 8 needed `stream()` on
+  `Collection` and `forEach()` on `Iterable` to make lambdas useful —
+  impossible without breaking the world, so a `default` body lets an
+  interface grow while old implementors keep compiling untouched.
 
-### Constructor injection without a framework
+  - `static` interface methods came along to keep factories/helpers on
+    the contract itself (`List.of` since Java 9, `Comparator.comparing`) instead of
+    a separate `Collections`-style utility class
 
-```java
-// Java 8 — type declarations; imports: java.util.Objects.
-interface Gateway {
-    void debit(String account);
-}
+  - the cost: interfaces carry behavior, so the diamond can bite again
+    — which is what the default-method tie-break rules exist for
 
-final class PaymentService {
-    private final Gateway gateway;
+  - not a licence for state — still no instance fields, so an abstract
+    class remains the answer when you need data
 
-    PaymentService(Gateway gateway) {
-        this.gateway = Objects.requireNonNull(gateway);
-    }
+- **Can a class extend two classes?** — no. `extends` takes exactly
+  one class, `implements` takes any number.
 
-    void pay(String account) {
-        gateway.debit(account);
-    }
-}
-```
+  |Shape|Legal?|
+  |---|---|
+  |`class D extends A`|✅ one superclass|
+  |`class D extends A, B`|❌ won't compile|
+  |`class D implements X, Y, Z`|✅ any number of interfaces|
+  |`class D extends A implements X, Y`|✅ one class + many interfaces|
+  |`interface Z extends X, Y`|✅ interfaces DO multiply-extend|
 
-- **What this buys:** required dependencies are explicit; tests can pass a fake gateway.
+  - every class except `Object` has exactly one direct superclass —
+    `Object` for an ordinary class when you name none — so the class
+    hierarchy is a tree, not a graph
 
-- **Pattern:** composition plus dependency injection; Spring can perform the same construction.
+  - *multilevel* ≠ *multiple*: `C extends B`, `B extends A` is fine at
+    any depth; only two parents on one `extends` is banned
 
-- **Boundary:** a final dependency reference does not make the gateway's internal state thread-safe.
+  - need capability from two places → **composition**: hold both as
+    fields and delegate. No ambiguity, and the parts are swappable at
+    runtime
 
-### Overloading, overriding, and hiding
+  - C++ permits it (virtual inheritance); Java traded that power for a
+    simpler object model
 
-- **Overloading:** same method name, different parameter lists.
+- **Why no multiple class inheritance?** — the diamond problem:
+  `B` and `C` both extend `A`; `D` extends both. `D` now inherits
+  `A`'s *state* through two paths — one copy of the fields or two?
+  whose constructor runs, how many times? Ambiguous, so Java allows
+  one superclass only.
 
-  - Selection uses compile-time types and applicability rules.
+  - real culprit is state (fields + constructors), which only
+    classes carry
 
-  - Return type or `throws` clause alone cannot distinguish overloads.
+  - interfaces (pre-8) were safe from duplicated instance state: no
+    instance fields, no constructors, no method bodies — compatible
+    inherited abstract signatures can merge
 
-  - Fixed-arity applicability without boxing is considered before boxing, then varargs applicability.
+  - Java 8 default methods added *behavior*, so a clash is possible
+    again — compiler refuses to guess, forces an explicit override
 
-- **Overriding:** a subtype provides an implementation of an inherited instance method.
+  ```java
+  interface B { default String hi() { return "B"; } }
+  interface C { default String hi() { return "C"; } }
 
-  - Runtime receiver type selects the body after compile-time method selection.
+  class D implements B, C {
+      public String hi() { return B.super.hi(); } // must pick one
+  }
+  ```
 
-  - Cannot reduce visibility or widen the checked-exception contract.
+  Three tie-break rules when a `default` clashes:
 
-  - A covariant reference return type is allowed.
+  - **class wins** — any concrete method inherited from a superclass
+    beats an interface default of the same signature
 
-- **Static methods:** hidden; selected using compile-time type information.
+  - **most specific interface wins** — a sub-interface's default beats
+    the one it overrides
 
-- **Private methods:** not inherited as overridable methods.
+  - **neither applies → compile error**, until the class overrides;
+    `Iface.super.method()` reaches a chosen parent's version
 
-- **Final methods:** inherited when accessible, but cannot be overridden.
+  - boundary: an inherited abstract superclass method can still
+    require an implementation; an interface default does not
+    automatically satisfy it
 
-- **Fields:** hidden rather than dynamically dispatched.
+  - static interface methods are called through the declaring
+    interface; they are not inherited like instance defaults
 
-- **Practice:** predict the field, overload, and override results in [§6](#6-trap-wall-the-code-output-classics-spoken).
+- **Overloading vs overriding?**
 
-### Construction and initialization
+  - overload: same name, different parameters, compile-time
 
-- **Constructor rules:**
+  - override: subclass redefines, runtime dispatch; can't reduce
+    visibility or throw broader checked exceptions; covariant
+    return allowed
 
-  - Same simple name as the class; no return type.
+  - return type or `throws` clause alone cannot distinguish overloads
 
-  - A default constructor is supplied only when the class declares no constructor.
+  - overload resolution considers fixed-arity applicability without
+    boxing before boxing, then variable-arity applicability
 
-  - Constructors are not inherited; abstract classes can have constructors.
+  - fields are hidden too; they are not dynamically dispatched
 
-  - `this(...)` delegates to another constructor in the same class.
+- **Can you override static / private / final methods?** — no.
+  Static methods are *hidden*, not overridden (resolved by
+  reference type).
 
-  - `super(...)` delegates to a superclass constructor.
+- **Constructor rules?**
 
-- **Java 8–21, without preview features:** an explicit `this(...)` or `super(...)` must be the first constructor statement.
+  - no return type
 
-  - If neither is supplied, the compiler inserts `super()`.
+  - compiler supplies a default only if you wrote none
 
-  - Compilation fails if the required superclass constructor is inaccessible or absent.
+  - Java 8–21, without preview features: the first statement is a
+    constructor call — explicit `this()`/`super()`, or an implicit
+    `super()` inserted silently if you wrote neither
 
-- **Java 25+:** a restricted prologue may precede the explicit constructor invocation.
+  - abstract classes DO have constructors — you just can't `new`
+    them
 
-  - Argument validation and preparation can happen there.
+  - constructors are not inherited; the inserted `super()` must be
+    accessible and available or compilation fails
 
-  - Early-construction rules restrict use of the object under construction.
+  - **Java 25+:** a restricted constructor prologue can validate or
+    prepare arguments before explicit `this(...)` / `super(...)`;
+    early-construction rules restrict use of the object
 
-  - **Reference:** [Oracle — flexible constructor bodies](https://docs.oracle.com/en/java/javase/25/language/flexible-constructor-bodies.html).
+  - **Reference:** [flexible constructor bodies](https://docs.oracle.com/en/java/javase/25/language/flexible-constructor-bodies.html)
 
-- **Loading vs initialization:**
+- **Loading vs initialization — same event?** — no. Loading obtains
+  the class representation; initialization executes static field
+  initializers and static blocks on specified active uses.
 
-  - Loading obtains the class representation; initialization executes its static initialization logic.
+  - superclass initialization precedes subclass initialization when
+    required; fields and blocks run in textual order per class
 
-  - Initialization occurs on specified active uses, such as constructing an instance or invoking a declared static method.
+  - reading an inlined compile-time constant need not initialize its
+    declaring class
 
-  - Reading an inlined compile-time constant need not initialize its declaring class.
+  - per object: superclass construction precedes subclass instance
+    initializers and the remaining constructor body in the ordinary
+    Java 8 construction flow
 
-- **Ordinary initialization order:**
+  - hazard: a constructor calling an overridable method can reach
+    subclass code before subclass fields have been initialized
 
-  1. Superclass static initialization before subclass static initialization, when required.
+  - **Reference:** [JLS execution and initialization](https://docs.oracle.com/javase/specs/jls/se8/html/jls-12.html)
 
-  2. Static fields and blocks in textual order within each class, once per successful initialization.
+- **Interface variables/methods are implicitly…?** (MCQ staple)
 
-  3. For each object: superclass construction, then subclass instance fields/blocks in textual order, then the remaining constructor body.
+  - variables: `public static final`
 
-- **Constructor hazard:** calling an overridable method can run subclass code before subclass initialization is complete.
+  - methods: `public abstract` (pre-default-methods)
 
-- **Reference:** [JLS §12 — execution and initialization](https://docs.oracle.com/javase/specs/jls/se8/html/jls-12.html).
+- **Marker interface?** — empty interface that tags behavior:
+  `Serializable`, `Cloneable`. Annotations can tag metadata, but
+  marker interfaces also participate in the type system.
 
-### Object methods and equality
+- **Methods every object has?** — from `Object`:
 
-- **Common `Object` methods:** `equals`, `hashCode`, `toString`, `getClass`, `wait`, `notify`, and `notifyAll`.
+  |Method|Purpose|
+  |---|---|
+  |`equals`|value/reference comparison|
+  |`hashCode`|bucket key for hash collections|
+  |`toString`|string representation|
+  |`getClass`|runtime class/reflection|
+  |`clone`|shallow copy (needs `Cloneable`)|
+  |`wait`|release this monitor; wait for notification, interruption, timeout, or a spurious wakeup|
+  |`notify`/`notifyAll`|wake one / all waiting threads|
+  |`finalize`|unreliable legacy finalization hook (deprecated for removal since Java 18)|
 
-- **`clone`:** protected on `Object`; its ordinary field copy is shallow.
+  `wait`/`notify`/`notifyAll` = thread coordination, inherited by
+  every object for free; must hold the object's lock
+  (`synchronized`) to call, else `IllegalMonitorStateException`.
+  Modern code prefers `java.util.concurrent` (`BlockingQueue`,
+  `ExecutorService`).
 
-  - `Cloneable` enables the `Object.clone()` mechanism; it does not declare a public cloning method.
+  - `clone` is protected on Object; `Cloneable` does not itself
+    declare a public cloning method
 
-  - Constructors and explicit copy factories often express ownership more clearly.
+  - finalization may never run; explicit resource ownership and
+    try-with-resources are the cleanup tools
 
-- **`finalize`:** historical cleanup mechanism; deprecated for removal since Java 18.
+  - always test a wait condition in a loop; a wakeup is not proof
+    that the condition is satisfied
 
-  - Execution is not guaranteed; use explicit resource ownership and try-with-resources.
+- **Why is String immutable?**
 
-- **`==` vs `equals`:**
+  - pool sharing (identical literals reuse one object) is only safe
+    if values can't change
 
-  - Primitive `==`: compares primitive values after applicable conversions.
+  - security (paths/credentials passed around)
 
-  - Reference `==`: compares identity.
+  - thread-safety for free
 
-  - `Object.equals`: identity by default; classes may override it for logical equality.
-
-- **The full `equals` contract:**
-
-  - Reflexive: `x.equals(x)`.
-
-  - Symmetric: `x.equals(y)` matches `y.equals(x)`.
-
-  - Transitive: equal links imply equal endpoints.
-
-  - Consistent while equality-relevant state is unchanged.
-
-  - A non-null object's `equals(null)` returns false.
-
-- **The `hashCode` contract:**
-
-  - Equal objects must have equal hash codes.
-
-  - Unequal objects may have equal hash codes.
-
-  - Keep hashing consistent while equality-relevant state is unchanged.
-
-  - Override `equals` and `hashCode` together for value objects.
-
-- **Inheritance trap:** extra equality fields in a subclass can break symmetry with its parent.
-
-  - A final value class avoids that inheritance problem.
-
-  - Choose and document equality semantics deliberately; there is no universal `instanceof` versus `getClass` recipe.
-
-### Writing an immutable value
-
-- **Protect construction:** validate inputs and establish invariants.
-
-- **Protect state:** final class where appropriate, private final fields, no mutating operations.
-
-- **Protect ownership:** copy mutable inputs and prevent mutable references escaping.
-
-- **Protect elements:** copying a collection copies its structure, not its mutable elements.
-
-```java
-// Java 8 — type declaration; imports: java.util.*.
-final class Tags {
-    private final List<String> values;
-
-    Tags(List<String> values) {
-        this.values = Collections.unmodifiableList(new ArrayList<>(values));
-    }
-
-    List<String> values() {
-        return values;
-    }
-
-    @Override public boolean equals(Object other) {
-        if (this == other) return true;
-        if (!(other instanceof Tags)) return false;
-        return values.equals(((Tags) other).values);
-    }
-
-    @Override public int hashCode() {
-        return values.hashCode();
-    }
-}
-```
-
-- **Why this example works:** callers cannot change the stored list structure; its String elements are immutable.
-
-- **Value semantics:** equality and hashing use the ordered list contents; the defensive copy keeps that state stable against changes to the caller's list.
-
-- **Records — Java 16+:** concise data carriers with final component fields and generated value methods.
-
-  - A mutable component can still change; records are not automatically deeply immutable.
-
-  - Validate and defensively copy components when the contract requires a snapshot.
-
-### Strings, wrappers, and Unicode
-
-- **Why is `String` immutable?**
-
-  - Safe sharing, stable values, reusable hashes, and reliable use as keys.
-
-  - String literals are interned; `intern()` returns the canonical pooled reference.
-
-  - `new String("a")` creates a distinct String object; use `equals` for content.
+  - hashCode cached → fast map keys
 
 - **String vs StringBuilder vs StringBuffer?**
 
-  - `String`: immutable value.
+  - String — immutable
 
-  - `StringBuilder`: mutable builder, suitable for local repeated concatenation.
+  - StringBuilder — mutable + fast, not thread-safe
 
-  - `StringBuffer`: synchronized builder; a sequence of calls is not automatically one atomic action.
+  - StringBuffer — synchronized legacy twin
 
-- **Unicode trap:** `char` is a UTF-16 code unit, not necessarily one complete Unicode character.
+  - concatenation in a loop → StringBuilder
 
-  - `String.length()` counts code units.
+  - synchronization on individual StringBuffer methods does not
+    make a sequence of calls one atomic action
 
-  - `codePoints()` handles Unicode code points; user-perceived characters can contain multiple code points.
+- **Does `char` mean one Unicode character?** — it is one UTF-16
+  code unit; a code point may need two, and a user-perceived character
+  may contain multiple code points.
 
-- **Boxing/unboxing:** automatic conversion between primitives and wrappers.
+  ```java
+  String face = "\uD83D\uDE00";
+  System.out.println(face.length());                       // 2 code units
+  System.out.println(face.codePointCount(0, face.length())); // 1 code point
+  ```
 
-  - Unboxing `null` throws `NullPointerException`.
+- **String pool?**
 
-  - For `Integer`, the required small-value cache covers −128 through 127; implementations can cache more.
+  - literals are interned and shared (in heap since Java 7)
 
-  - Wrapper identity is unsuitable for numeric equality; handle nulls and compare values deliberately.
+  - `new String("a")` forces a separate object
 
-### Enums, annotations, reflection, and serialization
+  - `intern()` returns the pooled one
 
-- **Enum:** a fixed set of named instances with type safety.
+- **equals/hashCode contract?** — equal objects MUST have equal
+  hashCodes (converse not required). When overriding `equals`, keep a
+  compatible `hashCode`, or lookup for an equal key can miss inside
+  HashMap/HashSet.
 
-  - May have fields, methods, and constructors.
+  - full equals contract: reflexive, symmetric, transitive, and
+    consistent while equality-relevant state is unchanged; a
+    non-null object's `equals(null)` returns false
 
-  - Compare enum constants with `==`; use `EnumSet` or `EnumMap` for enum-based collections.
+  - unequal objects can share a hash code; equal objects must not
+    disagree on it
 
-  - Persist a stable business identifier, not `ordinal()`.
+  - inheritance trap: a subclass adding equality fields can break
+    symmetry with its parent; a final value class avoids that case
 
-- **Annotation:** metadata consumed by a compiler, processor, framework, or reflection code.
+  - choose equality semantics deliberately; neither `instanceof` nor
+    `getClass` is a universal recipe
 
-  - `@Target` selects permitted declaration/use sites.
+- **`==` vs `equals`?** — `==` compares references (or primitive
+  values); `equals` compares content *if overridden* — default
+  `Object.equals` IS `==`.
 
-  - `@Retention` selects `SOURCE`, `CLASS`, or `RUNTIME`; default is `CLASS`.
+- **Wrapper classes / autoboxing?** — primitives ↔ objects
+  automatically since Java 5; watch the Integer cache (−128…127)
+  and unboxing-null NPEs (§9).
 
-  - Runtime reflection requires runtime-retained metadata.
+  ```java
+  Integer a = 100, b = 100;
+  System.out.println(a == b);   // true  — both hit the cache
+  Integer x = 200, y = 200;
+  System.out.println(x == y);   // do not rely on identity outside the required cache
 
-- **Reflection:** inspect types and members, construct objects, or invoke methods dynamically.
+  Integer n = null;
+  int m = n;                    // NPE — unboxing null
+  ```
 
-  - Useful for frameworks, serializers, and tooling.
+- **How do you write an immutable class?** (String is the reference
+  example.)
 
-  - Trades compile-time checks for runtime checks and greater coupling to structure.
+  - `final` class
 
-  - Java 9+ module boundaries can restrict deep reflection; access overrides are not universal escape hatches.
+  - private `final` fields
 
-- **Marker interface vs annotation:**
+  - no setters
 
-  - A marker interface participates in the type system and generic bounds.
+  - initialize in constructor
 
-  - An annotation supplies metadata; it is not a drop-in replacement for a marker type.
+  - defensive copies of mutable fields — don't store/return the
+    caller's mutable reference; copy in, copy out — else they
+    mutate your "immutable" object from outside
 
-- **Java object serialization:** converts supported object graphs into bytes.
+  ```java
+  public final class Range {
+      private final List<Integer> values;
 
-  - `Serializable` is a marker; default serialization covers non-static, non-transient instance fields.
+      public Range(List<Integer> values) {
+          this.values = new ArrayList<>(values);   // copy IN
+      }
 
-  - `serialVersionUID` participates in compatibility checks; matching it does not make arbitrary schema changes safe.
+      public List<Integer> getValues() {
+          return new ArrayList<>(values);          // copy OUT
+      }
+  }
+  ```
 
-  - `transient` affects default serialization; it is not a general secrecy guarantee.
+  - the Range example copies list structure; its Integer elements
+    are immutable. A list of mutable elements needs an element-level
+    ownership policy too
 
-  - Treat deserialization as a trust boundary; use a suitable data format and, where needed, deserialization filters.
+  - an unmodifiable view of a **defensive copy** can avoid copying
+    on every getter; an unmodifiable view of the caller's own list
+    does not establish ownership
 
-### Bedrock mastery and practice
+  - validate inputs and establish invariants during construction
 
-- Explain mutation versus reassignment without using the phrase “pass-by-reference.”
+  - **records — Java 16+:** generated value methods and final component
+    fields do not make mutable components deeply immutable; copy
+    components when the contract requires a snapshot
 
-- Choose interface, abstract class, or composition for a payment gateway and justify the choice.
+- **Enums, annotations, and reflection — what belongs where?**
 
-- Explain why a final reference, a copied list, and a record give different guarantees.
+  - **enum:** fixed named instances with type safety; may have fields,
+    methods, and constructors. Compare constants with `==`; use
+    EnumSet / EnumMap for enum-based collections
 
-- Predict initialization and dispatch before running the program.
+  - persist a stable business identifier, not `ordinal()`
 
-- **Drills:** [Language Semantics](lab/10-core-contracts/LanguageSemantics.java) · [Compiler Contracts](lab/10-core-contracts/CompilerContracts.java) · [Payment Routing](lab/05-oop/PaymentRoutingContracts.java) · [Immutable Snapshot](lab/10-core-contracts/ImmutableRecordSnapshot.java).
+  - **annotation:** metadata for compilers, processors, frameworks,
+    or reflection. `@Target` controls use sites; `@Retention` controls
+    SOURCE / CLASS / RUNTIME lifetime (default: CLASS)
 
-- **Optional depth:** [Reflection](lab/08-advanced/ReflectionMethodNames.java) · [Annotations](lab/08-advanced/BudgetAnnotations.java).
+  - reflection needs RUNTIME retention to read annotation metadata
+
+  - **reflection:** inspect types, construct objects, and invoke
+    members dynamically; useful for frameworks, with runtime checks
+    and tighter coupling to structure
+
+  - Java 9+ modules can restrict deep reflection; an access override
+    is not a universal escape hatch
+
+- **Serialization?** — object → byte stream (`Serializable` marker)
+
+  - `transient` — skips a field in default serialization
+
+  - `serialVersionUID` — guards class-version mismatch
+
+  - static fields — not part of default serialized instance state
+
+  - matching `serialVersionUID` does not make arbitrary schema changes
+    compatible; `transient` is not a general secrecy guarantee
+
+  - deserialization is a trust boundary; use a suitable data format
+    and, where needed, deserialization filters
+
+- **Blind-rep checks:** explain mutation vs reassignment; choose an
+  interface, abstract class, or composition; distinguish a final
+  reference, copied list, and record; predict initialization and dispatch.
+
+- **Practice:** [Language Semantics](lab/10-core-contracts/LanguageSemantics.java) ·
+  [Compiler Contracts](lab/10-core-contracts/CompilerContracts.java) ·
+  [Payment Routing](lab/05-oop/PaymentRoutingContracts.java) ·
+  [Immutable Snapshot](lab/10-core-contracts/ImmutableRecordSnapshot.java).
+
+- **Optional depth:** [Reflection](lab/08-advanced/ReflectionMethodNames.java) ·
+  [Annotations](lab/08-advanced/BudgetAnnotations.java).
 
 ---
 
-## Generics and type safety
+## §2 Generics and type safety
 
 ### The problem generics solve
 
@@ -687,308 +848,649 @@ static <T> void copyInto(List<? extends T> source, List<? super T> target) {
 
 ---
 
-## §2 Collections
+## §3 Collections
 
-### The framework shape
+- **Framework shape?** — `Collection` → List / Set / Queue; `Map`
+  is separate (key→value). Follow-up trap: `Map` does NOT extend
+  `Collection` — panel favorite wrong-answer bait.
 
-```text
-Iterable
-└─ Collection
-   ├─ List              ArrayList, LinkedList
-   ├─ Set               HashSet, LinkedHashSet, TreeSet
-   └─ Queue
-      ├─ PriorityQueue
-      └─ Deque          ArrayDeque, LinkedList
+  ```text
+  Iterable
+   └─ Collection
+        ├─ List
+        │    ├─ ArrayList
+        │    ├─ LinkedList   (also Deque, below — dual branch)
+        │    └─ Vector
+        │
+        ├─ Set
+        │    ├─ HashSet
+        │    ├─ LinkedHashSet
+        │    └─ SortedSet
+        │         └─ NavigableSet
+        │              └─ TreeSet
+        │
+        └─ Queue
+             ├─ PriorityQueue
+             └─ Deque
+                  ├─ ArrayDeque
+                  └─ LinkedList   (also List, above — dual branch)
 
-Map                     HashMap, LinkedHashMap, TreeMap
-```
+  Map   (separate — not a Collection)
+   ├─ HashMap
+   ├─ LinkedHashMap
+   └─ SortedMap
+        └─ NavigableMap
+             └─ TreeMap
+  ```
 
-- **`Collection`:** a group of elements; root of List, Set, and Queue.
+  Why separate: `Map` holds pairs, not single elements — doesn't
+  fit `Collection`'s single-element contract.
 
-- **`Map`:** key/value associations; separate from Collection.
+  Gotcha: `LinkedList` implements both `List` and `Deque` — the
+  only class sitting in two branches at once.
 
-- **`Collections`:** utility class with methods such as `sort`, `reverse`, and `unmodifiableList`.
+  - tree scope: selected Java 8 subtype relationships; abstract base
+    classes are omitted. Iterable / Collection / List / Set / Queue /
+    Deque / Map and the sorted/navigable types are interfaces; the
+    named implementations are classes
 
-- **Hierarchy detail:** TreeSet implements NavigableSet → SortedSet → Set; TreeMap has corresponding map interfaces.
+  - extra class links: Stack extends Vector (legacy); LinkedHashSet
+    extends HashSet; LinkedHashMap extends HashMap
 
-- **LinkedList:** implements both List and Deque; the diagram shows selected implementations, not every class or inheritance edge.
+  - linked encounter order is not sorted order; SortedSet / SortedMap
+    add ordering and ranges, NavigableSet / NavigableMap add nearest
+    matches such as `floor` and `ceiling`
 
-- **Java 21+:** sequenced collection interfaces expose first/last elements and reversed views for defined encounter orders.
+  - **Java 21+:** sequenced collection interfaces expose first/last
+    elements and reversed views for defined encounter orders
 
-  - **Practice:** [Sequenced Collection Views](lab/13-version-features/SequencedCollectionViews.java).
+  - **Practice:** [Sequenced Collection Views](lab/13-version-features/SequencedCollectionViews.java)
 
-### Choose by the required contract
+- **List vs Set vs Map?**
 
-| Need | Usual starting point | Main tradeoff |
-|---|---|---|
-| Index access, append, scan | `ArrayList` | Middle insertion/removal shifts elements |
-| Uniqueness, no order contract | `HashSet` | Requires stable equality/hashing |
-| Uniqueness plus insertion order | `LinkedHashSet` | Extra ordering bookkeeping |
-| Key lookup, no order contract | `HashMap` | Expected constant-time lookup; no thread safety |
-| Key lookup plus encounter order | `LinkedHashMap` | Insertion or access order |
-| Sorted keys, range queries | `TreeMap` | Logarithmic key operations |
-| Sorted unique values | `TreeSet` | Comparator equality determines uniqueness |
-| Stack or FIFO queue | `ArrayDeque` | No null elements; not thread-safe |
-| Repeated next-by-priority | `PriorityQueue` | Heap order, not sorted iteration |
-| Shared concurrent key updates | `ConcurrentHashMap` | No nulls; no whole-map snapshot |
-| Blocking handoff | `BlockingQueue` implementation | Capacity and wait policy must be chosen |
+  - List: ordered, duplicates OK
 
-- **Array vs ArrayList:** arrays have fixed length and can hold primitives; ArrayList resizes and holds references.
+  - Set: unique elements
 
-- **ArrayList vs LinkedList:**
+  - Map: unique keys → values
 
-  - ArrayList: `get(i)` O(1); append amortized O(1); middle removal O(n).
+  - follow-up — *how does Set enforce uniqueness?* HashSet checks
+    `hashCode` then `equals` on add; TreeSet uses
+    `compareTo`/`compare` == 0. Duplicate → add returns false.
 
-  - LinkedList: index access O(n); end operations O(1).
+- **Array vs ArrayList?** *(entry classic)*
 
-  - Iterator-position insertion/removal can be O(1) after reaching that position.
+  - array: fixed size, primitives OK, `length` field
 
-  - LinkedList needs nodes and links; ArrayList often has better locality.
+  - ArrayList: resizable, objects only (autoboxing for
+    primitives), `size()` method, rich API
 
-  - OpenJDK ArrayList commonly grows by about 1.5×; the growth factor is not an API guarantee.
+- **Collection vs Collections?** *(trick classic)* —
+  `Collection` = root interface; `Collections` = utility class of
+  statics (`sort`, `reverse`, `unmodifiableList`,
+  `synchronizedList`).
 
-- **Vector / Stack / Hashtable:** legacy synchronized types.
+- **ArrayList vs LinkedList?**
 
-  - Individual synchronized methods do not make a multi-call algorithm atomic.
+  - ArrayList: dynamic array, O(1) index reads, grows ~1.5× in
+    OpenJDK (growth factor is not an API guarantee)
 
-  - Hashtable rejects null keys and values; HashMap and ConcurrentHashMap have different null contracts.
+  - LinkedList: doubly-linked, cheap end-ops, O(n) access
 
-  - Choose an implementation and coordination policy for the actual access pattern.
+  - default choice: ArrayList
 
-### HashMap — the lookup model
+    | Op | ArrayList | LinkedList |
+    | --- | --- | --- |
+    | `get(i)` | O(1) | O(n) |
+    | add/remove at end | O(1)* | O(1) |
+    | add/remove in middle | O(n) shift | O(1)** |
+    | memory per element | reference slot + spare array capacity | node with value reference + 2 links |
 
-- **Storage:** a table of bins containing key/value nodes.
+  \* amortized — resize copies occasionally.
 
-- **Hashing:** the implementation spreads the key's hash, then maps it to a table index.
+  \*\* only *at the iterator's position* — reaching it is O(n),
+  the trap in "LinkedList inserts are O(1)".
+  In practice ArrayList wins almost everywhere — contiguous
+  memory, CPU-cache friendly.
 
-- **Collision:** different keys can reach the same bin; key equality identifies the mapping within it.
+- **ArrayList vs Vector?**
 
-- **Replacement:** putting an equal key updates the existing mapping's value.
+  - Vector: legacy synchronized version, grows 2× by default; a
+    positive `capacityIncrement` selects fixed-increment growth
 
-```text
-key → hashCode → spread hash → table index
-                                   │
-                                   └─ bin → matching key → value
-```
+  - today: use ArrayList, or a concurrent collection if threads
+    are involved
 
-- **OpenJDK 8 implementation details:**
+- **How does HashMap work?** *(THE question)*
 
-  - Default capacity: 16; the ordinary default table is allocated lazily.
+  - key's `hashCode` → bucket index
 
-  - Default load factor: 0.75; resize normally occurs after size exceeds capacity × load factor.
+  - collisions chain into a linked list
 
-  - Power-of-two capacity allows indexing with `(capacity - 1) & hash`.
+  - a bucket past 8 entries requests treeification (OpenJDK 8);
+    table capacity must be at least 64, otherwise it resizes
 
-  - Resize normally doubles capacity; entries split between the old index and old index + old capacity.
+  - default capacity 16, load factor 0.75, resize doubles
 
-- **Treeification:**
+  - one null key allowed
 
-  - `TREEIFY_THRESHOLD` is 8; ordinary `put` requests treeification while adding beyond an eight-node list bin.
+  - lookup: hash finds the bucket, `equals` picks the entry — why
+    overriding `equals` requires a compatible `hashCode`
 
-  - Table capacity must be at least 64; otherwise that request resizes the table.
+  **The mental picture:** a default HashMap allocates an array of
+  16 slots ("buckets") on first use. Each slot can hold a small
+  chain of entries. The trick: the key's spread hash *selects* an
+  array index — direct bucket access, then search within the bin.
+  Expected lookup is O(1) with suitably distributed hashes.
 
-  - A red-black tree improves collision behavior, but a universal O(log n) lookup claim is too strong for equal-hash keys that cannot be ordered.
+  ```text
+  index = hash(key) & 15        // capacity 16 → mask 0..15
 
-- **Complexity:** expected O(1) basic lookup/update with suitably distributed hashes; resize and pathological collisions cost more.
+  [0]  → null
+  [4]  → ("amit",500) → ("zoya",900)   ← collision chain
+  [9]  → ("ravi",200)
+  [15] → null
+  ```
 
-- **Nulls:** HashMap permits one null key and null values.
+  The bucket positions and names above are **schematic** — they
+  illustrate a collision, not the actual hashes of these String
+  literals. The same schematic is used by the walkthrough below.
 
-  - `get(k) == null` can mean absent or explicitly mapped to null.
+  **put("amit", 500), step by step:**
 
-  - `containsKey(k)` distinguishes those cases in an appropriately coordinated access pattern.
+  1. call `"amit".hashCode()` → an int, then spread its high bits down
 
-- **Thread safety:** concurrent unsynchronized mutation is unsupported; a successful run does not establish safety.
+  2. mask into an index 0–15 → bucket 4 in the schematic above
 
-- **Reference:** [OpenJDK 8 HashMap implementation](https://raw.githubusercontent.com/openjdk/jdk8u/master/jdk/src/share/classes/java/util/HashMap.java).
+  3. bucket empty → drop the entry there; done
 
-### Equality, mutable keys, and sets
+  4. bucket occupied → *collision*: walk the chain — if some key
+     `equals("amit")`, overwrite its value; else append a node
 
-- **HashSet:** normally stores elements as keys in a backing HashMap.
+  5. chain grows past 8 → request a red-black tree; capacity below
+     64 triggers resize first. Tree lookup is logarithmic when hash
+     or key ordering directs the search; equal-hash, unordered keys
+     can still require linear work
 
-- **Stable-key rule:** do not change equality/hash-relevant state while an object is a hash key or set member.
+  6. size exceeds the load threshold (16 × 0.75 = 12 entries) →
+     *resize*: double the array to 32, redistribute entries
 
-  - The entry stays in its original bin; a changed lookup hash can search elsewhere.
+  **get("amit") — and why equals matters:**
 
-  - The object can remain visible during iteration while lookup/removal fails.
+  - same index math → jump straight to bucket 4
 
-  - Prefer immutable logical keys; changing an unrelated field is a different case.
+  - but two *different* keys can share a bucket (finite slots,
+    infinite keys) — so hash alone can't identify the entry
 
-- **TreeSet / TreeMap:** comparison returning zero identifies an existing element/key.
+  - walk the chain, `equals` each key until it matches
 
-  - Ordering inconsistent with `equals` can violate the general Set/Map contract.
+  - division of labor: **hashCode = which bucket, equals = which
+    entry in it.** Override `equals` without compatible `hashCode` →
+    equal keys can land in different buckets → `get` can miss.
+    That's the contract.
 
-  - BigDecimal is a standard example: numerical ordering ignores scale, while `equals` includes it.
+  **The numbers decoded:**
 
-- **Null-key nuance:** natural-order TreeMap rejects null keys; a comparator that supports null can allow them.
+  - capacity 16 — default array length when first allocated
 
-  - **Reference:** [TreeMap null-key contract](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/TreeMap.html#put(K,V)).
+  - load factor 0.75 — resize trigger, not a limit: normally grow
+    after size exceeds 75% of capacity; this counts entries, not
+    occupied buckets, and does not prevent long collision chains
 
-### Ordering and comparator composition
+  - doubling — keeps capacity a power of 2, so index = cheap
+    bit-mask of the hash
 
-- **Comparable:** the type supplies its natural order through `compareTo`.
+  - one null key — its hash is defined as 0, lives in bucket 0
 
-- **Comparator:** a separate ordering strategy through `compare`.
+  **The logic behind each design choice:**
 
-- **Comparison contract:** negative, zero, or positive; not necessarily −1, 0, or 1.
+  - *why hash into an array at all* — an array makes
+    "position → element" cost O(1); hashing
+    turns an arbitrary key into a position. Every other choice
+    below exists to protect this one property.
 
-  - Respect sign symmetry, transitivity, and consistent treatment of comparison ties.
+  - *why chaining for collisions* — slots are finite, keys
+    aren't, so two keys sharing a slot is unavoidable; a chain
+    absorbs that without disturbing neighboring buckets, and
+    deletes stay simple (unlike open addressing, which shifts
+    the problem to probing).
 
-  - Avoid subtraction-based comparison; subtraction can overflow.
+  - *why treeify, and why exactly 8* — with a decent hashCode,
+    chain lengths follow a Poisson curve: a chain of 8 is a
+    ~1-in-16-million event in OpenJDK's stated model. So 8 is a
+    warning — lousy hashCode, a hash-flooding attack, or bad luck —
+    and the red-black tree's overhead can be worth paying. Lookup
+    can drop O(n) → O(log n), but equal-hash keys without useful
+    ordering can still need O(n). Rarity is the argument: trees
+    cost memory, so reserve them for the pathological case.
 
-```java
-List<String> names = new ArrayList<>(Arrays.asList("Zoe", "Al", "Amy"));
-Comparator<String> byLengthThenName = Comparator.comparingInt(String::length)
-    .thenComparing(Comparator.naturalOrder());
-names.sort(byLengthThenName);
-System.out.println(names); // [Al, Amy, Zoe]
-```
+  - *why load factor 0.75* — pure space-time bargain. Resize too
+    late → long chains, slow lookups; too early → half-empty
+    array, wasted memory. At 75% the *expected* chain length
+    stays under ~1, so O(1) still holds statistically. 0.5 wastes
+    RAM for little gain; 1.0 increases collision pressure rather
+    than guaranteeing a collision.
 
-- **Tie-breakers:** later comparators run only when earlier keys compare equal.
+  - *why capacity is a power of 2* — index becomes
+    `hash & (n-1)`, a cheap bit-mask instead of a slow `%`.
+    Cost: only low bits get used, so HashMap XORs high bits down
+    (`h ^ h >>> 16`) to keep spread.
 
-- **Reversal:** calling `reversed()` after a chain reverses the whole chain; reverse one key before attaching it for mixed directions.
+  - *why resize doubles* — doubling preserves power-of-2 *and*
+    makes redistribution cheap: each entry either stays put or
+    moves exactly +oldCapacity, decided by one bit. Growing
+    geometrically also amortizes resize cost to O(1) per insert.
 
-- **Nulls:** `nullsFirst` / `nullsLast` wrap an ordering; reversing the wrapper also reverses null placement.
+  - *why one null key allowed* — a convenience ruling, not
+    physics: single-threaded code can disambiguate null with
+    `containsKey`, so banning it (Hashtable-style) buys nothing;
+    null can't produce a hashCode, so it's hard-wired to bucket 0.
 
-- **Stable list sort:** elements comparing equal preserve their original relative order.
+  - *why not synchronized* — most maps live on one thread; making
+    everyone pay lock cost for the few who share (Hashtable's
+    mistake) is backwards. Thread safety is opt-in:
+    ConcurrentHashMap.
 
-- **Depth:** [application comparator patterns](comparator-patterns.md) covers mixed directions, nulls, locale rules, business ranks, and ranked reports.
+  *One-liner:* array of buckets; hashCode picks the bucket,
+  equals picks the entry; chains request treeification past 8
+  (capacity ≥64); normally resize after size exceeds 75% of capacity.
 
-### Queue, Deque, and PriorityQueue
+  **Contract vs implementation:** the capacities, spreading, and
+  treeification rules above describe OpenJDK 8. The public contract
+  promises expected constant-time basic operations with suitably
+  distributed hashes, not a universal worst-case time bound.
+  [HashMap API](https://docs.oracle.com/javase/8/docs/api/java/util/HashMap.html) ·
+  [OpenJDK implementation](https://raw.githubusercontent.com/openjdk/jdk8u/master/jdk/src/share/classes/java/util/HashMap.java).
 
-- **Queue:** holds elements for processing according to its ordering policy.
+- **HashMap vs Hashtable vs ConcurrentHashMap?**
 
-  - Many queues are FIFO; PriorityQueue is an important exception.
+  - Hashtable: legacy, fully synchronized, no null keys or values
 
-- **Deque:** insertion/removal at either end; supports FIFO and LIFO use.
+  - ConcurrentHashMap: fine-grained coordination (CAS + bin-level
+    sync in OpenJDK 8), retrievals do not take update locks, no
+    null keys or values
 
-- **Failure styles:**
+  - HashMap: unsynchronized, one null key + any number of
+    null-valued mappings allowed; coordinate concurrent mutation
 
-| Operation | Exception form | Special-value form |
-|---|---|---|
-| Insert | `add(e)` | `offer(e)` |
-| Remove head | `remove()` | `poll()` |
-| Inspect head | `element()` | `peek()` |
+    |Type|Null keys|Null values|
+    |---|---|---|
+    |`HashMap`|1|many|
+    |`Hashtable`|0|0|
+    |`ConcurrentHashMap`|0|0|
 
-- **Deque aliases:** `push` = `addFirst`; `pop` = `removeFirst`.
+  **CAS + per-bin sync, explained** *(pre-Java-8: coarse segment
+  locks — recognize the term if an older panelist uses it)*:
 
-- **ArrayDeque:** good starting point for a local stack or queue; rejects null elements.
+  - empty bin → insert via CAS (lock-free compare-and-swap,
+    no thread blocks)
 
-- **PriorityQueue:** binary heap; the head is the least element according to its ordering.
+  - collision → relevant updates synchronize at bin level; ordinary
+    list bins use the head node, tree bins have extra coordination
 
-  - `offer` / `poll`: O(log n); `peek`: O(1).
+  - retrievals do not acquire the update locks
 
-  - Iterator order is not sorted; ties need not follow insertion order.
+  **Why no nulls (Hashtable + ConcurrentHashMap):**
 
-  - For top K, keep a heap whose head is the next candidate to discard.
+  - `get(k) == null` is ambiguous — absent, or mapped to null?
 
-### Views, fixed size, snapshots, and immutability
+  - plain HashMap disambiguates with a follow-up `containsKey(k)`
 
-| API | Structural changes | Backing changes visible? | Null policy |
-|---|---|---|---|
-| `Arrays.asList(array)` | No resizing; `set` allowed | Yes, both directions | Permits null elements |
-| `Collections.unmodifiableList(list)` | Through wrapper: no | Yes | Follows backing contents |
-| `new ArrayList<>(list)` | Yes | No shared list structure | Permits null elements |
-| `List.of(...)` — Java 9+ | No | No caller-owned backing list | Rejects nulls |
-| `List.copyOf(list)` — Java 10+ | No | Snapshot of structure | Rejects nulls |
+  - a concurrent map can't — another thread may mutate between
+    the two calls
 
-- **All shallow cases:** shared mutable element objects can still change.
+  - banning null makes `get() == null` always mean absent
 
-- **Primitive-array trap:** `Arrays.asList(new int[]{1, 2})` produces one element — the `int[]` — not two Integers.
+- **HashSet internals?** — a HashMap in disguise: elements are the
+  keys, value is a dummy constant.
 
-- **`subList`:** a backed range view, not an independent copy.
+- **What if a key changes after insertion?** — keep equality- and
+  hash-relevant state stable while it is a key or set member.
 
-  - A structural change to the backing list outside the view makes the view's semantics undefined.
+  - the entry remains in its old bin; the changed hash can send
+    lookups somewhere else
 
-  - Copy with `new ArrayList<>(view)` when independent structure is required.
+  - an object may still appear in iteration while `containsKey` or
+    removal fails; changing unrelated fields is a different case
 
-- **Map views:** `keySet`, `values`, and `entrySet` reflect backing-map changes.
+  - prefer immutable logical keys
 
-  - Supported removals through those views remove mappings.
+  ```java
+  // Type declaration; imports: java.util.*.
+  final class Key {
+      int id;
+      Key(int id) { this.id = id; }
+      @Override public int hashCode() { return id; }
+      @Override public boolean equals(Object other) {
+          return other instanceof Key && id == ((Key) other).id;
+      }
+  }
+  ```
 
-  - They do not support arbitrary insertion through `add`.
+  ```java
+  Map<Key, String> map = new HashMap<>();
+  Key key = new Key(1);
+  map.put(key, "paid");
+  key.id = 2;  // mistake: changes equality/hash state after insertion
+  System.out.println(map.containsKey(key)); // false with OpenJDK HashMap
+  System.out.println(map.size());           // 1: entry did not disappear
+  ```
 
-- **Depth:** [static factories, views, and snapshots](static-factory-methods.md).
+- **TreeMap / TreeSet?** — red-black tree, sorted order, O(log n),
+  needs `Comparable` or a `Comparator`; natural ordering rejects
+  null keys/elements, but a comparator that supports null can allow them.
 
-### Iteration and concurrent access
+  - comparison returning zero defines an existing key/element;
+    ordering inconsistent with equals can violate the general
+    Map / Set contract — BigDecimal is the standard scale example
 
-- **Iterator:** forward traversal; optional `remove`.
+- **LinkedHashMap?** — HashMap + insertion order; with access-order
+  plus `removeEldestEntry` it's a ready-made LRU cache.
 
-- **ListIterator:** list traversal in both directions; optional `add`, `set`, and `remove` with state rules.
+  - an LRU hook is only an entry-count policy: concurrency, expiry,
+    memory limits, and duplicate loading need additional design
 
-- **Fail-fast iterators:** best-effort detection of unsupported structural changes, often using a modification count.
+- **Map updates — what do the Java 8 helpers actually do?**
 
-  - `ConcurrentModificationException` is a bug signal, not a synchronization mechanism.
+  - `putIfAbsent`: inserts for absent/null mappings under ordinary Map
 
-  - It can occur in one thread; detection is not guaranteed.
+  - `computeIfAbsent`: absent/null value → compute; null result is
+    not installed
 
-- **Removal during traversal:** use a supported `iterator.remove()` or an appropriate bulk operation such as `removeIf`.
+  - `computeIfPresent`: existing non-null value → compute; null
+    result removes the mapping
 
-- **CopyOnWriteArrayList iterator:** traverses a snapshot; iterator mutation operations are unsupported.
+  - `compute`: key + current value (possibly null) → replacement;
+    null result removes or leaves absent
 
-- **ConcurrentHashMap iterator:** weakly consistent; can reflect some concurrent changes without being a snapshot.
+  - `merge`: absent/null value → install supplied non-null value;
+    otherwise combine old and supplied values, removing on null
 
-- **“Fail-safe”:** informal umbrella wording; name the actual snapshot or weak-consistency contract.
+  ```java
+  Map<String, Integer> counts = new HashMap<>();
+  counts.merge("paid", 1, Integer::sum);
+  counts.merge("paid", 1, Integer::sum);
+  counts.computeIfAbsent("failed", key -> 0);
+  System.out.println(counts.get("paid"));   // 2
+  System.out.println(counts.get("failed")); // 0
+  ```
 
-### Map update methods
+  - default Map helpers do not promise cross-thread atomicity
 
-- **`putIfAbsent`:** inserts when absent or mapped to null under the ordinary Map contract.
+  - ConcurrentHashMap specifies atomic per-key operations; a
+    `get`-then-`put` sequence is still not automatically atomic
 
-- **`computeIfAbsent`:** calls the function for absent/null mappings; a null result is not installed.
+  - keep remapping callbacks short; avoid recursive map updates and
+    slow remote calls inside them
 
-- **`computeIfPresent`:** runs for an existing non-null value; null result removes the mapping.
+  - atomic installation of a mutable value does not make later
+    mutations of that value thread-safe
 
-- **`compute`:** computes from the key and current value, possibly null; null result removes or leaves absent.
+- **Fail-fast vs fail-safe iterators?**
 
-- **`merge`:** installs the supplied non-null value for an absent/null mapping; otherwise combines old and supplied values.
+  - fail-fast: detects structural modification on a best-effort basis and may
+    throw `ConcurrentModificationException` (ArrayList, HashMap); this is a bug
+    detector, not a concurrency guarantee
 
-```java
-Map<String, Integer> counts = new HashMap<>();
-counts.merge("paid", 1, Integer::sum);
-counts.merge("paid", 1, Integer::sum);
-counts.computeIfAbsent("failed", key -> 0);
-System.out.println(counts.get("paid"));   // 2
-System.out.println(counts.get("failed")); // 0
-```
+  - "fail-safe" is informal: CopyOnWriteArrayList iterators traverse a snapshot;
+    ConcurrentHashMap iterators are weakly consistent and may see some updates
 
-- **Atomicity boundary:** default Map methods do not promise atomic coordination across threads.
+  - common mechanism: collection keeps a `modCount`; iterator
+    remembers it at creation and checks during traversal —
+    detected mismatch → throw, on a best-effort basis
 
-- **ConcurrentHashMap:** provides specified atomic per-key operations; a `get`-then-`put` sequence is still not automatically atomic.
+  - follow-up — *so how DO you remove while iterating?*
+    `iterator.remove()` (updates both counts) or
+    `list.removeIf(pred)`; never `list.remove()` inside for-each
 
-  - No null keys or values.
+  - CopyOnWriteArrayList snapshot iterators do not support iterator
+    mutation operations; ConcurrentHashMap iteration is not a snapshot
 
-  - OpenJDK 8 uses CAS for empty-bin insertion and bin-level synchronization for relevant contended updates; retrievals generally do not block.
+  - a CME can arise within one thread; its absence proves nothing
+    about thread safety
 
-  - Keep remapping callbacks short; avoid recursive updates and slow remote calls inside them.
+- **Iterator vs ListIterator?** *(entry classic)*
 
-  - Atomic publication of a mutable value does not make later mutations of that value thread-safe.
+  - Iterator — forward only, any Collection,
+    `hasNext`/`next`/`remove`
 
-- **Reference:** [ConcurrentHashMap contracts](https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ConcurrentHashMap.html).
+  - ListIterator — Lists only, both directions, plus
+    `add`/`set`/`previous`/index queries
 
-### LinkedHashMap and LRU
+- **Read-only collections?**
 
-- **Insertion order:** ordinary LinkedHashMap iteration follows insertion order.
+  - `Collections.unmodifiableList(list)` — wrapper; writes throw
+    `UnsupportedOperationException`, but the *backing* list can
+    still change underneath
 
-- **Access order:** select it with the constructor flag for LRU-style behavior.
+  - `List.of(...)` / `Map.of(...)` (Java 9) — unmodifiable collections,
+    no nulls allowed; mutable elements/values can still change
 
-- **Eviction hook:** `removeEldestEntry` can enforce a simple entry-count limit.
+  - `List.copyOf(...)` (Java 10) — an unmodifiable snapshot of collection structure;
+    deep immutability also requires immutable or defensively copied elements
 
-- **Limits:** not inherently concurrent; expiry, memory bounds, and loading coordination require additional design.
+  - `List.copyOf` also rejects null elements; all these guarantees
+    concern structure, not deep immutability
 
-### Collections mastery and practice
+- **Fixed size vs backed view vs independent copy?**
 
-- Choose a structure from ordering, duplicates, nulls, access pattern, and concurrency requirements.
+  ```java
+  String[] source = {"new", "paid"};
+  List<String> fixed = Arrays.asList(source);
+  fixed.set(0, "retry");
+  System.out.println(source[0]); // retry: same backing array
+  // fixed.add("failed");       // UnsupportedOperationException
 
-- Predict a mutable-key lookup, a TreeSet comparison tie, and a backed-view mutation.
+  List<String> view = Collections.unmodifiableList(fixed);
+  List<String> copy = new ArrayList<>(fixed);
+  source[0] = "done";
+  System.out.println(view.get(0)); // done: view observes backing changes
+  System.out.println(copy.get(0)); // retry: copied list structure
+  ```
 
-- Explain why `computeIfAbsent` and a thread-safe map do not solve every shared-value race.
+  - primitive-array trap: `Arrays.asList(new int[]{1, 2})` contains
+    one element — the int array — not two Integers
 
-- **Drills:** [Collection Choices](lab/10-core-contracts/CollectionChoiceContracts.java) · [Hash Keys](lab/04-data-structures/HashKeyContract.java) · [Equality and Ordering](lab/10-core-contracts/EqualityOrderingContract.java).
+  - `subList` is a backed range view; changing the backing structure
+    outside that view makes the view's semantics undefined
 
-- **Behavior drills:** [Views and Iteration](lab/04-data-structures/CollectionViewsAndIteration.java) · [Map Updates](lab/04-data-structures/MapUpdateContracts.java) · [LRU](lab/04-data-structures/AccessOrderLruCache.java) · [Navigation](lab/04-data-structures/NavigableTimeSeries.java).
+  - `new ArrayList<>(view)` gives independent list structure
+
+  - map `keySet` / `values` / `entrySet` views reflect map changes;
+    supported removals remove mappings, arbitrary `add` is unsupported
+
+  - **Depth:** [static factories, views, and snapshots](static-factory-methods.md)
+
+- **Comparable vs Comparator?** — Comparable: the class's own
+  natural order (`compareTo`); Comparator: external strategy,
+  many orderings (`Comparator.comparing(...)` since Java 8).
+
+  **Comparable** (`java.lang`):
+
+  - the class itself implements `int compareTo(T other)` —
+    "this is how *I* sort"
+
+  - one natural order per class, baked in — String alphabetical,
+    Integer numeric, Date chronological
+
+  - `Collections.sort(list)` and `TreeMap`/`TreeSet` use it
+    automatically
+
+  - return contract: negative = this before other, 0 = equal,
+    positive = this after
+
+  **Comparator** (`java.util`):
+
+  - separate object implements `int compare(T a, T b)` —
+    sorting logic lives *outside* the class
+
+  - use when: can't edit the class (third-party), or need
+    multiple orders (by name, by salary, by date...)
+
+  - passed in explicitly: `list.sort(cmp)`,
+    `new TreeMap<>(cmp)`, `Collections.sort(list, cmp)`
+
+  **Java 8 shorthand:**
+
+  - `Comparator.comparing(Emp::getSalary)` — build from a getter
+
+  - chain: `.thenComparing(Emp::getName)` — tie-breaker
+
+  - flip: `.reversed()`; nulls: `Comparator.nullsFirst(...)`
+
+    ```java
+    class Emp implements Comparable<Emp> {
+        private final int id;
+        private final String name;
+        private final long salary;
+
+        Emp(int id, String name, long salary) {
+            this.id = id;
+            this.name = name;
+            this.salary = salary;
+        }
+        String getName() { return name; }
+        long getSalary() { return salary; }
+
+        public int compareTo(Emp o) {          // natural: by id
+            return Integer.compare(id, o.id);
+        }
+    }
+    ```
+
+    ```java
+    List<Emp> emps = new ArrayList<>(Arrays.asList(
+        new Emp(1, "Ada", 100), new Emp(2, "Zoe", 200)));
+
+    emps.sort(Comparator.comparing(Emp::getSalary).reversed());          // external: by salary
+    ```
+
+  *One-liner:* Comparable = the class sorts itself, one way.
+  Comparator = you hand in a sort rule, as many ways as needed.
+
+  - comparison returns a sign, not necessarily −1/0/1; honor sign
+    symmetry, transitivity, and consistent handling of ties
+
+  - do not subtract to compare integers: subtraction can overflow
+
+  - `reversed()` after a chain reverses the whole chain; reverse
+    a single key before chaining when directions differ
+
+  - reversing a nullsFirst/nullsLast wrapper also reverses null placement
+
+  - list sorting is stable: comparison ties retain encounter order
+
+  - **Depth:** [application comparator patterns](comparator-patterns.md)
+
+- **Queue vs Deque?** — Queue: processing order follows its policy;
+  many queues are FIFO, but PriorityQueue is not.
+  Deque extends it with both ends open, so the same object serves
+  as a queue or a stack.
+
+  **The shape:**
+
+  - `Queue` extends Collection — remove from the head; FIFO queues
+    insert at the tail, priority queues select by priority
+
+  - `Deque` (double-ended queue) extends Queue — insert and
+    remove at *either* end, covering FIFO *and* LIFO
+
+  - `ArrayDeque` and `LinkedList` implement Deque; `PriorityQueue`
+    implements Queue only
+
+  **Methods — every operation ships in two flavours**, same
+  action, different failure:
+
+    | Operation | Throws | Returns `null`/`false` |
+    | --- | --- | --- |
+    | insert | `add(e)` | `offer(e)` |
+    | remove head | `remove()` | `poll()` |
+    | inspect head | `element()` | `peek()` |
+
+  - prefer the special-value column — a full/empty queue is
+    normal traffic, not an exception
+
+  - Deque doubles each one with a `First`/`Last` suffix:
+    `offerFirst`/`offerLast`, `pollFirst`/`pollLast`,
+    `peekFirst`/`peekLast`
+
+  - stack aliases sit on the head: `push` = `addFirst`,
+    `pop` = `removeFirst`
+
+  **Picking an implementation:**
+
+  - default to `ArrayDeque` for both stack and queue — one
+    resizable circular array, contiguous and cache-friendly,
+    no per-element nodes to collect
+
+  - over `Stack`: legacy, extends Vector — synchronized stack
+    operations where local use usually needs no synchronization
+
+  - over `LinkedList`: a Node object (value + 2 pointers) per
+    element — scattered memory, GC load
+
+  - one important disqualifier: `ArrayDeque` forbids nulls (they'd be
+    ambiguous with `poll`'s empty signal) — need them, take
+    `LinkedList`
+
+  *One-liner:* Queue = a head-ordering policy with polite (`offer`/`poll`) and rude
+  (`add`/`remove`) methods. Deque = both ends, so it replaces
+  Stack. `ArrayDeque` for both, unless you need nulls.
+
+- **PriorityQueue?** — a Queue that ignores arrival order: a
+  binary heap where `poll` always hands back the smallest element
+  by the comparator, not the oldest.
+
+  - binary heap in an array — no ends to speak of, which is why
+    it implements Queue but not Deque
+
+  - min-heap by default: needs `Comparable` elements or a
+    `Comparator` at construction; flip to max-heap via
+    `Comparator.reverseOrder()`
+
+  - `offer`/`poll` O(log n), `peek` O(1)
+
+  - trap: iteration order is *not* sorted — only the head is
+    guaranteed; no nulls
+
+  - reach for it on "top K", scheduling, Dijkstra — anywhere
+    "who's next" is a priority, not a position
+
+  *One-liner:* PriorityQueue = heap in an array, head is always
+  the min, iteration order means nothing.
+
+- **Generics?** — compile-time type safety; implemented using type
+  erasure — hence no `new T[]`, and an Object-typed value cannot be
+  checked with `instanceof List<String>` (use `List<?>`).
+
+  - bounds: `<T extends Number>` — restrict what T can be
+
+  - wildcards *(depth reserve — drill last)*: `? extends T` =
+    read as T, no generally safe non-null insertion; `? super T` =
+    write T, read as Object — **PECS** (Producer Extends, Consumer Super)
+
+  - bounds do not freeze a collection: supported removals can work;
+    details and examples: [§2 Generics and type safety](#2-generics-and-type-safety)
+
+  - trap: `List<Dog>` is NOT a `List<Animal>` — generics are
+    invariant; that's what wildcards are for
+
+- **Blind-rep checks:** choose from ordering, duplicates, nulls, access
+  pattern, and concurrency; predict mutable-key and view mutations;
+  explain the limit of an atomic map operation around mutable values.
+
+- **Practice:** [Collection Choices](lab/10-core-contracts/CollectionChoiceContracts.java) ·
+  [Hash Keys](lab/04-data-structures/HashKeyContract.java) ·
+  [Equality and Ordering](lab/10-core-contracts/EqualityOrderingContract.java).
+
+- **Behavior drills:** [Views and Iteration](lab/04-data-structures/CollectionViewsAndIteration.java) ·
+  [Map Updates](lab/04-data-structures/MapUpdateContracts.java) ·
+  [LRU](lab/04-data-structures/AccessOrderLruCache.java) ·
+  [Navigation](lab/04-data-structures/NavigableTimeSeries.java).
 
 ---
 
-## Numbers and money
+## §4 Numbers and money
 
 ### Integer arithmetic and conversions
 
@@ -1052,7 +1554,8 @@ BigDecimal third = BigDecimal.ONE.divide(
 System.out.println(third); // 0.33
 ```
 
-- **Exact divide:** `1 / 3` without a suitable rounding policy throws because the decimal expansion does not terminate.
+- **Exact divide:** `BigDecimal.ONE.divide(new BigDecimal("3"))` throws
+  `ArithmeticException` because the decimal expansion does not terminate.
 
 - **`setScale(2, UNNECESSARY)`:** validates that scale conversion can happen exactly; it is not a rounding policy for arbitrary inputs.
 
@@ -1074,181 +1577,353 @@ System.out.println(third); // 0.33
 
 ---
 
-## §3 Exceptions
+## §5 Exceptions
 
-### Hierarchy and checked contracts
+- **What is an exception?** *(the opener — panels start at
+  definitions)* — an event that disrupts normal program flow; in
+  Java it's an *object* (a Throwable subtype) thrown at the point
+  of failure and caught somewhere up the stack. Handling it can keep
+  the program running instead of dying.
 
-```text
-Throwable
-├─ Error                         unchecked
-└─ Exception
-   ├─ RuntimeException           unchecked
-   └─ other Exception subclasses checked
-```
+- **Hierarchy?** — `Throwable` → `Error` + `Exception`; `Exception`
+  → checked + `RuntimeException` (unchecked).
 
-- **Throwable:** base type of objects that can be thrown and caught.
+  ```text
+  Throwable
+   ├─ Error                 (serious conditions — unchecked)
+   │    ├─ OutOfMemoryError
+   │    ├─ StackOverflowError
+   │    └─ NoClassDefFoundError
+   └─ Exception
+        ├─ IOException, SQLException,      (checked —
+        │  ClassNotFoundException           compiler enforced)
+        └─ RuntimeException                (unchecked)
+             ├─ NullPointerException
+             ├─ IndexOutOfBoundsException
+             │    └─ ArrayIndexOutOfBoundsException
+             ├─ ArithmeticException
+             ├─ ClassCastException
+             └─ IllegalArgumentException
+                  └─ NumberFormatException
+  ```
 
-- **Unchecked:** RuntimeException, Error, and their subclasses.
+  Trap: checked vs unchecked is decided by *inheritance* (belongs
+  to the RuntimeException/Error families or not) — no keyword involved.
 
-- **Checked:** every other Throwable type, including Throwable itself; callers must catch or declare checked exceptions that can escape.
+- **Checked vs unchecked?**
 
-- **Recoverability is a separate question:** runtime exceptions can represent operational or domain failures; checked exceptions are not automatically recoverable.
+  - checked — compiler forces handle-or-declare
 
-- **Error:** serious conditions from which ordinary application code is not generally expected to recover.
+    - IOException, SQLException, ClassNotFoundException
 
-  - Not every Error means the JVM has collapsed; AssertionError is a useful counterexample.
+  - unchecked — RuntimeException and Error families, no compiler demand
 
-  - Catch the failures your boundary can meaningfully handle; avoid a blanket catch-and-continue policy for Throwable.
+    - NPE, ArrayIndexOutOfBounds, ArithmeticException,
+      ClassCastException, NumberFormatException,
+      IllegalArgumentException
 
-- **Reference:** [JLS §11 — exception classification and checking](https://docs.oracle.com/javase/specs/jls/se25/html/jls-11.html).
+  **Why the split (the design argument):**
 
-### throw, throws, and propagation
+  - checked often represents *external* failures a correct program can still hit —
+    file missing, network down, DB gone. The compiler demands a
+    plan: handle or declare; it does not guarantee recoverability.
 
-- **`throw`:** raises a Throwable object at a specific execution point.
+  - unchecked often represents *programming bugs* — null, bad index, bad cast.
+    Possible on nearly every line; forcing declarations everywhere
+    would drown the code. For those bugs, fix the cause, not just the catch.
 
-- **`throws`:** declares exceptions a method or constructor may let escape.
+  - rule of thumb for API design: consider whether callers should be
+    required to handle a failure. Runtime exceptions can also represent
+    domain or operational failures; inheritance decides the classification.
 
-- **Propagation:** exceptional completion unwinds calls until a matching handler is found.
+- **Exception vs Error?** *(the famous one)* — both extend
+  `Throwable`, then differ in *intended application handling*:
 
-  - An uncaught exception terminates that thread after uncaught-exception handling.
+  - Exception: application-level trouble, often recoverable —
+    handle it where recovery is meaningful (IOException, SQLException, NPE)
 
-  - Executor tasks can capture failures in Futures; failure visibility depends on how work is submitted and observed.
+  - Error: serious conditions ordinary application code is not generally
+    expected to recover from — OutOfMemoryError (heap exhausted),
+    StackOverflowError (runaway recursion). All Errors are unchecked.
+    AssertionError is a counterexample to “every Error means JVM collapse.”
 
-- **Boundary decision:** recover, translate while preserving cause, or propagate to an owner that can decide.
+  - spoken contrast: *"Exceptions invite an application handling decision;
+    Errors signal serious conditions."*
 
-  - Logging and rethrowing at every layer creates duplicate noise.
+- **Can you catch Error or Throwable?** — legal syntax, but a blanket
+  catch-and-continue policy is dangerous. After OOM/StackOverflow,
+  recovery itself may fail. Catch failures your boundary can meaningfully
+  handle; do not treat every Throwable as an ordinary business failure.
 
-  - An empty catch can turn a failed operation into apparent success.
+- **`throw` vs `throws`?** — `throw` raises one; `throws` declares
+  a method may.
 
-### Catch order and multi-catch
+  ```java
+  void read() throws IOException {     // throws — declares
+      throw new IOException("boom");   // throw  — raises
+  }
+  ```
 
-- Catch a subtype before its supertype; a subtype handler after a matching supertype handler is unreachable and rejected.
+- **`final` vs `finally` vs `finalize`?** *(classic trio)*
 
-- Multi-catch alternatives cannot be related by subtyping.
+  - `final` — keyword: assign-once var / no-override method /
+    no-subclass class
 
-- A multi-catch parameter cannot be reassigned.
+  - `finally` — block: cleanup when control leaves try/catch, subject to termination
 
-```java
-// Java 8 — method declaration; import java.io.*.
-static String readFirstLine(File file) throws IOException {
-    try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-        return reader.readLine();
-    } catch (FileNotFoundException failure) {
-        throw new IOException("Missing input: " + file, failure);
-    }
-}
-```
+  - `finalize` — historical finalization callback, deprecated for removal since Java 18; never rely on it
 
-- **What the example shows:** a specific failure is translated while preserving its cause; the reader is closed by its owner.
+- **Does finally always run?**
 
-- **Encoding:** FileReader in this Java 8 example uses the platform default; choose an explicit charset for a defined file format.
+  - normally — even after a `return` in try/catch
 
-### finally and try-with-resources
+  - exceptions include process/runtime termination (`System.exit()`,
+    `Runtime.halt()`, JVM crash); a try that never completes never reaches finally
+
+  - trap: a `return` *inside* finally overrides the try's return
+    AND swallows its exception (§9 trap)
+
+- **Try / catch / finally — legal combos?** *(MCQ staple)*
 
-- **`finally`:** runs when control leaves the corresponding try/catch through normal or abrupt completion, subject to process/runtime termination.
-
-  - A try that never completes does not reach its finally block.
-
-  - Process termination, `Runtime.halt`, or a crash can prevent cleanup.
-
-  - A return or exception from finally can replace an earlier return or exception; avoid it.
-
-- **Try-with-resources — Java 7+:** closes successfully initialized AutoCloseable resources in reverse declaration order.
-
-  - If a later resource initializer fails, earlier resources are still closed.
-
-  - If the body throws and close also throws, the body exception remains primary and close failures are suppressed.
-
-  - If the body succeeds but closing fails, a close failure becomes primary.
-
-  - A resource expression evaluating to null is not closed.
-
-- **Cause vs suppressed:**
-
-  - Cause: the underlying failure wrapped or associated with another failure.
-
-  - Suppressed: an additional failure preserved while another exception takes priority.
-
-- **Java 9+:** an existing final or effectively-final resource variable can be used directly in the resource specification.
-
-### Custom exceptions and translation
-
-```java
-// Java 8 — type declaration.
-final class PaymentFailure extends RuntimeException {
-    PaymentFailure(String message, Throwable cause) {
-        super(message, cause);
-    }
-}
-```
-
-- **Design the contract:** choose checked or unchecked based on the API's handling expectations and consistency.
-
-- **Preserve context:** meaningful operation identifiers and the original cause help diagnosis.
-
-- **Translate once at the right boundary:** infrastructure failures can become domain failures; an HTTP layer can map those to response semantics.
-
-- **Do not expose internals:** a client response and an internal diagnostic log serve different audiences.
-
-### Overriding and checked exceptions
-
-| Parent declaration | Override may declare |
-|---|---|
-| No checked exception | No new checked exception |
-| `throws IOException` | IOException, a checked subtype, or none |
-| `throws IOException, SQLException` | Compatible exceptions from either family, or none |
-
-- **Restriction:** an override cannot widen the inherited checked-exception contract.
-
-- **Unchecked exceptions:** not subject to that restriction.
-
-- **Call-site rule:** compile-time reference type determines the checked exceptions the caller must handle.
-
-- **Dispatch rule:** runtime receiver type determines which overridden body executes.
-
-```java
-// Java 8 — type declarations; import java.io.IOException.
-class ReaderBase {
-    void read() throws IOException {}
-}
-
-class ReaderChild extends ReaderBase {
-    @Override void read() {}
-}
-
-// ReaderChild child = new ReaderChild(); child.read(); // no checked handling
-// ReaderBase base = child; base.read();               // handle/declare IOException
-```
-
-### Interruption and class-loading failures
-
-- **InterruptedException:** commonly signals that a blocking operation was interrupted.
-
-  - Propagate it when your API permits.
-
-  - If handling it at a boundary that cannot propagate, restore interrupt status with `Thread.currentThread().interrupt()` and follow the cancellation policy.
-
-  - Restoration is not permission to keep executing the cancelled operation indefinitely.
-
-- **ClassNotFoundException:** typically a checked failure from an explicit class-loading request such as `Class.forName`.
-
-- **NoClassDefFoundError:** a linkage failure, including a missing runtime definition or reuse of a class whose initialization previously failed.
-
-  - For failed initialization, inspect the earlier initialization failure as well as the later missing-definition symptom.
-
-### Exceptions mastery and practice
-
-- Explain compile-time checking without equating it with recoverability.
-
-- Predict the primary and suppressed exceptions when work and cleanup both fail.
-
-- Explain why an override can omit IOException while a base-typed caller must still handle it.
-
-- **Drills:** [Exception Boundaries](lab/06-exceptions/ExceptionBoundaryContracts.java) · [Compiler Contracts](lab/10-core-contracts/CompilerContracts.java) · [Resource Suppression](lab/11-io-time/ResourceSuppressionOwnership.java).
+  - legal: try+catch, try+finally, try+catch+finally,
+    try-with-resources alone
+
+  - a bare `try {}` with none of them → compile error
+
+  - nested try is legal — inner catch gets first shot, unhandled
+    ones climb to the outer
+
+- **try-with-resources?** — Java 7; initialized, non-null `AutoCloseable`
+  resources have close attempted automatically, reverse order, even on exception.
+
+  ```java
+  try (Connection c = ds.getConnection();
+       PreparedStatement ps = c.prepareStatement(sql)) {
+      ...
+  }            // close attempted on ps first, then c
+  ```
+
+  - why: the old finally-close dance leaked on double faults and
+    took 6 lines; this ensures each initialized resource gets a close attempt
+
+  - if body AND close both throw, body's exception wins; close's
+    is attached as *suppressed* (`getSuppressed()`)
+
+  - ⚓ natural JDBC answer: "our DB access closes statements and
+    connections this way"
+
+- **Custom exceptions?** — extend `Exception` (checked) or
+  `RuntimeException` (unchecked); pass message via `super(msg)`.
+  ⚓ IMPS maps failures to NPCI response codes (M2/M3/08/12…)
+  rather than leaking stack traces to the network.
+
+  ```java
+  class TxnException extends RuntimeException {
+      TxnException(String msg, Throwable cause) {
+          super(msg, cause);           // message + chained cause
+      }
+  }
+  ```
+
+- **Exception propagation?** — uncaught → pops up the call stack
+  frame by frame until a matching catch; none found → thread dies,
+  the default handler normally prints the stack trace. ⚓ in a switch that's
+  never acceptable — the IMPS receivers catch at the boundary and
+  map to a response code; a listener thread must not die mid-txn.
+
+- **Exception chaining?** — wrap low-level cause in a domain
+  exception, keep the trail: `throw new TxnException("debit leg
+  failed", sqlEx)` — `getCause()` preserves forensics. ⚓ how a
+  JDBC failure surfaces as one NPCI response code without losing
+  the root cause in logs.
+
+- **Multi-catch / catch order?** — `catch (A | B e)` since Java 7;
+  subclass must be caught before superclass or it's a compile
+  error ("unreachable").
+
+  ```java
+  try { ... }
+  catch (FileNotFoundException e) { ... }  // subclass first
+  catch (IOException e)           { ... }  // parent after
+  catch (SQLException | JMSException e) { ... }  // multi-catch
+  ```
+
+- **Can we override a method with exceptions?** *(panel favorite,
+  ties to §1)* — yes. The `throws` clause is **not part of the method
+  signature**, so it does not decide whether a method overrides.
+  It only constrains which exceptions the override may let escape.
+
+- **If the base method declares a checked exception, must the
+  override also declare it?** — **no**. `throws IOException` means
+  "this method *may* let an `IOException` escape," not "every
+  implementation must throw one." The override may declare:
+
+  - the same checked exception
+
+  - a narrower subclass of it
+
+  - fewer exceptions, when the parent declares several
+
+  - no checked exception at all
+
+  |Parent declaration|Checked declaration allowed on override|
+  |---|---|
+  |none|none|
+  |`throws Exception`|`Exception`, any checked subtype, or none|
+  |`throws IOException`|`IOException`, e.g. `FileNotFoundException`, or none|
+  |`throws IOException, SQLException`|either family, both families, or none|
+
+  The override may **not** declare a broader or unrelated checked
+  exception. Unchecked exceptions (`RuntimeException`, `Error`, and
+  their subclasses) are unrestricted in every row.
+
+  **Memory rule:** the override may *shrink* the checked-exception
+  contract, never widen it.
+
+  ```java
+  class Base { void read() throws IOException {} }
+
+  // ✅ same / narrower / dropped / unchecked
+  class A extends Base {
+      @Override void read() throws IOException {}
+  }
+  class B extends Base {
+      @Override void read() throws FileNotFoundException {}
+  }
+  class C extends Base {
+      @Override void read() {}
+  }
+  class D extends Base {
+      @Override void read() throws IllegalStateException {}
+  }
+
+  // ❌ broader or new checked — won't compile
+  class E extends Base {
+      @Override void read() throws Exception {}
+  }
+  class F extends Base {
+      @Override void read() throws SQLException {}
+  }
+  ```
+
+  **Why Java enforces it:** callers compile against the reference
+  type's contract. If `Base.read()` promises at most `IOException`,
+  a runtime `Child` implementation cannot surprise that caller with
+  the broader checked `Exception`. A narrower exception is safe
+  because the parent's catch already covers it.
+
+  ```java
+  class Child extends Base {
+      @Override void read() {} // drops IOException — legal
+  }
+
+  static void callViaBase() throws IOException {
+      Base asBase = new Child();
+      asBase.read();  // must still handle/declare IOException
+  }
+
+  static void callViaChild() {
+      Child asChild = new Child();
+      asChild.read(); // no handling: Child's declaration is used
+  }
+  ```
+
+  The object chosen at runtime decides **which body runs**; the
+  reference type known at compile time decides **which checked
+  exceptions the caller must handle**. An override that declares no
+  checked exception may still catch checked exceptions internally,
+  and it may always throw unchecked exceptions.
+
+- **ClassNotFoundException vs NoClassDefFoundError?**
+
+  - the Exception — checked; reflectively loading a missing class
+    (`Class.forName("com.x.Missing")`)
+
+  - the Error — linkage cannot obtain a required runtime definition
+    (e.g. a jar missing from the classpath); it can also follow failed
+    class initialization on a later use
+
+  - Memory hook (missing-JAR case): *Exception = asked by name, not found; Error =
+    compiled against, vanished.*
+
+  *One-liner for the section:* Throwable splits into Error
+  (serious conditions) and Exception; Error and RuntimeException families
+  are unchecked, other Throwable types are checked (handle or declare).
+  `throw` raises, `throws` declares, finally handles control leaving
+  try/catch, try-with-resources attempts cleanup for you.
+
+
+### Boundary details and practice
+
+- **Exact checked boundary:** every Throwable type outside the RuntimeException
+  and Error families is checked, including Throwable itself.
+
+- **Multi-catch constraints:** alternatives cannot be related by subtyping;
+  the multi-catch parameter cannot be reassigned.
+
+- **Cleanup edge cases:**
+
+  - If a later resource initializer fails, earlier initialized resources still close.
+
+  - If the body succeeds and close fails, a close failure becomes primary.
+
+  - A null resource expression is skipped.
+
+  - Java 9+: an existing final/effectively-final resource variable can appear
+    directly in the resource specification.
+
+- **Cause vs suppressed — predict the output:**
+
+  ```java
+  // Complete Java 8+ program; run as SuppressionDemo.
+  class SuppressionDemo {
+      static final class Resource implements AutoCloseable {
+          @Override public void close() {
+              throw new IllegalStateException("close");
+          }
+      }
+
+      public static void main(String[] args) {
+          try (Resource resource = new Resource()) {
+              throw new IllegalArgumentException("work");
+          } catch (IllegalArgumentException failure) {
+              System.out.println(failure.getMessage());                 // work
+              System.out.println(failure.getSuppressed()[0].getMessage()); // close
+              System.out.println(failure.getCause());                   // null
+          }
+      }
+  }
+  ```
+
+  - A cause explains an underlying failure; suppression preserves an additional
+    failure while another takes priority.
+
+- **InterruptedException:** propagate it when the API permits; at a boundary
+  that cannot propagate, restore `Thread.currentThread().interrupt()` and
+  follow the cancellation policy. Restoring the flag does not mean continuing
+  the cancelled operation indefinitely.
+
+- **Task observation:** executor submission can capture a task's exception in
+  its Future. Observe completion; do not assume every failed task prints through
+  an uncaught-exception handler.
+
+- **Boundary hygiene:** translate once, preserve the original cause, avoid
+  empty catches, and avoid logging-and-rethrowing the same failure at every layer.
+
+- **Mastery:** explain checking without calling it recoverability; predict
+  body/initializer/close failures; explain which declaration the caller sees.
+
+- **Drills:** [Exception Boundaries](lab/06-exceptions/ExceptionBoundaryContracts.java)
+  · [Compiler Contracts](lab/10-core-contracts/CompilerContracts.java)
+  · [Resource Suppression](lab/11-io-time/ResourceSuppressionOwnership.java).
+
+- **References:** [JLS exception contracts](https://docs.oracle.com/javase/specs/jls/se25/html/jls-11.html)
+  · [try-with-resources](https://docs.oracle.com/javase/specs/jls/se25/html/jls-14.html#jls-14.20.3)
+  · [Future observation](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/Future.html).
 
 ---
 
-## I/O and resource ownership
+## §6 I/O and resource ownership
 
 ### Bytes, characters, and buffering
 
@@ -1322,42 +1997,180 @@ static long nonBlankLines(Path path) throws IOException {
 
 ---
 
-## §4 Java 8+ (know it cold)
+## §7 Java 8+ (know it cold)
 
-- **Study companion:** [Java 8 foundations](java-8.md).
+*Two-layer ammo. This section = the spoken rapid-fire; the
+deep-learning layer lives in [java-8.md](java-8.md) and the full
+version timeline in [java-versions.md](java-versions.md) — each
+bullet links its deep dive. Drill here, study there.*
 
-- **Release companion:** [Java version timeline](java-versions.md).
+- **Java 8 headline features?** — lambdas, Stream API, functional
+  interfaces, `default`/`static` interface methods, `Optional`,
+  method references, new `java.time`, PermGen → Metaspace.
 
-### Functional interfaces and lambdas
+- **Functional interface?** — one effective abstract method;
+  `@FunctionalInterface`. Core four:
 
-- **Functional interface:** one effective abstract method after inheritance and the Object-method exclusions.
+  - `Predicate` (T→boolean)
 
-  - Default/static methods do not count toward the abstract operation.
+  - `Function` (T→R)
 
-  - `@FunctionalInterface` is optional; it lets the compiler check the intended contract.
+  - `Supplier` (()→T)
 
-| Interface | Shape | Method |
-|---|---|---|
-| `Predicate<T>` | T → boolean | `test` |
-| `Function<T,R>` | T → R | `apply` |
-| `Supplier<T>` | () → T | `get` |
-| `Consumer<T>` | T → void | `accept` |
-| `UnaryOperator<T>` | T → T | `apply` |
-| `BinaryOperator<T>` | (T,T) → T | `apply` |
+  - `Consumer` (T→void)
+  *Chant: Predicate asks · Function morphs · Supplier gives ·
+  Consumer takes.*
+  [→ §A](java-8.md#a-functional-interface--the-slot-a-lambda-fills)
 
-- **Two inputs:** BiPredicate, BiFunction, and BiConsumer supply corresponding shapes.
+- **Lambda?** — inline implementation of a functional interface:
+  `(a, b) -> a + b`. Less ceremony than anonymous classes; types
+  inferred from the target interface.
+  [→ §B](java-8.md#b-lambda--the-compact-syntax)
+
+- **Effectively final?** *(the lambda gotcha)* — a lambda may
+  capture a local variable only if it's assigned once and never
+  reassigned; reassign → compile error. Fields exempt.
+  [→ §B](java-8.md#b-lambda--the-compact-syntax)
+
+- **Method reference?** — `::` shorthand when the lambda just
+  calls one method: `String::valueOf`, `list::add`,
+  `ArrayList::new`.
+  [→ §C](java-8.md#c-method-reference--shorthand-for-a-one-call-lambda)
+
+- **Stream?**
+
+  - declarative pipeline
+
+  - source
+    → lazy intermediates (`map`, `filter`, `sorted`, `distinct`)
+    → one terminal (`collect`, `forEach`, `reduce`, `count`)
+
+  - nothing runs until the terminal
+
+  - single-use  *(MCQ staple: detected reuse of a consumed stream →
+  IllegalStateException; detection is not guaranteed)*
+
+  - ordinary transformations leave source structure unchanged; callbacks can
+    still mutate objects, and modifying a non-concurrent source during traversal
+    violates the non-interference requirement
+
+  ```text
+  txns.stream() → filter → map → sorted   [all lazy — nothing runs]
+                                  └─▶ collect()   [terminal fires it]
+  ```
+
+  [→ §D](java-8.md#d-stream-api--the-payoff)
+
+- **Stream vs Collection?** *(X-vs-Y staple)* — a Collection
+  stores elements; a Stream computes over them: no storage, lazy,
+  single-use. Behavioral parameters must respect non-interference; a stream
+  does not make mutable source elements immutable.
+
+- **Intermediate vs terminal?**
+
+  - intermediates — return a Stream, lazy
+
+  - terminals — produce a result, fire the pipeline
+
+  - spot-the-terminal trick: know the operation's contract;
+    `isParallel()` returns boolean but does not consume the stream
+
+  [→ §D](java-8.md#d-stream-api--the-payoff)
+
+- **map vs flatMap?** — map: one-to-one transform; flatMap:
+  one-to-many, flattened (`List<List<T>>` → elements).
+  [→ §D](java-8.md#d-stream-api--the-payoff)
+
+- **Collectors?** — `collect` gathers the stream:
+
+  - `toList`, `joining` — the plain gathers
+
+  - `groupingBy` — = SQL GROUP BY
+
+  - `partitioningBy` — always exactly two keys (true/false)
+
+  - `toMap` — throws on duplicate key without a merge fn *(MCQ)*
+
+  - `groupingBy` + `counting()` = THE interview combo:
+
+  ```java
+  Map<String, Long> perType = txns.stream().collect(
+        Collectors.groupingBy(Txn::getType, Collectors.counting())
+  );
+  // {"ReqPay": 9421, "ReqChkTxn": 130, ...}
+  ```
+
+  [→ §E](java-8.md#e-collectors--what-collect-uses)
+
+- **Optional?** — a container that may hold a value; `orElse`,
+  `ifPresent`, `orElseThrow`. Meant for return types — makes
+  "maybe absent" explicit instead of returning null.
+  [→ §F](java-8.md#f-optional--maybe-absent-made-explicit)
+
+- **orElse vs orElseGet?** *(MCQ trap)* — `orElse(expr)` evaluates
+  its argument every time, present or not; `orElseGet(supplier)`
+  runs only when empty. Costly fallback → `orElseGet`.
+  [→ §F](java-8.md#f-optional--maybe-absent-made-explicit)
+
+- **of vs ofNullable?** *(MCQ trap)* — `Optional.of(null)` throws
+  NPE immediately; `Optional.ofNullable(null)` → empty Optional.
+  Memory hook: *`of` promises a value; `ofNullable` shrugs.*
+
+- **Why default methods?** — evolve interfaces without breaking
+  implementers (`Iterable.forEach`, `List.sort` were added that
+  way). Clash of two defaults → diamond rules, §1.
+  [→ §G](java-8.md#g-default--static-methods-in-interfaces)
+
+- **java.time vs old Date?**
+
+  - new — LocalDate/LocalDateTime/ZonedDateTime: immutable,
+    thread-safe
+
+  - old — Date/Calendar/SimpleDateFormat: mutable, famously not thread-safe
+
+  - trap: `d.plusDays(30)` unassigned does nothing
+
+  [→ §H](java-8.md#h-javatime--the-new-datetime-api)
+
+- **Metaspace?** — Java 8 removed PermGen; class metadata moved to
+  native memory (Metaspace). MCQ staple.
+
+- **parallelStream?** — fork-join in common JDK implementations; a candidate for
+  CPU-heavy, stateless work on large data — avoid unsynchronized shared
+  mutable state; measure the workload.
+
+  ```java
+  // BROKEN — shared mutable state, racy, unreliable result
+  List<Integer> total = new ArrayList<>();
+  nums.parallelStream().forEach(total::add);   // ArrayList isn't thread-safe
+
+  // CORRECT — no shared state, each thread reduces independently
+  int sum = nums.parallelStream().mapToInt(Integer::intValue).sum();
+  ```
+
+- **Version awareness (one phrase each):** LTS line = 8, 11, 17,
+  21, 25. `var` (10) · records = shallowly immutable data carriers (16) ·
+  sealed classes (17) · switch expressions (14) · virtual threads
+  (21). String `switch` works since 7. Full timeline + snippets:
+  [java-versions.md](java-versions.md); LTS memory hook:
+  [→ §K](java-8.md#k-the-lts-list--cheap-to-memorize-certain-to-be-asked).
+
+  *One-liner for the section:* Java 8 made behavior concise —
+  lambda fills a one-method interface, `::` abbreviates it,
+  streams pipe it, Optional boxes the maybe, defaults let
+  interfaces grow; LTS chant 8-11-17-21-25.
+
+### Functional Java — contracts beyond the first answer
+
+- **Functional-interface detail:** inherited abstract operations and public Object-method exclusions matter; `@FunctionalInterface` is optional and asks the compiler to verify the contract.
+
+- **More shapes:** `UnaryOperator<T>` is T → T; `BinaryOperator<T>` is (T,T) → T. BiPredicate, BiFunction, and BiConsumer take two inputs.
 
 - **Primitive specializations:** IntPredicate, IntUnaryOperator, and ToIntFunction avoid unnecessary boxing in suitable APIs.
 
-- **Lambda:** an implementation of a target functional interface.
+- **Capture:** an effectively-final reference can still point to a mutable object. Capture does not make that object thread-safe.
 
-  - Target typing supplies the expected parameter/result contract.
-
-  - Captured local variables must be final or effectively final.
-
-  - A captured reference can point to a mutable object; capture does not make that object thread-safe.
-
-  - Lambda `this` refers to the enclosing instance; an anonymous class has its own `this`.
+- **Lambda `this`:** refers to the enclosing instance; an anonymous class has its own `this`.
 
 ```java
 Function<Integer, Integer> addOne = n -> n + 1;
@@ -1368,40 +2181,11 @@ System.out.println(addOne.compose(doubleIt).apply(3)); // 7
 
 - **Predicate composition:** `and` and `or` short-circuit; `negate` reverses the result.
 
-- **Depth:** [functional interfaces](java-8.md#a-functional-interface--the-slot-a-lambda-fills) · [lambdas](java-8.md#b-lambda--the-compact-syntax).
+- **Unbound method reference:** `ToIntFunction<String> length = String::length` takes its receiver from the function's argument; `length.applyAsInt("paid")` returns `4`.
 
-### Method references
+- **Reference:** [functional-interface contract](https://docs.oracle.com/javase/8/docs/api/java/lang/FunctionalInterface.html).
 
-| Form | Example | Equivalent shape |
-|---|---|---|
-| Static method | `Integer::parseInt` | text → parsed int |
-| Bound instance | `System.out::println` | value → print on that receiver |
-| Unbound instance | `String::length` | text → text.length() |
-| Constructor | `ArrayList::new` | () → new list |
-
-- **Receiver rule:** an unbound instance reference takes the receiver from the functional interface's first argument.
-
-- **Use:** when the reference clearly expresses one compatible invocation; a lambda is useful when arguments need additional adaptation.
-
-- **Depth:** [method references](java-8.md#c-method-reference--shorthand-for-a-one-call-lambda).
-
-### Streams — the execution model
-
-- **Stream:** a sequence of elements plus a computation pipeline; it is not a storage collection.
-
-- **Pipeline:** source → zero or more intermediate operations → terminal operation.
-
-  - Intermediate operations are lazy; a terminal operation requests the result.
-
-  - Processing may short-circuit; optimization can skip callbacks that do not affect the result.
-
-  - A stream is single-use; detection of invalid reuse is not guaranteed.
-
-- **Intermediate examples:** `filter`, `map`, `flatMap`, `distinct`, `sorted`, `limit`, `skip`.
-
-- **Terminal examples:** `collect`, `reduce`, `count`, `findFirst`, `anyMatch`, `forEach`.
-
-- **Do not classify by return type alone:** `isParallel()` returns boolean but does not consume the stream.
+### Stream execution — trace the result and the effects separately
 
 ```java
 List<String> input = Arrays.asList("Ada", "Bo", "Amy");
@@ -1413,23 +2197,23 @@ List<String> result = input.stream()
 System.out.println(result); // [ADA, AMY]
 ```
 
-- **Non-interference:** callbacks must not modify a non-concurrent source during traversal.
+- **Short-circuiting:** `findFirst`, `anyMatch`, and similar operations may stop before every source element is examined.
 
-- **Stateless behavior:** results should not depend on changing shared state.
+- **Optimization:** implementations can skip effects that do not affect the required result. Mandatory business actions must not depend on `peek` or an incidental mapping callback executing.
 
-- **Source ownership:** ordinary transformations do not structurally mutate the collection; callbacks can still mutate referenced objects.
+- **Encounter order:** source order, worker execution order, and final result order are separate concerns.
 
-- **`peek`:** suitable for observation while debugging; mandatory business side effects should not depend on it executing.
+  - Parallel `forEach` does not preserve encounter order; `forEachOrdered` preserves its required action order.
 
-- **Depth:** [streams and execution](java-8.md#d-stream-api--the-payoff).
+  - `findAny` need not select the first encountered element.
 
-### map, flatMap, and primitive streams
+  - `unordered()` removes an ordering requirement; it does not shuffle the source.
 
-- **`map`:** transform each element into one result.
+- **Resource-backed streams:** a terminal operation does not itself close an owned `Files.lines` stream; use try-with-resources.
 
-- **`flatMap`:** transform each element into a stream, then flatten the resulting streams.
+- **References:** [stream execution](https://docs.oracle.com/javase/8/docs/api/java/util/stream/package-summary.html) · [optimization latitude](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Stream.html).
 
-- **`mapToInt` / `mapToLong` / `mapToDouble`:** primitive pipelines with numeric terminal operations.
+### Flattening and primitive pipelines
 
 ```java
 List<List<Integer>> groups = Arrays.asList(
@@ -1441,118 +2225,75 @@ int total = groups.stream()
 System.out.println(total); // 6
 ```
 
-- **Empty inputs:** `sum` has a zero identity; `average`, `min`, and `max` may return empty optional results.
+- **Empty inputs:** `sum` has a zero identity; `average`, `min`, and `max` can return empty optional results.
 
-- **Encounter order:** source order, processing order, and final result order are distinct concepts.
+### reduce vs collect — preserve the algebra
 
-  - `findAny` need not select the first encountered element.
+- **`reduce`:** combine values with an associative operation and a valid identity when supplied.
 
-  - Parallel `forEach` does not preserve encounter order; `forEachOrdered` preserves the required action order.
-
-  - `unordered()` removes an ordering requirement; it does not shuffle the source.
-
-### reduce vs collect
-
-- **`reduce`:** combine values using an associative operation and a valid identity when supplied.
-
-  - Identity must leave a value unchanged under the operation.
+  - The identity must leave a value unchanged under the operation.
 
   - Accumulator and combiner must agree for parallel reduction.
 
-  - Subtraction is not associative; a non-neutral identity can be counted multiple times in parallel execution.
+  - Subtraction is not associative; a non-neutral identity can be counted multiple times when partial results combine.
 
 - **`collect`:** mutable reduction into containers created, accumulated, and combined according to the collector contract.
 
-  - Ordinary parallel collection can use isolated intermediate containers safely.
+  - Ordinary parallel collection can safely use isolated intermediate containers.
 
   - A mutable result container does not imply shared concurrent mutation of one container.
 
 - **Custom collector:** supplier, accumulator, combiner, finisher, and characteristics.
 
-  - `IDENTITY_FINISH` permits treating the accumulator as the result.
+  - `IDENTITY_FINISH`: accumulator and result can be treated as the same form.
 
-  - `CONCURRENT` permits concurrent accumulation into a shared result container under the collector execution rules.
+  - `CONCURRENT`: permits concurrent accumulation into one container under the collector execution rules.
 
-  - `UNORDERED` removes the obligation to preserve encounter order.
+  - `UNORDERED`: removes the obligation to preserve encounter order.
 
-### Collectors and duplicate policies
-
-- **`groupingBy`:** group by a classification key; downstream collectors aggregate each group.
-
-- **`partitioningBy`:** returns both Boolean partitions, including empty ones.
-
-- **`toMap`:** choose what duplicate logical keys mean; the no-merge overload throws on duplicates.
+### Collectors — choose duplicates, ownership, and order
 
 ```java
-Map<String, Long> lengths = Stream.of("a", "b", "aa")
-    .collect(Collectors.groupingBy(
-        text -> "length-" + text.length(), Collectors.counting()));
-System.out.println(lengths.get("length-1")); // 2
-
 Map<String, Integer> votes = Stream.of("yes", "no", "yes")
     .collect(Collectors.toMap(Function.identity(), value -> 1, Integer::sum));
 System.out.println(votes.get("yes")); // 2
 ```
 
+- **Merge policy:** this example adds repeated votes; another domain may need rejection, replacement, or an explicit reconciliation rule.
+
 - **Mutability:** `Collectors.toList()` does not guarantee a particular implementation or mutability.
 
-  - Use `toCollection(ArrayList::new)` when a mutable ArrayList is part of the requirement.
+  - Require a mutable ArrayList? Use `toCollection(ArrayList::new)`.
 
-  - Use an appropriate snapshot/wrapper when structural immutability is required.
+  - Require protected structural ownership? Choose an appropriate copy and wrapper; mutable elements need their own ownership policy.
 
-- **Map order:** supply a suitable map factory when encounter or sorted iteration order matters.
+- **Map order:** supply a suitable map factory when encounter or sorted iteration order is required.
 
 - **Nulls:** define an input/null policy; collector behavior is not simply the backing map's null policy.
 
-- **Depth:** [collectors](java-8.md#e-collectors--what-collect-uses).
+- **Reference:** [Collectors contracts](https://docs.oracle.com/javase/8/docs/api/java/util/stream/Collectors.html).
 
-### Optional — absence as a return contract
+### Optional — compose before unwrapping
 
-- **Purpose:** represent a possibly absent non-null value, primarily in return types.
+```java
+String displayName = Optional.ofNullable("   ")
+    .map(String::trim)
+    .filter(name -> !name.isEmpty())
+    .orElseGet(() -> "anonymous");
+System.out.println(displayName); // anonymous
+```
 
-- **Creation:** `of(value)` rejects null; `ofNullable(value)` converts null to empty; `empty()` represents absence.
+- **`map`:** a null mapping result becomes empty.
 
-- **Transformation:**
+- **`flatMap`:** use when the function already returns Optional; returning null instead is an error.
 
-  - `map`: transform a present value; a null mapping result becomes empty.
+- **Return contract:** return `Optional.empty()` for absence, never null in place of an Optional.
 
-  - `flatMap`: use when the function already returns Optional; returning null from that function is an error.
+- **Version boundary:** Java 8 `orElseThrow` takes an exception supplier; the no-argument overload arrived in Java 10.
 
-  - `filter`: retain the present value only when the predicate matches.
+- **Reference:** [Optional transformations](https://docs.oracle.com/javase/8/docs/api/java/util/Optional.html).
 
-- **Exit deliberately:** fallback, throw, or perform a present-value action.
-
-  - `orElse(expression)` evaluates its argument even when a value is present.
-
-  - `orElseGet(supplier)` invokes the supplier only when empty.
-
-  - Java 8 `orElseThrow` takes an exception supplier; the no-argument overload arrived in Java 10.
-
-- **Design limits:** do not return null instead of Optional; avoid routine `isPresent()`/`get()` unwrapping when composition is clearer.
-
-- **Depth:** [Optional](java-8.md#f-optional--maybe-absent-made-explicit).
-
-### Default and static interface methods
-
-- **Default methods:** let interfaces evolve with inherited implementations.
-
-- **Resolution:**
-
-  1. A matching concrete superclass method wins over an interface default.
-
-  2. A more-specific interface default wins over the one it overrides.
-
-  3. Unrelated competing defaults require an explicit override.
-
-- **Extra boundary:** an abstract superclass method can require the class to supply an implementation; an interface default does not automatically satisfy it.
-
-- **Explicit selection:** `InterfaceName.super.method()` can call an eligible direct superinterface's default.
-
-- **Static interface methods:** call through the declaring interface; they are not inherited like instance defaults.
-
-- **Depth:** [default/static methods](java-8.md#g-default--static-methods-in-interfaces).
-
-### java.time — choose the meaning first
+### java.time — choose the meaning before the factory
 
 | Meaning | Type |
 |---|---|
@@ -1565,13 +2306,11 @@ System.out.println(votes.get("yes")); // 2
 | Seconds/nanoseconds amount | `Duration` |
 | Years/months/days amount | `Period` |
 
-- **Immutability:** methods such as `plusDays` return a new value.
-
 - **DST:** a local time can be invalid or ambiguous in a region; define the gap/overlap policy.
 
-- **Calendar vs elapsed time:** adding one calendar day and adding 24 hours can differ across a DST transition.
+- **Calendar vs elapsed time:** one calendar day and 24 elapsed hours can differ across a DST transition.
 
-- **Testable time:** inject a Clock and use a fixed clock in tests.
+- **Testable time:** inject a Clock and fix it in tests.
 
 ```java
 Clock clock = Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC);
@@ -1580,15 +2319,11 @@ System.out.println(today.plusDays(1)); // 2026-01-02
 System.out.println(today);             // 2026-01-01
 ```
 
-- **Legacy APIs:** Date, Calendar, and SimpleDateFormat are mutable; ordinary shared use needs coordination.
-
-- **Depth:** [java.time](java-8.md#h-javatime--the-new-datetime-api).
-
 ### CompletableFuture — compose work and failure
 
 - **Future:** an eventual result that callers can wait for or attempt to cancel.
 
-- **CompletableFuture:** supports completion plus dependent processing stages.
+- **CompletableFuture:** adds completion and dependent processing stages.
 
 | Operation | Choose it for |
 |---|---|
@@ -1606,86 +2341,56 @@ CompletableFuture<Integer> result = CompletableFuture.completedFuture(3)
 System.out.println(result.join()); // 8
 ```
 
+- **What this shows:** stage composition on already-completed values; it does not launch background work.
+
 - **Execution:** a non-Async continuation may run on a completion thread or another caller participating in completion.
 
 - **Async overloads:** without an explicit executor, normally use the common ForkJoinPool; low common-pool parallelism has a thread-per-task fallback.
 
-- **Waiting:** `get()` exposes checked waiting/execution failures; `join()` exposes exceptional completion through unchecked exceptions.
+- **Waiting:** `get()` exposes checked waiting/execution failures; `join()` exposes exceptional completion through unchecked exceptions. Both can block.
 
-  - Both can block.
-
-  - `get(timeout, unit)` bounds the wait; timeout does not automatically cancel the underlying operation.
+- **Timeout:** `get(timeout, unit)` bounds the wait, not the operation's lifetime; a timeout does not automatically cancel the work.
 
 - **Combination:** `allOf` waits for all inputs and returns a Void future; `anyOf` completes from the first completion, including failure.
 
-- **Cancellation:** CompletableFuture cancellation records exceptional completion; its `mayInterruptIfRunning` argument does not control the underlying computation.
+- **Cancellation:** CompletableFuture cancellation records exceptional completion; `mayInterruptIfRunning` does not control the underlying computation.
 
-- **Depth:** [CompletableFuture](java-8.md#i-completablefuture--compose-asynchronous-stages).
+- **Workload boundary:** parallel streams and default async futures can compete for common workers. Blocking I/O can occupy them; choose explicit execution and capacity limits for that workload.
 
-### Parallel streams and executor choice
+- **Reference and depth:** [CompletableFuture contract](https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/CompletableFuture.html) · [composition guide](java-8.md#i-completablefuture--compose-asynchronous-stages) · [parallel execution](java-8.md#parallel-streams).
 
-- **Good candidate:** sufficiently large, splittable, CPU-intensive work with independent operations; measure the actual workload.
-
-- **Common-pool boundary:** parallel streams and default async futures can compete for common workers.
-
-- **Blocking I/O:** can occupy those workers and delay unrelated work; choose an explicit, capacity-controlled execution model.
-
-- **Shared mutable output:** a plain ArrayList updated from parallel `forEach` is unsafe.
-
-  - Prefer a correct reduction/collector or a deliberately coordinated design.
-
-- **Pools:**
-
-  - Fixed pool: bounded worker count, normally an unbounded task queue.
-
-  - Cached pool: can grow the thread count substantially.
-
-  - Bounded ThreadPoolExecutor: explicit workers, queue, and rejection policy.
-
-  - Java 21+: a virtual thread per blocking task can simplify concurrency; downstream capacity still needs limits.
-
-- **Depth:** [parallel streams, pools, and blocking I/O](java-8.md#parallel-streams).
-
-### Other Java 8 changes and version boundaries
+### Other Java 8 additions and nearby version traps
 
 - **Collections:** `removeIf`, `List.sort`, `replaceAll`, and Map compute/merge operations.
 
 - **Utilities:** standard Base64, String joining, and additional Arrays helpers.
 
-- **Concurrency:** CompletableFuture, LongAdder, and StampedLock.
+- **Concurrency:** LongAdder and StampedLock alongside CompletableFuture.
 
 - **Metadata:** repeatable/type-use annotations; `-parameters` can retain method parameter names for reflection.
 
-- **JVM:** PermGen was removed; HotSpot class metadata moved to native-memory Metaspace, which can still be exhausted.
+- **Metaspace scope:** the native-memory implementation described above is HotSpot; it can still be exhausted.
 
 | Convenience | First permanent release |
 |---|---:|
 | `List.of`, `Map.of`, private interface helpers | 9 |
 | `List.copyOf`, local-variable `var` | 10 |
 | `Optional.isEmpty` | 11 |
-| Switch expressions | 14 |
-| Records, `Stream.toList` | 16 |
-| Sealed classes | 17 |
-| Virtual threads, record patterns, pattern switch, sequenced collections | 21 |
+| `Stream.toList` | 16 |
+| Record patterns, pattern switch, sequenced collections | 21 |
 | Flexible constructor bodies, compact files/instance main | 25 |
 
 - **`Stream.toList()` — Java 16+:** returns an unmodifiable list; its contract differs from `Collectors.toList()`.
 
-- **LTS line through Java 25:** 8 → 11 → 17 → 21 → 25.
-
-- **Depth:** [other Java 8 additions](java-8.md#j-other-java-8-additions-worth-knowing) · [version details](java-versions.md).
-
 ### Java 8 mastery and practice
 
-- Choose a functional interface from its input/output shape.
+- Give the Java 8 headline answer aloud, then demonstrate one feature without reading.
 
-- Trace a short-circuiting pipeline and state which effects are actually guaranteed.
-
-- Handle duplicate keys, collector mutability, and empty inputs deliberately.
+- Trace a short-circuiting pipeline and state which effects are guaranteed.
 
 - Choose map/flatMap, reduce/collect, and thenApply/thenCompose from the required result shape.
 
-- Choose a time type and an executor from the meaning and workload.
+- Define duplicate, empty-input, mutability, time-zone, and execution policies deliberately.
 
 - **Drills:** [Functional Composition](lab/08-advanced/FunctionalCompositionContracts.java) · [Lazy First Match](lab/09-stream-api/LazyFirstMatch.java) · [Grouping](lab/09-stream-api/GroupingSales.java) · [Duplicate Keys](lab/09-stream-api/MergingVotes.java).
 
@@ -1693,11 +2398,18 @@ System.out.println(result.join()); // 8
 
 ---
 
-## §5 Threads + JVM
+## §8 Threads + JVM
 
-- **Full guide:** [threads, locks, executors, and JVM](threads-jvm.md).
+→ **[threads-jvm.md](threads-jvm.md)** — threads · locks · the memory
+model · executors · JVM internals, ordered so that no answer depends
+on one below it. Runnable companion:
+[threads lab index](lab/07-threads/README.md).
 
-- **Runnable stations:** [threads lab index](lab/07-threads/README.md).
+*One-liner for the section:* threads share the heap but own
+their stacks; `synchronized` for exclusion, `volatile` for
+visibility, atomics for counters, pools instead of raw threads
+(virtual threads since 21 for blocking I/O) — and the JVM cleans
+up unreachable objects; collector strategies differ.
 
 ### The three concurrency questions
 
@@ -1808,9 +2520,80 @@ System.out.println(result.join()); // 8
 
 - **Drills:** [Cancellation](lab/12-concurrency-async/CooperativeCancellation.java) · [Bounded Executor](lab/12-concurrency-async/BoundedExecutorLifecycle.java) · [Metrics Publication](lab/12-concurrency-async/ConcurrentMetricsPublication.java) · [Future Composition](lab/12-concurrency-async/CompletableFutureComposition.java).
 
+
+- **References:** [concurrent utilities and memory consistency](https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/package-summary.html) · [executor factory queue choices](https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executors.html).
+
 ---
 
-## §6 Trap wall (the code-output classics, spoken)
+## §9 Trap wall (the code-output classics, spoken)
+
+- `"a" == "a"` → true (same pooled literal); `new String("a") ==
+  "a"` → false. Content: always `equals`.
+
+- `Integer a=127, b=127; a==b` → true (required cache −128…127);
+  identity outside that range is not guaranteed. `Integer == int` unboxes → value compare.
+
+- Unboxing a null wrapper (`int x = (Integer) null`, or a
+  mixed-type ternary) → NullPointerException.
+
+- `5 / 0` → ArithmeticException; `5.0 / 0` → Infinity (IEEE double).
+
+- `return` in finally overrides try's return and swallows its
+  exception.
+
+- **Init order?**
+
+  - static (fields + blocks, textual order) — once, at class initialization,
+    superclass first
+
+  - instance (fields + blocks, textual order) → constructor body —
+    every `new`
+
+  - subclass: parent's instance-init+ctor finishes before child's
+    (via `super()`)
+
+- `x = x++` leaves x unchanged (post-increment hands back the old
+  value).
+
+- `'a' + 1` → 98: char arithmetic promotes to int.
+
+- `"1" + 2 + 3` → "123" but `1 + 2 + "3"` → "33" (left-to-right).
+
+- Reassigning a parameter inside a method never affects the
+  caller's variable (pass-by-value).
+
+- **Fields NOT polymorphic** — resolved at compile time by
+  reference type; instance methods resolve at runtime by actual
+  object type (real dynamic dispatch). `static` methods behave like
+  fields: hidden, not overridden.
+
+  ```java
+  A obj = new B();
+  obj.x        // → A.x  (compiler looks at declared type A)
+  obj.name()   // → B's override (JVM looks at actual object)
+  ```
+
+- Colon-style `switch` can fall through without `break`; Java 14+ arrow
+  switch rules do not fall through.
+
+- Array elements default to 0 / false / null; local variables get
+  NO default — declaring one unassigned is fine, but *reading* it
+  before it's assigned on every path is a compile error (definite
+  assignment analysis, not zeroed memory like fields/arrays).
+
+- `0.1 + 0.2 == 0.3` → false (binary floating point can't represent
+  them exactly); money → `BigDecimal`, never double.
+
+- `s.concat("x")` / `s.replace(…)` without reassigning → `s`
+  unchanged (String immutability, §1).
+
+- `Integer.MAX_VALUE + 1` → wraps silently to `Integer.MIN_VALUE` —
+  no overflow exception from ordinary int addition.
+
+- `Arrays.asList(arr)` is fixed-size — size-changing `add`/`remove` →
+  UnsupportedOperationException (`set` works).
+
+### Prediction practice
 
 - Predict the output, compiler error, or exception before expanding the answer.
 
@@ -2114,329 +2897,586 @@ System.out.println(snapshot.values());
 
 </details>
 
-### More one-line predictions
-
-- `x = x++`: x receives its old value after the increment side effect.
-
-- `'a' + 1`: int value `98`; `"a" + 1`: String `"a1"`.
-
-- `"1" + 2 + 3`: `"123"`; `1 + 2 + "3"`: `"33"`.
-
-- `Integer.MAX_VALUE + 1`: wraps to Integer.MIN_VALUE.
-
-- `5 / 0`: ArithmeticException; `5.0 / 0`: positive infinity.
-
-- A local variable read before definite assignment: compile error; fields/array elements receive default values.
-
-- Traditional colon-style switch labels can fall through; Java 14+ arrow switch rules do not fall through.
-
 - **Drills:** [Language Semantics](lab/10-core-contracts/LanguageSemantics.java) · [Compiler Contracts](lab/10-core-contracts/CompilerContracts.java) · [Views and Iteration](lab/04-data-structures/CollectionViewsAndIteration.java).
 
 ---
 
-## §7 Enterprise — Spring / JDBC / REST / integration
+## §10 Enterprise — Spring / JDBC / REST / integration
 
-### Spring core and dependency injection
+*(flow: Spring core → request path → beans and transactions → REST →
+data layer → integration architecture → tooling → patterns)*
 
-- **IoC:** the framework/container controls object construction, wiring, and lifecycle instead of application code managing every dependency itself.
+- **IoC?** — *inversion of control*: normally your code controls its
+  dependencies (`new` them, hard-code them); inverted, the container
+  — Spring's runtime registry of objects — constructs and wires them
+  and hands them to you. You declare, it injects. DI (*dependency
+  injection*) is the mechanism (constructor/setter/field). A **bean** is just
+  an object the container owns: it builds it, injects into it, hands
+  it out.
 
-- **DI:** dependencies arrive through constructors, setters, or other injection points.
+- **@Autowired?** — marks a constructor/field/setter the container
+  should fill. Resolution considers **type**, qualifiers and eligible
+  candidates: exactly one suitable bean → injected; none → startup failure
+  for a required dependency (optional forms include `required = false`
+  where supported, or `Optional<T>`).
+  Several candidates can be narrowed using `@Primary` on the default one or
+  `@Qualifier("beanName")` at the injection point, or supported
+  field/parameter-name matching; unresolved ambiguity →
+  `NoUniqueBeanDefinitionException`.
+  Constructor injection preferred: the dependency can be `final` (assigned
+  during construction; collaborators still need thread-safety contracts), a missing one
+  fails at startup instead of NPE-ing on first call, and the class is
+  constructible in a test with plain `new` — no reflection, no
+  container. Single-constructor classes don't need the annotation
+  (Spring 4.3+).
 
-- **Bean:** an object managed by a Spring container.
+- **Spring Boot vs Spring?** — not a rival framework: Boot *is*
+  Spring plus opinions. Plain Spring gives you the container and
+  configuration infrastructure; you choose how to assemble the runtime
+  and manage compatible libraries. It does not require XML, a WAR,
+  an external server, or hand-declaring every infrastructure bean.
+  Boot supplies conventional defaults for those choices:
 
-- **Constructor injection:** makes required dependencies explicit and supports plain-constructor tests.
+  - starters — one dependency pulls a curated, version-aligned bundle
 
-  - A single constructor normally needs no `@Autowired` annotation in Spring 4.3+.
+  - auto-configuration — conditional defaults inferred from
+    the classpath and other configuration; many back off for user beans
+    according to their particular conditions
 
-  - Final fields prevent reassignment; collaborators still need appropriate thread-safety contracts.
+  - embedded servlet server (commonly Tomcat) — `java -jar`, no external server required
 
-- **Ambiguous dependency:** use a suitable qualifier or primary candidate; type, qualifiers, and supported name matching participate in resolution.
+  - Actuator — health, metrics, env capabilities when included; exposure/security need configuration
 
-- **Boot vs Framework:** Boot adds conventions, dependency management, auto-configuration, starters, and application runtime conveniences.
+  Same container, same beans, same annotations underneath — you can
+  still override any of it.
 
-  - Plain Spring does not require XML, an external server, or a WAR.
+  ⚓ IMPS receivers are Spring Boot 2.7 services.
 
-  - Auto-configuration uses conditions; back-off behavior depends on the particular configuration.
+- **Is Spring only a web framework?** — no: it includes a **container** — DI, bean
+  lifecycle, transactions, configuration — and the web module is one
+  branch off it, alongside data access, security, scheduling,
+  messaging and batch. A Spring app with no HTTP endpoint at all is
+  ordinary: batch jobs and queue consumers are Spring's home turf as
+  much as REST is. ⚓ IMPS is exactly that shape — the receivers speak
+  HTTP, the 7 consumers just read Kafka and never serve a request.
 
-- **`@SpringBootApplication`:** combines `@SpringBootConfiguration`, `@EnableAutoConfiguration`, and `@ComponentScan`.
+- **@SpringBootApplication?** *(MCQ staple)* — `@SpringBootConfiguration` +
+  `@EnableAutoConfiguration` + `@ComponentScan`.
 
-- **Reference:** [Spring — dependency injection](https://docs.spring.io/spring-framework/reference/core/beans/dependencies/factory-collaborators.html).
+- **Servlet lifecycle?** — a servlet is the object the web container
+  hands HTTP request handling to: init → service
+  (doGet/doPost) → destroy. Spring MVC's DispatcherServlet is a front
+  controller on top (MVC = model-view-controller).
 
-### Bean scopes, lifecycle, and the request path
+  ```text
+  request ─▶ DispatcherServlet ─▶ @Controller method ─▶ model
+                    │                                     │
+  response ◀─ JSON (@ResponseBody) or view template ◀─────┘
+  ```
 
-- **Singleton:** one instance per bean definition per container; not a JVM-wide singleton guarantee.
+- **Bean scopes?** — singleton (default — one per bean definition per container, not the
+  GoF pattern), prototype, plus request/session on the web.
+  Follow-up trap: *is a singleton bean thread-safe?* Not automatically —
+  one instance can serve concurrent requests; stateless design helps,
+  but collaborators and mutable shared state still need a concurrency policy.
 
-- **Prototype:** a new instance for each container lookup/resolution; injecting it once into a singleton does not create a fresh instance per method call.
+- **Bean lifecycle?** *(MCQ staple)* — container instantiates →
+  injects dependencies → `@PostConstruct` init → in service →
+  `@PreDestroy` on managed shutdown (a simplified managed-singleton sketch).
 
-- **Web scopes:** request/session and other supported web-context scopes.
+- **Stereotypes?**
 
-- **Lifecycle sketch:** instantiate → inject → initialization callbacks → ready for use → destruction callbacks where managed.
+  - `@Component` — generic managed bean
 
-  - Bean post-processors and proxies participate in the complete lifecycle.
+  - `@Service` — business layer
+
+  - `@Repository` — persistence (+ supported persistence-exception translation;
+    `JdbcTemplate` translates JDBC's checked `SQLException` → unchecked `DataAccessException`)
+
+  - `@Controller` / `@RestController` — web; `@RestController` =
+    `@Controller` + `@ResponseBody` (converted response bodies, often JSON)
+
+- **@Transactional?** — callers normally hold a Spring **proxy**, not
+  the raw bean. That generated stand-in is either a JDK proxy exposing
+  the bean's interface or a class-based proxy subclassing the target.
+  With transaction management configured, the proxy begins or joins
+  the transaction, calls your method, then applies completion rules.
+  You write zero `commit()` / `rollback()` for that declarative boundary.
+
+  ```text
+  caller ──▶ proxy ─── begin ──▶ your method
+                       completion rules + state  ◀┐
+                       commit attempt / rollback      ◀┘
+  ```
+
+  Everything a panel asks about it follows from *the proxy is on
+  the outside*:
+
+  - **self-invocation trap** — the proxy only sees calls that
+    arrive **through** it. One method of the class calling
+    `this.otherMethod()` goes straight to the object, so
+    `@Transactional` on `otherMethod` does nothing. A `private`
+    method has no proxy-visible door to wrap either. With a JDK
+    interface proxy, transactional methods must be public interface
+    methods; since Spring Framework 6, class-based proxies can also
+    advise protected and package-visible methods. Public remains the
+    portable, least-surprising service boundary. Fix self-invocation
+    by putting the annotated method on another bean and injecting it.
+    *Hook: the annotation is on the door; an inside call never
+    uses the door.*
+
+    ```java
+    @Service
+    class TransferService {
+
+      public void transfer(Txn t) {
+        doTransfer(t);              // ✗ plain this.doTransfer —
+      }                             //   no new advice; existing TX can remain
+
+      @Transactional
+      public void doTransfer(Txn t) { ... }
+    }
+
+    // fix: cross a bean boundary so the call goes through a proxy
+    @Service
+    class TransferService {
+      private final LedgerService ledger;   // injected bean
+
+      TransferService(LedgerService ledger) {
+        this.ledger = ledger;
+      }
+
+      public void transfer(Txn t) {
+        ledger.doTransfer(t);       // ✓ proxied call
+      }
+    }
+    ```
+
+  - **swallowed-exception trap** — catch the exception inside the
+    method and the proxy sees a normal return, so it can **commit**
+    if nothing has marked rollback-only. Rethrow under an appropriate
+    rollback rule, or mark the transaction rollback-only.
+
+    ```java
+    @Transactional
+    public void pay(Txn t) {
+      ledger.debit(t);
+      try {
+        npci.send(t);
+      } catch (SendException e) {
+        log.error("send failed", e);   // ✗ swallowed → the debit
+      }                                //   can commit if not rollback-only
+    }
+
+    @Transactional
+    public void pay(Txn t) {
+      ledger.debit(t);
+      try {
+        npci.send(t);
+      } catch (SendException e) {
+        log.error("send failed", e);
+        throw new PaymentFailedException(e);   // ✓ proxy sees it
+        // or: TransactionAspectSupport
+        //       .currentTransactionStatus().setRollbackOnly();
+      }
+    }
+    ```
+
+  - **rollback rules** — by default rolls back on **unchecked**
+    (`RuntimeException`, `Error`); a **checked** exception does not
+    request rollback by default. `rollbackFor = Exception.class`
+    changes that rule; other explicit or configured rules can too.
+    This is framework policy, not proof that unchecked means bug or
+    checked means handled. *Hook: declare the business rollback policy.*
+
+    ```java
+    @Transactional
+    public void a() throws IOException { save(); throw new IOException(); }
+    // checked → commit attempt under default rules, unless rollback-only.
+
+    @Transactional(rollbackFor = Exception.class)
+    public void b() throws IOException { save(); throw new IOException(); }
+    // → rolls back
+
+    @Transactional
+    public void c() { save(); throw new IllegalStateException(); }
+    // unchecked → rolls back, no configuration needed
+    ```
+
+  - **propagation** — `REQUIRED` (default) joins the caller's
+    transaction if one is running, else starts one; `REQUIRES_NEW`
+    suspends the caller's and runs in its own, so it survives the
+    caller rolling back. Bank-panel example: the audit row must
+    stay even when the payment unwinds → `REQUIRES_NEW`.
+
+    ```java
+    @Transactional                                  // TX-1
+    public void pay(Txn t) {
+      audit.record(t);        // TX-2: commits on its own
+      ledger.debit(t);        // joins TX-1
+      throw new PaymentFailedException();
+    }                         // TX-1 rolls back the debit;
+                              // the audit row stays.
+
+    @Service
+    class AuditService {
+      @Transactional(propagation = Propagation.REQUIRES_NEW)
+      public void record(Txn t) { ... }
+    }
+    ```
+
+  - **ACID**, the database transaction property set (with the right participating resources/configuration) —
+    **atomicity** (all the statements land or none do),
+    **consistency** (valid state to valid state, constraints
+    intact), **isolation** (controls permitted interference
+    between concurrent transactions — guarantees depend on the selected
+    level), **durability** (committed work survives failures within the
+    database's configured durability guarantees).
+
+  - Scope note: this local transaction covers its participating
+    database work. An unrelated HTTP/broker side effect does not roll back
+    with it — that is where the saga in this section's pattern list takes over.
+
+- **Actuator?** — production endpoints: commonly /actuator/health,
+  /actuator/metrics — the monitoring surface, subject to configured
+  exposure and authorization. (Support-role JD language — use it.)
+
+- **REST?** — resources + HTTP verbs, stateless. GET read, POST
+  process submitted content (often create), PUT create/replace, PATCH partial, DELETE remove. Idempotent =
+  repeating the request leaves the server in the same state (not:
+  returns the same response) — GET/HEAD/PUT/DELETE by semantics;
+  POST/PATCH are not guaranteed idempotent.
+
+- **GET vs POST?** *(the famous one)*
+
+  - GET — requests a representation; commonly uses URL parameters,
+    is safe/idempotent, and responses can be cached under cache rules
+
+  - POST — processes submitted content, commonly in the body; not
+    inherently idempotent. Responses can be cacheable under specified
+    conditions; do not assume “POST can never be cached.”
+
+- **Status codes?** — 200 OK · 201 Created · 204 No Content · 400
+  Bad Request · 401 Unauthorized · 403 Forbidden · 404 Not Found ·
+  409 Conflict · 500 Internal Server Error · 502/503
+  upstream/unavailable.
+  The 401/403 pair is the trap: 401 is *named* Unauthorized but
+  *means* missing/invalid authentication credentials; 403 means
+  understood but refused, and does not prove authentication succeeded.
+  Memory hook: *401 = “credentials needed”; 403 = “request refused.”*
+
+- **REST vs SOAP?** — both commonly appear in remote HTTP services;
+  they differ in what the contract is made of. SOAP can use other transports.
+
+  - **REST** — *representational state transfer*: resource-oriented
+    architectural constraints; HTTP APIs often use JSON, but REST does
+    not require JSON. An architectural style, not a protocol.
+
+  - **SOAP** — *simple object access protocol*: XML envelope +
+    often a **WSDL** (web services description language) contract file
+    and WS-Security. An actual protocol, with XML/schema-based
+    validation.
+
+  - Memory hook: *REST organizes resources and representations;
+    SOAP standardizes XML messages.*
+
+  - ⚓ NPCI speaks signed XML over HTTPS — I've lived the XML+PKI
+    world
+
+- **JDBC flow?** — DataSource (where connections come from — basic,
+  pooled, or distributed-transaction implementations) → Connection → PreparedStatement →
+  ResultSet; close in reverse (try-with-resources snippet: §5).
+  (Older-panel keyword: driver *types 1–4*; type 4 = pure-Java
+  thin driver — Oracle JDBC in thin mode, available through ojdbc8.)
+
+- **executeQuery vs executeUpdate vs execute?** *(MCQ staple)*
+
+  - `executeQuery` → ResultSet (SELECT)
+
+  - `executeUpdate` → int rows affected (INSERT/UPDATE/DELETE),
+    or zero for statements returning no row count, such as supported DDL
+
+  - `execute` → boolean: true if the first result is a ResultSet,
+    false for an update count or no result — not a success/failure flag
+
+- **Statement vs PreparedStatement?** — reusable SQL + bound parameters:
+  bound values are treated as data rather than SQL syntax. Dynamic
+  table/column/order fragments still need controlled construction;
+  preparation and performance depend on driver/database behavior. Parameters
+  are **1-indexed** —
+  ⚓ I once shipped `setString(0, …)` in IMPS's duplicate check;
+  it got erased days later when the check moved to the receiver.
+  Honest bug story if "a bug you shipped?" comes.
+
+- **Connection pooling?** — connections are expensive; pools reuse
+  them (Boot prefers HikariCP when available). ⚓ IMPS's CBS-interface runs a
+  hand-rolled pool over the CBS proprietary socket.
+
+- **ORM?** — Hibernate maps entities ↔ tables; JPA is the spec
+  Hibernate implements. (IMPS used raw JDBC deliberately — full SQL
+  control.)
+
+- **ESB vs API gateway?** — enterprise service bus: central
+  integration layer doing routing, transformation, protocol
+  bridging between core systems (CBS ↔ channels). API gateway = the
+  edge door for APIs: authN/Z, rate limiting, routing, monitoring.
+  Gateway guards the edge; ESB integrates the inside. (Both are JD
+  words — be fluent.)
+
+  ```text
+  outside ─▶ API gateway ─▶ │ services ◀─ ESB ─▶ CBS, channels │
+             (edge door:      (inside: routing, transformation,
+              auth, limits)    protocol bridging)
+  ```
+
+- **SOA vs microservices?** — both are **service-oriented
+  architecture**: split the system into services that talk over the
+  network. They differ in where the smarts and the boundaries sit.
+
+  - SOA (a common 2000s enterprise style) — a few coarse services wired
+    through an **ESB** (enterprise service bus) that routes,
+    transforms and bridges protocols; a canonical schema and
+    central governance; services often share one database and ship
+    on the same release train.
+
+  - microservices — many small services, each owning its own data
+    and deployable on its own; the smarts live in the service, the
+    network stays plain HTTP or a broker; teams release
+    independently.
+
+  - Memory hook: *SOA puts the logic in one smart bus,
+    microservices put it in the endpoints and keep the pipes
+    dumb.*
+
+- **Build tools?** — Maven (pom.xml, convention) / Gradle (Groovy
+  or Kotlin DSL, flexible; performance depends on the build). ⚓ IMPS is a **Gradle** multi-project.
+
+- **Design patterns you know?**
+
+  - singleton — private constructor + static instance; enum is
+    the safe form; double-checked locking needs `volatile` or
+    another thread can see the reference assigned before the
+    constructor has finished ([threads-jvm.md §6](threads-jvm.md#6-without-a-lock--volatile-and-atomics))
+
+  - factory — a method decides which concrete class to hand back,
+    so the caller codes to the interface and never says `new`.
+    `Executors.newFixedThreadPool(4)` returns an
+    `ExecutorService`; the caller never learns the class name.
+    *Hook: you order by what you want, not by who makes it.*
+
+  - strategy — pull the varying algorithm out into an interface
+    and pass the one you want in; swap behaviour without touching
+    the caller. `list.sort(comparator)` — the comparator **is**
+    the strategy. *Hook: same engine, pluggable gearbox.*
+
+  - observer — subject keeps a list of listeners and publishes an
+    event; listeners register and unregister without the subject
+    knowing them. Spring's `ApplicationEventPublisher` +
+    `@EventListener`. *Hook: don't call us, we'll call you.*
+
+  - template method — an abstract base fixes the **order** of
+    steps in a method (often `final`) and leaves the varying steps to
+    subclasses. Spring's `JdbcTemplate` also owns a JDBC workflow (get
+    connection, execute, translate exceptions, close), but customizes it
+    through callbacks such as `RowMapper`, not required subclassing.
+    *Hook: the base owns the recipe,
+    the subclass fills in the ingredients.*
+
+  - strategy vs template method, if they push: strategy varies
+    behaviour by **composition** at runtime (hand in another
+    object), template method varies it by **inheritance**
+    (override a hook; dispatch is still at runtime). Same goal, different lever.
+
+  - **and one I shipped at scale: compensating transaction
+    (saga)** — a **saga** is one business transaction split across
+    services into a chain of local commits, each paired with a
+    compensating action that semantically undoes it; there is no
+    two-phase commit to roll back with, so you *unwind* instead.
+    ⚓ IMPS (Immediate Payment Service) — the reversion flow fires
+    the compensating leg against **CBS** (core banking system)
+    when the **NPCI** (National Payments Corporation of India) leg
+    dies. Flagship answer. *Hook: no rollback across services —
+    you pay it back, you don't take it back.*
+
+    **The same answer for a functional banker** — banking first,
+    tech second. ⚓ Every IMPS leg parks the money in the bank's
+    **IMPS pool account**, so no leg is ever left half-booked on
+    a customer.
+
+    - *Outward* (our customer is the remitter) — debit the
+      customer, credit the pool, narration
+      `IMPS/<RRN>/<beneficiary>/<bank>/XXX<last4>/<note>`; then
+      the ReqPay goes to NPCI. If NPCI won't take it, or the
+      RespPay / RespChkTxn comes back FAILURE, the reversion leg
+      pays the customer back **out of the pool**, narration
+      `IMPSREV/48/<RRN>/…`, and the customer's daily debit
+      counter is given the amount back.
+
+    - *Inward* (our customer is the beneficiary) — credit the
+      beneficiary out of the pool, narration `IMPS/48/<RRN>/…`.
+      If the transaction is later declared failed, the reversion
+      leg pulls that credit **off the beneficiary back into the
+      pool** with the same `IMPSREV` narration.
+
+    - Either direction: a **reversion** record moves `marked` →
+      `reverted`, the CBS approval number of the undo posting is
+      stamped on it, and the transaction's settlement amount is
+      zeroed so nothing is left to settle for it. Both postings
+      stay on the statement — the reversal is a fresh entry, not
+      an erased one, which is what makes it *compensating* and
+      not a rollback.
+
+    - Tech second: the failure only **publishes** — a Kafka
+      `reversion` message keyed by transaction id. A separate
+      consumer does the money leg, so a CBS outage can delay a
+      reversion; avoiding loss also needs durable publication, retries,
+      and recovery. The direction is read off
+      the ReqPay message id (our own bank-code prefix = outward).
+
+  *One-liner for the section:* Spring's container wires the beans,
+  `@Transactional` guards the DB work, the servlet front controller
+  routes REST verbs to status codes at the edge, JDBC talks to
+  Oracle through pooled prepared statements — and the gateway
+  guards that edge while the ESB integrates the inside.
+
+
+### Boundary details and practice
+
+- **Bean follow-ups:**
+
+  - Injecting a prototype once into a singleton does not make a fresh instance
+    appear on each method call; use an explicit lookup/provider strategy.
 
   - Prototype destruction is not automatically managed like singleton destruction.
 
-- **Thread safety:** singleton scope does not synchronize business methods.
+  - Post-processors and proxies participate in the complete lifecycle.
 
-  - Stateless services with safely used collaborators simplify concurrent use.
+  - **Reference:** [Spring scopes](https://docs.spring.io/spring-framework/reference/core/beans/factory-scopes.html).
 
-  - Mutable shared state requires a deliberate concurrency policy.
+- **Transaction example assumptions:** the snippets above are independent
+  service sketches, not one compilable class. Calls cross an enabled managed
+  proxy; `PaymentFailedException` is unchecked, and the participating JDBC work
+  uses the same transaction manager/resource. The simple rollback examples use
+  default rules and start without an existing transaction.
 
-- **Stereotypes:** Component is generic; Service expresses business role; Repository expresses persistence role and enables supported exception translation; RestController adds response-body handling to Controller.
+  - Self-invocation does not cancel an existing transaction; it bypasses the
+    invoked method's transaction advice.
 
-- **Servlet lifecycle:** init → request handling through service → destroy.
+  - An inner REQUIRED scope can mark rollback-only, causing an outer normal
+    completion to raise `UnexpectedRollbackException`.
 
-  - A servlet instance can serve concurrent requests; avoid per-request mutable instance fields.
+  - REQUIRES_NEW can need another connection while the outer connection remains
+    held; account for pool exhaustion and locks.
 
-- **Spring MVC:** DispatcherServlet finds a handler; argument resolution, validation, conversion, and exception handling shape the request/response path.
+  - Private/final methods cannot be intercepted by class-based overriding;
+    final classes cannot be subclass-proxied.
 
-```text
-HTTP → filters → DispatcherServlet → controller → service → repository
-                                    │
-HTTP ← response conversion / exception handling ← result or failure
-```
+  - An imperative thread-bound transaction does not automatically follow work
+    submitted to another executor.
 
-### Transactions — reason from the boundary
+  - **References:** [transactional methods](https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html)
+    · [rollback rules](https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/rolling-back.html)
+    · [propagation](https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/tx-propagation.html).
 
-- **Usual imperative proxy model:** a caller invokes a managed proxy that applies transaction advice around the target method.
+- **HTTP follow-ups:**
 
-- **Transaction manager:** coordinates the participating resources; the annotation alone does not make unrelated operations atomic.
+  - Safe semantics do not request a state change; incidental logging does not
+    make GET unsafe. HEAD is also safe/idempotent.
 
-```text
-caller → proxy → begin/join transaction → target method
-          │
-          └─ completion rules + rollback-only state → commit attempt or rollback
-```
+  - A POST business operation can implement deduplication with a stable key and
+    atomic persistence; method semantics alone do not provide that design.
 
-- **Self-invocation:** `this.otherMethod()` bypasses proxy interception.
+  - GET is not guaranteed to be cached. POST-response caching requires specified
+    conditions, including explicit freshness and matching Content-Location.
 
-  - An existing transaction can still be active.
+  - Additional status codes: **202** accepted for processing; **429** too many
+    requests; **504** upstream timeout. **401** uses the required authentication
+    challenge; **404** can also conceal a resource's existence.
 
-  - The inner method's annotation does not independently apply through that call.
+  - **Reference:** [HTTP semantics](https://www.rfc-editor.org/rfc/rfc9110.html).
 
-  - A separate injected collaborator can provide a real proxy boundary.
+- **JDBC — a concrete ownership and binding example:**
 
-- **Visibility:**
+  ```java
+  // Java 8+ method; imports: java.sql.*, javax.sql.DataSource.
+  static int updateStatus(DataSource source, long id, String status)
+          throws SQLException {
+      String sql = "UPDATE payment SET status = ? WHERE id = ?";
+      try (Connection connection = source.getConnection();
+           PreparedStatement statement = connection.prepareStatement(sql)) {
+          statement.setString(1, status);
+          statement.setLong(2, id);
+          return statement.executeUpdate();
+      }
+  }
+  ```
 
-  - JDK interface proxies expose public interface methods.
+  - This method owns its connection; it does not demonstrate participation in
+    a caller's Spring-managed transaction. Use transaction-aware access for that.
 
-  - Spring 6+ class-based proxies can support protected/package-visible transactional methods.
+  - Closing a pooled logical connection normally returns it to the pool.
 
-  - Private methods cannot be intercepted by subclass overriding; final methods cannot be overridden by a class-based proxy.
+  - Multiple statements on an auto-commit connection do not become one atomic
+    business transaction just because they share a connection.
 
-- **Rollback defaults:** RuntimeException/Error trigger rollback; checked exceptions do not by default.
+  - Manual transactions require commit/rollback and preservation of failure and
+    cleanup information; define timeouts and acquisition limits as well.
 
-  - Explicit rollback rules or configured defaults can change that behavior.
+  - **References:** [DataSource](https://docs.oracle.com/en/java/javase/21/docs/api/java.sql/javax/sql/DataSource.html)
+    · [PreparedStatement results and binding](https://docs.oracle.com/en/java/javase/21/docs/api/java.sql/java/sql/PreparedStatement.html).
 
-  - Declare the intended business-failure policy; do not infer it from the exception's name.
+- **Distributed consistency:** compensation can fail too; design retries,
+  deduplication, reconciliation, and manual repair. An **outbox** stores business
+  state and an event record in one local transaction, followed by reliable
+  publication with duplicate handling. It does not independently make arbitrary
+  external effects exactly once.
 
-- **Caught exceptions:** catching one does not guarantee commit.
+- **Pattern boundaries:** a static named factory is not automatically the GoF
+  inheritance-based Factory Method. Enum singleton construction does not make
+  mutable enum fields thread-safe; scope still depends on class loading.
 
-  - If no failure reaches advice and no rollback-only marker exists, ordinary completion can commit.
+- **Build discipline:** use `./gradlew build` for a controlled wrapper version,
+  declare release/toolchain targets, and control dependency/plugin versions.
 
-  - An inner participating transaction may already have marked rollback-only; outer completion can raise UnexpectedRollbackException.
+- **Mastery:** trace a self-invocation and an inner rollback-only failure;
+  predict `execute()`'s boolean; distinguish HTTP idempotency from payment
+  deduplication; explain the outward reversion posting without erasing history.
 
-- **Propagation:**
+- **Depth:** [Spring basics](../spring-boot/spring-boot-basics.md)
+  · [transactions](../spring-boot/spring-boot-transactions-deep.md)
+  · [senior Spring reference](../spring-boot/spring-senior-core.md)
+  · [JPA performance](../spring-boot/spring-data-jpa-performance.md).
 
-  - REQUIRED: join an existing transaction or start one.
+### Honesty guardrails (truth law)
 
-  - REQUIRES_NEW: use an independent physical transaction; outer rollback does not undo its committed work.
-
-  - Independent work can need an additional connection and can introduce lock/pool pressure.
-
-- **ACID:** atomicity, consistency, isolation, durability.
-
-  - Isolation and durability depend on the database, transaction manager, configuration, and actual resources.
-
-  - A local DB transaction does not roll back an HTTP side effect or an unrelated broker operation.
-
-- **Thread boundary:** an imperative thread-bound transaction does not automatically follow work submitted to another executor.
-
-- **References:** [transactional methods](https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html) · [rollback rules](https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/rolling-back.html) · [propagation and rollback-only](https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/tx-propagation.html).
-
-- **Depth:** [transaction boundaries and consistency](../spring-boot/spring-boot-transactions-deep.md).
-
-### HTTP, REST, and SOAP
-
-- **REST:** an architectural style based on resources, representations, a uniform interface, stateless interactions, and other constraints.
-
-  - HTTP APIs often use JSON; REST does not require JSON.
-
-- **SOAP:** an XML-based messaging protocol; WSDL commonly describes a service contract.
-
-  - HTTP is a common transport, not the only possible transport.
-
-- **Safe method:** intended semantics do not request a state change; incidental logging does not make GET unsafe.
-
-- **Idempotent method:** repeating an identical request has the same intended effect as performing it once.
-
-  - It need not return the same status or representation each time.
-
-| Method | Typical intent | Safe by semantics? | Idempotent by semantics? |
-|---|---|---|---|
-| GET / HEAD | Retrieve representation / metadata | Yes | Yes |
-| POST | Process submitted content | No | Not guaranteed |
-| PUT | Create/replace target state | No | Yes |
-| PATCH | Apply partial modification | No | Not guaranteed |
-| DELETE | Remove target association | No | Yes |
-
-- **Application idempotency:** a POST operation can add deduplication using a stable key and atomic persistence of the result.
-
-- **Caching:** depends on method, response semantics, and cache controls.
-
-  - GET is commonly cacheable, not universally cached.
-
-  - POST responses can be cacheable under specified conditions, including explicit freshness and a matching Content-Location.
-
-- **Status codes:**
-
-  - 200: successful response; 201: created; 202: accepted for processing; 204: success with no response content.
-
-  - 400: invalid request; 401: missing/invalid authentication credentials, with an authentication challenge where required.
-
-  - 403: understood but refused; it does not prove the caller was authenticated.
-
-  - 404: target not found or existence concealed; 409: conflict with current state.
-
-  - 429: too many requests; 500: server failure; 502: invalid upstream response; 503: temporarily unavailable; 504: upstream timeout.
-
-- **Reference:** [RFC 9110 — HTTP semantics](https://www.rfc-editor.org/rfc/rfc9110.html).
-
-### JDBC — ownership, parameters, and results
-
-- **Flow:** DataSource → Connection → PreparedStatement → ResultSet.
-
-- **DataSource:** a connection factory; its implementation may be basic, pooled, or integrated with distributed transactions.
-
-  - Closing a pooled connection normally returns the logical handle to the pool.
-
-- **PreparedStatement:** expresses SQL with separately bound values.
-
-  - Parameters are 1-indexed.
-
-  - Bound values do not become SQL syntax.
-
-  - Dynamic identifiers/order fragments still need a controlled construction policy.
-
-  - Preparation location, plan reuse, and performance depend on the driver/database; “always faster” is not a contract.
-
-```java
-// Java 8 — method declaration; imports: java.sql.*, javax.sql.DataSource.
-static int updateStatus(DataSource source, long id, String status) throws SQLException {
-    String sql = "UPDATE payment SET status = ? WHERE id = ?";
-    try (Connection connection = source.getConnection();
-         PreparedStatement statement = connection.prepareStatement(sql)) {
-        statement.setString(1, status);
-        statement.setLong(2, id);
-        return statement.executeUpdate();
-    }
-}
-```
-
-- **Ownership boundary:** this method opens and closes its connection; it does not demonstrate participation in a caller-owned Spring transaction.
-
-  - Use Spring's transaction-aware access facilities when participating in a Spring-managed transaction.
-
-- **Execution methods:**
-
-  - `executeQuery`: returns a ResultSet.
-
-  - `executeUpdate`: returns an affected-row count, or zero for statements returning no count such as supported DDL.
-
-  - `execute`: returns whether the first result is a ResultSet; false does not mean the statement failed.
-
-- **Manual transactions:** set auto-commit false, commit on success, roll back on failure, and preserve failure/cleanup information.
-
-  - Multiple statements are not grouped merely because they use the same connection with auto-commit enabled.
-
-- **Pooling:** define connection limits, acquisition waits, operation timeouts, and leak/resource ownership expectations.
-
-- **JPA vs Hibernate:** JPA is a persistence specification; Hibernate is an implementation. ORM does not remove SQL, transaction, or fetch-performance concerns.
-
-- **References:** [DataSource](https://docs.oracle.com/en/java/javase/21/docs/api/java.sql/javax/sql/DataSource.html) · [PreparedStatement](https://docs.oracle.com/en/java/javase/21/docs/api/java.sql/java/sql/PreparedStatement.html).
-
-### Integration and distributed consistency
-
-- **API gateway:** edge routing and shared API concerns such as authentication and rate limits.
-
-- **ESB:** an integration approach for routing, transformation, and protocol bridging; its exact responsibilities depend on the system.
-
-- **SOA / microservices:** service-oriented approaches with different boundary, governance, deployment, and data-ownership choices.
-
-  - An ESB is not a mandatory definition of all SOA systems.
-
-  - Small services alone do not establish independent ownership or deployability.
-
-- **Saga / compensation:** a business operation spans local commits; later compensating actions address earlier effects.
-
-  - Compensation is a new business action, not an erasure of history.
-
-  - It can fail and need retry, deduplication, reconciliation, or manual resolution.
-
-- **Outbox:** persist business state and an event record in one local transaction, then publish reliably with duplicate handling.
-
-  - It coordinates DB state and publication; consumers still need appropriate processing semantics.
-
-- **⚓ IMPS example:** receivers use Spring Boot 2.7, the application uses raw JDBC, and Kafka separates fast receipt from downstream CBS work.
-
-  - A reversion creates a compensating posting; it does not erase the original payment posting.
-
-  - A durable journal and recovery policy matter alongside broker delivery behavior.
-
-### Patterns — name the varying part
-
-| Pattern | Design question | Java-oriented example |
-|---|---|---|
-| Strategy | Which algorithm can change independently? | Comparator supplied to sorting |
-| Factory | Who selects/constructs the implementation? | Named factory returning an interface |
-| Adapter | How do incompatible APIs meet? | Wrap a vendor payment client |
-| Decorator | How is behavior added through wrapping? | Buffered I/O wrappers |
-| Observer | Who reacts to published changes? | Registered event listeners |
-| Template method | Which inherited algorithm steps vary? | Base algorithm calling subclass hooks |
-| Builder | How is a complex value assembled? | Validate staged constructor inputs |
-| Singleton | What instance-lifetime scope is required? | Enum-based instance construction |
-
-- **Static factory vs GoF Factory Method:** a named static construction method is not automatically the inheritance-based Factory Method pattern.
-
-- **Strategy vs template method:** composition of a supplied collaborator versus inheritance and overridden hooks.
-
-- **JdbcTemplate nuance:** callback-based customization does not require the caller to subclass a template-method base.
-
-- **Singleton caveats:** scope depends on class loading; an enum's mutable state still needs a concurrency policy.
-
-- **Double-checked locking:** correct publication requires the appropriate volatile reference and construction discipline.
-
-### Build and operations vocabulary
-
-- **Maven:** POM, dependency coordinates, lifecycle phases; `mvn verify` includes the configured verification lifecycle.
-
-- **Gradle:** tasks, plugins, Groovy or Kotlin DSL; use the wrapper, such as `./gradlew build`, for a controlled Gradle version.
-
-- **Reproducibility:** declare toolchain/release targets and control dependency/plugin versions.
-
-- **Actuator:** operational endpoints for supported health, metrics, and management capabilities; exposure and authorization require configuration.
-
-- **⚓ IMPS build:** Gradle multi-project; confirm the deployed JDK independently of source/API assumptions.
-
-### Enterprise mastery and practice
-
-- Explain what a proxy intercepts, which resource owns the transaction, and why a normal return may still roll back.
-
-- Distinguish HTTP idempotency, application deduplication, and exactly-once business effects.
-
-- Explain a JDBC result boolean without confusing it with success/failure.
-
-- **Study:** [Spring basics](../spring-boot/spring-boot-basics.md) · [senior Spring reference](../spring-boot/spring-senior-core.md) · [JPA performance](../spring-boot/spring-data-jpa-performance.md).
-
-- **Follow-ups:** [security](../spring-boot/spring-security-basics.md) · [resilience](../spring-boot/spring-boot-resilience.md) · [observability](../spring-boot/spring-boot-observability.md).
+- **"How did you test IMPS?"** — straight answer: NPCI's
+  certification suite + bank UAT + production hardening; unit
+  coverage is thin (one smoke test per module) — **JUnit discipline
+  is what I'd add today.** Never claim test coverage.
+
+- Never claim: exactly-once Kafka semantics, atomic Redis ops,
+  inbound XML-signature verification (outbound signing only),
+  P2P/MMID support (P2A via netbanking only), NSQ (design doc
+  predates the Kafka migration — the shipped system is Kafka).
+
+- ⚠️ Before any interview: confirm deployment **JDK version** (not
+  pinned in Gradle) so "which Java version?" gets a one-word answer.
 
 ---
 
-## §8 Kafka ⚓
+## §11 Kafka ⚓
 
-- **Full guide:** [Kafka answer sheet](../kafka/kafka-basics.md).
+→ **[kafka-basics.md](../kafka/kafka-basics.md)** — the log model ·
+partitions and ordering · producers · consumer groups and offsets ·
+delivery guarantees · rebalancing · retention and DLQ · Spring
+Kafka · the IMPS anchor. Self-contained, answers sized for speaking.
 
-- **Practice:** [Kafka exercises](../kafka/kafka-basics-exercise.md).
+*One-liner for the section:* Kafka is a replayable append-only log
+split into ordered partitions, where the partition is both the unit
+of ordering and the unit of parallelism, and **commit timing** is a
+knob that controls consumer loss/duplicate exposure — IMPS uses it to ACK NPCI
+fast and let the CBS leg run at its own pace, with the DB journal,
+not Kafka, as the truth for dedupe and recovery.
 
 ### The compact model
 
@@ -2462,8 +3502,6 @@ static int updateStatus(DataSource source, long id, String status) throws SQLExc
 
 - **Exactly-once boundary:** Kafka transactions can coordinate supported Kafka reads/writes and offsets; arbitrary external effects need their own design.
 
-- **⚓ IMPS anchor:** Kafka decouples receipt from CBS processing; the DB journal supports deduplication and recovery decisions.
-
 ### Kafka mastery
 
 - If processing succeeds and the consumer crashes before committing, what happens on redelivery?
@@ -2478,64 +3516,426 @@ static int updateStatus(DataSource source, long id, String status) throws SQLExc
 
 ---
 
-## §9 SDLC + testing
+## §12 SDLC + testing
 
-### Delivery models and Scrum
+- **SDLC phases?** — requirements → design → build → test → deploy
+  → maintain.
 
-- **SDLC:** requirements → design → implementation → verification/validation → deployment → operation and maintenance, with feedback across phases.
+- **Waterfall vs Agile?**
 
-- **Waterfall:** sequential phases and explicit handoffs; changes still need a management process.
+  - waterfall — sequential, sign-off-gated
 
-- **Agile:** iterative delivery and feedback; Scrum is one framework, not a synonym for all Agile work.
+  - agile — iterative, feedback-driven; Scrum uses sprints
 
-- **V-model:** pairs development concerns with corresponding test concerns.
+  - V-model — each dev phase pairs a test phase
 
-- **Spiral:** risk-driven cycles of planning, evaluation, engineering, and review.
+  - spiral — risk-driven iterations
 
-- **Scrum accountabilities:**
+  ```text
+  requirements ─────────────▶ UAT            (V-model: go down
+    high-level design ─────▶ system test      building, come up
+      detailed design ───▶ integration test   testing — each level
+        code ──────────▶ unit test            checks its twin)
+  ```
 
-  - Product Owner: maximize value and manage the Product Backlog effectively.
+- **Scrum in one breath?** — product backlog, sprint (one month or less),
+  daily stand-up, sprint review + retrospective; product owner
+  maximizes value, scrum master helps establish Scrum.
 
-  - Scrum Master: help establish Scrum and improve the Scrum Team's effectiveness.
+    **Actors:**
 
-  - Developers: create the usable Increment and manage their plan for achieving the Sprint Goal.
+    - Product Owner — owns the backlog, prioritizes by value; the
+      "what"
 
-- **Events:** Sprint, Sprint Planning, Daily Scrum, Sprint Review, Sprint Retrospective.
+    - Scrum Master — servant leader, removes impediments, coaches
+      the process; the "how"
 
-  - Sprint: fixed length of one month or less, not necessarily two to four weeks.
+    - Developers — cross-functional, self-organizing, build the
+      increment
 
-  - Daily Scrum: a 15-minute event for Developers to inspect progress and adapt their plan; not a mandatory manager-status meeting.
+    **Events:**
 
-- **Artifacts → commitments:**
+    - Sprint — the container itself, fixed length of one month or less, one goal
 
-  - Product Backlog → Product Goal.
+    - Sprint Planning — team decides what + how, sets the Sprint
+      Goal
 
-  - Sprint Backlog → Sprint Goal.
+    - Daily Scrum — 15 min, syncs the next 24h against the Sprint
+      Goal
 
-  - Increment → Definition of Done.
+    - Sprint Review — demo the increment, gather stakeholder
+      feedback
 
-- **Empiricism:** transparency, inspection, adaptation.
+    - Sprint Retrospective — team inspects itself, agrees process
+      improvements
 
-- **Values:** commitment, focus, openness, respect, courage.
+    **Artifacts:**
 
-- **Reference:** [The Scrum Guide](https://scrumguides.org/scrum-guide.html).
+    - Product Backlog — ordered, ever-evolving list of everything
+      the product might need
 
-### Choose a test boundary
+    - Sprint Backlog — this sprint's slice of the backlog + the
+      plan to deliver it
 
-| Level | Main question | Representative boundary |
-|---|---|---|
-| Unit | Does this behavior satisfy its contract? | Plain object/function with controlled collaborators |
-| Integration | Do real components cooperate correctly? | Service plus real DB, broker, or external contract stub |
-| System / end-to-end | Does the deployed flow work across its relevant parts? | Running application and connected dependencies |
-| Acceptance / UAT | Does it meet the agreed business need? | Representative user/business scenarios |
+    - Increment — usable addition to prior increments, must meet
+      Definition of Done
 
-- **Unit tests do not require mocks:** pure functions and value objects can be tested directly.
+    **Commitments** (one per artifact above):
 
-- **Integration tests:** need realistic versions, lifecycle, isolation, and cleanup of the participating components.
+    - Product Goal — long-term objective the Product Backlog
+      serves
 
-- **Test pyramid:** favors much fast feedback and a smaller number of expensive broad checks; exact proportions depend on the system.
+    - Sprint Goal — single objective that gives the sprint
+      coherence
 
-- **Coverage:** reports executed code/branches; high coverage does not prove correct assertions, complete requirements, or safe concurrency.
+    - Definition of Done — shared checklist for what "complete"
+      means
+
+    **Pillars** (empirical process control):
+
+    - Transparency — process and work visible to everyone who
+      needs it
+
+    - Inspection — check artifacts and progress often, not just
+      at the end
+
+    - Adaptation — adjust promptly when inspection finds a
+      deviation
+
+    **Values:**
+
+    - Commitment — team commits to its goals
+
+    - Focus — attention stays on this sprint's work
+
+    - Openness — open about the work and its obstacles
+
+    - Respect — team members respect each other's capability and
+      independence
+
+    - Courage — do the right thing, tackle the hard problem
+
+- **Test levels?** — unit → integration → system → UAT (business
+  users sign off). (Older-panel keyword: **STLC** — requirement
+  analysis → planning → case design → environment setup →
+  execution → closure.)
+
+  - Unit — smallest piece (method/class) tested alone, dependencies
+    controlled (mocked when useful); usually owned by the developer
+
+  - Integration — checks that separately-built modules talk to each
+    other correctly (service ↔ DB, service ↔ service)
+
+  - System — whole application end-to-end against requirements, in
+    a prod-like environment
+
+  - UAT — business users verify it meets the real-world need; the
+    sign-off gate before go-live
+
+- **Smoke vs sanity vs regression?**
+
+  - smoke — wide but shallow: skims every major feature on a new
+    build; the go/no-go gate before deeper testing starts
+
+  - sanity — narrow: quick, focused check of
+    just the changed area; "does the fix even make sense?"
+
+  - regression — re-run the existing suite (usually automated,
+    broad) to confirm nothing else broke
+
+  - Memory hook: *smoke checks the whole build barely, sanity
+    checks one bit closely, regression re-checks everything that
+    already passed.*
+
+- **Retesting vs regression?** *(X-vs-Y classic)* — retesting:
+  the fixed bug itself, again; regression: everything *around* it.
+  Memory hook: *retest the fix, regress the rest.*
+
+- **Error vs defect vs failure?** *(definitional ladder — old-panel
+  favorite)* — error: the human mistake; defect/bug: that mistake
+  sitting in an artifact; failure: observed incorrect behavior at runtime. A
+  defect can remain dormant; executing defective code does not always cause a failure.
+
+- **Black-box vs white-box?** — black-box tests *what* the software
+  does from the outside (inputs → outputs, no view of the code);
+  white-box tests *how*, with full sight of the internal paths and
+  logic.
+
+  - **black-box** — against the spec (functional, system, UAT);
+    catches wrong/missing behavior; does not establish dead-code coverage
+
+    - in Java: MockMvc / TestRestTemplate / RestAssured against REST
+      endpoints, Selenium at the UI
+
+  - **white-box** — against the code (paths, branches, loops);
+    catches logic gaps; alone cannot establish complete requirements coverage
+
+    - in Java: JUnit 5 + Mockito to drive the branches/edge cases,
+      JaCoCo (Maven/Gradle plugin) measuring line/branch coverage,
+      often gating the build below a threshold
+
+  - **grey-box** — partial inside knowledge (DB schema, API
+    contract) while testing from outside; common in integration +
+    security
+
+  - Memory hook: *black-box tests the spec, white-box tests the
+    code, grey-box knows just enough to aim.*
+
+  - ⚓ IMPS: NPCI's certification suite exercises the receivers
+    black-box (signed XML in, response code out); the thin unit
+    layer underneath is white-box on mapping/validation logic —
+    honestly thin ([honesty guardrails](#honesty-guardrails-truth-law))
+
+- **Functional vs non-functional?** — what it does vs how well:
+  performance, security (⚓ JD names VAPT), usability.
+
+- **Performance testing — the flavors?** *(non-functional, "how
+  well")*
+
+  - load — expected peak traffic; do response times hold
+
+  - stress — push *past* the limit to find the breaking point
+
+  - spike — sudden burst, then watch recovery
+
+  - soak / endurance — sustained load for hours; surfaces memory
+    leaks and resource exhaustion
+
+  - volume — large *data sets*, not large traffic
+
+  - tools: **Apache JMeter** (the classic — thread groups =
+    virtual users, record/replay HTTP), Gatling, k6, LoadRunner
+
+  - metrics that matter: throughput (req/s), latency (p95/p99),
+    error rate
+
+  - Memory hook: *load = does it hold, stress = where it breaks,
+    soak = does it rot.*
+
+- **Security testing — VAPT, SAST, DAST?** *(⚓ JD names VAPT —
+  bank must-know)*
+
+  - **Distinguish scope from technique** — VAPT is an *engagement* (find
+    → exploit → report); SAST/DAST/SCA/IAST are *techniques* that may run
+    within or alongside it. DAST can support VA or PT; scope decides.
+
+    ```text
+    VAPT  (engagement: find → exploit → report)
+    ├── Vulnerability Assessment (VA) — often automated, breadth
+    │   ├── Network scanners ...... Nessus, Qualys, OpenVAS
+    │   ├── Port scanning ......... Nmap
+    │   └── Web-app scanners (DAST) OWASP ZAP, Burp Scanner
+    └── Penetration Testing (PT) — tester-led, depth
+        ├── Manual exploitation
+        ├── Metasploit
+        ├── Burp Suite (intercept/exploit mode)
+        ├── sqlmap
+        └── Kali Linux (toolkit)
+
+    Can run alongside or within scope, often CI-side:
+    ├── SAST — source/bytecode, no run ... SonarQube, Fortify, Snyk Code
+    ├── SCA  — 3rd-party CVEs ............ Dependency-Check, Snyk
+    └── IAST — agent inside running app .. (hybrid, depth reserve)
+    ```
+
+  - **VAPT** = Vulnerability Assessment + Penetration Testing —
+    the umbrella used in bank security programs; confirm applicable go-live requirements
+
+    - VA (Vulnerability Assessment) — assessment, often automated, that
+      *lists* weaknesses (breadth); tools: Nessus, OpenVAS,
+      Qualys, Nmap
+
+    - PT (Penetration Testing) — tester-led, deep; a tester actively
+      *exploits* them (depth); tools: Metasploit, Burp Suite,
+      sqlmap, Kali Linux (toolkit)
+
+    - hook: *VA finds the unlocked doors, PT walks through them.*
+
+  - **SAST** (Static Application Security Testing) — scans source/
+    bytecode *without running it* (white-box), runs early in CI.
+    Tools: SonarQube, Checkmarx, Fortify, Snyk Code
+
+  - **DAST** (Dynamic Application Security Testing) — attacks the
+    *running* app from outside (black-box), no source needed.
+    Tools: OWASP ZAP, Burp Suite
+
+    - Burp shows up under *both* PT and DAST by design — manual
+      intercept/exploit (PT) **and** automated scan (DAST); same
+      toolkit, two modes. Name the reason before a panel "catches"
+      the overlap.
+
+  - **SCA** (Software Composition Analysis) — scans third-party
+    dependencies for known CVEs (Common Vulnerabilities and
+    Exposures; the Log4Shell class). Tools: OWASP Dependency-Check,
+    Snyk
+
+  - **IAST** (Interactive Application Security Testing) — hybrid:
+    an agent inside the running app watches execution (depth
+    reserve — name only)
+
+  - **OWASP Top 10** (Open Worldwide Application Security Project)
+    — an awareness list of major web-application risks (injection, XSS, broken auth…);
+    the reference every panel expects you to name
+
+  - ⚓ honest surface: I wrote injection-safe code (PreparedStatement,
+    §10) and NPCI mandates signed XML + PKI — but the formal VAPT/scan
+    program is a dedicated security function; name the tools, don't
+    claim you ran the pentest ([honesty guardrails](#honesty-guardrails-truth-law))
+
+- **Verification vs validation?** *(classic)* — building it right
+  vs building the right thing.
+
+  - verification — *"are we building it right?"* — against the
+    spec/design: reviews, walkthroughs,
+    inspections, static analysis, and dynamic checks against specified requirements
+
+  - validation — *"are we building the right thing?"* — against
+    real user need: functional, system, UAT, and early stakeholder review of intended use
+
+  - Memory hook: *verify against the spec, validate against the user
+    need; either can use static or dynamic evidence.*
+
+- **Severity vs priority?** — technical impact vs fix order.
+
+  - severity — how badly it breaks the product (technical); the
+    tester often proposes it
+
+  - priority — how soon it must be fixed (business urgency); the
+    PM / product owner often sets it through triage
+
+  - the four corners make it click:
+
+    - high sev + high pri — payment flow down → fix now
+
+    - high sev + low pri — crash in a rarely-used report → can wait
+
+    - low sev + high pri — typo in the logo on the login page →
+      trivial but embarrassing, fix fast
+
+    - low sev + low pri — minor UI misalignment → whenever
+
+  - Memory hook: *severity = how much it hurts, priority = how
+    fast it must go.* (Cross-ref `itil-vocab.md` P1–P4.)
+
+- **Defect lifecycle?** — new → assigned → fixed → retest →
+  closed, or reopened.
+
+  - New — tester logs the defect
+
+  - Assigned — lead hands it to a developer
+
+  - Open / In-progress — developer is fixing it
+
+  - Fixed / Resolved — dev done, awaiting verification
+
+  - Retest — tester re-runs the case against the fix
+
+  - Closed — verified gone; or Reopened — fix failed retest,
+    back to the dev
+
+  - side exits: Deferred (fix later), Rejected (not a bug),
+    Duplicate (already logged)
+
+- **JUnit/Mockito?** — JUnit 5: `@Test`, assertions,
+  `@BeforeEach`; Mockito stubs dependencies so units test alone.
+  Test pyramid — *why:* the lower the layer, the faster and
+  cheaper the feedback, so put the bulk there:
+
+  ```text
+        /  E2E  \       few — slow, brittle, whole-system
+       / integr. \      some — real wiring, real DB
+      /   unit    \     many — fast, isolated, run every build
+  ```
+
+  Follow-up trap: *"how did you test IMPS?"* → the honest answer
+  lives in §10 — never claim coverage.
+
+- **TDD vs BDD?** *(X-vs-Y classic)* — TDD writes a failing test *first*;
+  BDD builds shared understanding through examples, often before implementation:
+
+  - TDD (test-driven) — red → green → refactor: write a failing
+    test (often a unit test), make it pass, then clean up; developer-facing,
+    JUnit + Mockito
+
+  - BDD (behavior-driven) — describe behavior in plain-language
+    scenarios (Given/When/Then), readable by business + QA;
+    Cucumber runs Gherkin `.feature` files against step definitions
+    BDD does not require Cucumber.
+
+  - Memory hook: *TDD checks the code works, BDD checks it does
+    the right thing — in language everyone reads.*
+
+- **CI/CD?**
+
+  - CI (Continuous Integration) — every commit builds + tests
+    automatically, so integration breaks surface in minutes, not
+    at a big-bang merge
+
+  - CD — two readings, know both:
+
+    - Continuous **Delivery** — pipeline keeps every build
+      *deployable*; the push to prod stays a manual button
+
+    - Continuous **Deployment** — no button; every green build
+      ships to prod automatically
+
+  - DevOps — dev + ops sharing the pipeline and the pager
+
+  **Conventional Java pipeline (the shape):**
+
+  ```text
+  git push → CI server → mvn/gradle build → JUnit + JaCoCo +
+  SonarQube gate → publish JAR/WAR to Nexus → Docker image →
+  deploy (K8s / app server)
+  ```
+
+  **Tools to name:**
+
+  - CI/CD servers: **Jenkins** (the Java classic), GitHub Actions,
+    GitLab CI, CircleCI, TeamCity, Bamboo
+
+  - build step: Maven / Gradle (⚓ IMPS is Gradle) — the pipeline
+    runs `mvn verify` / `gradle build`
+
+  - quality gates: JUnit + JaCoCo (coverage), SonarQube (SAST) —
+    fail the build below threshold
+
+  - artifact repo: Nexus, JFrog Artifactory (where built JARs land)
+
+  - ship: Docker → registry → Kubernetes; Ansible / Terraform for
+    infra
+
+  - Memory hook: *CI proves it builds, CD ships it — delivery
+    stops at a button, deployment doesn't.*
+
+  *One-liner for the section:* phases flow requirements → deploy;
+  the V pairs each build level with its test twin; smoke asks
+  "alive?", sanity "fixed?", regression "broke anything?";
+  verification builds it right, validation builds the right thing.
+
+### Scrum details beyond the short answer
+
+- **Planning:** why this Sprint is valuable matters alongside what can be done and how it will be delivered.
+
+- **Review:** a working session to inspect the outcome and adapt future work, not just a presentation.
+
+- **Daily Scrum:** 15 minutes for Developers to inspect progress and adapt their plan; it is not a required manager-status meeting.
+
+- **Increment:** more than one can be created in a Sprint; each adds to prior increments and meets the Definition of Done.
+
+### Test boundaries — what the checks actually establish
+
+- **Regression boundary:** unintended effects can appear within the changed area as well as around it; select checks by risk.
+
+- **Unit:** a plain object/function with controlled collaborators; pure functions and value objects can be tested directly.
+
+- **Integration:** use realistic participating components, versions, lifecycle, isolation, and cleanup.
+
+- **Coverage:** executed lines/branches are evidence, not proof of correct assertions, complete requirements, or safe concurrency.
+
+- **Reproducibility:** control dependencies, isolate data, fix time/randomness where appropriate, and bound waits.
+
+- **Concurrency checks:** one successful schedule does not prove correctness; use coordination and explicit invariants instead of arbitrary sleeps.
 
 ### A concrete Java test — JUnit Jupiter
 
@@ -2600,105 +4000,25 @@ public class FeeTest {
 
 - **Reference:** [JUnit Jupiter examples](https://docs.junit.org/5.12.1/user-guide/index.html#writing-tests-parameterized-tests) · [JUnit 6 baseline](https://docs.junit.org/6.0.3/release-notes.html).
 
-### Test selection and vocabulary
-
-- **Smoke:** quick broad confidence that a build's essential flows work.
-
-- **Sanity:** a focused check of a change or affected area; teams vary in how they use the term.
-
-- **Retest:** verify the specific defect fix.
-
-- **Regression:** detect unintended effects on previously supported behavior, including the changed area where appropriate.
-
-- **Black-box:** design tests from externally visible behavior/specification.
-
-- **White-box:** use knowledge of internal structure to select tests and examine paths/branches.
-
-- **Grey-box:** use partial internal knowledge while exercising an external boundary.
-
-- **Functional:** what the system does; non-functional: qualities such as performance, security, and usability.
-
-- **Verification:** evidence that specified requirements are met.
-
-- **Validation:** evidence that the result meets the intended use and user need.
-
-  - Whether code executes is not the defining distinction.
-
-### Performance and security testing
-
-- **Performance workloads:**
-
-  - Load: expected demand.
-
-  - Stress: behavior beyond expected capacity.
-
-  - Spike: abrupt demand changes and recovery.
-
-  - Soak: sustained demand and gradual resource problems.
-
-  - Volume: behavior with large stored/input datasets.
-
-- **Evidence:** throughput, latency distributions, errors, saturation, and recovery under a defined workload.
-
-  - Name the workload, environment, and percentile; “fast” without conditions is not an acceptance criterion.
-
-- **Security techniques:**
-
-  - SAST: static source/bytecode analysis.
-
-  - DAST: test the running application from outside.
-
-  - SCA: inspect third-party components and known vulnerabilities.
-
-  - IAST: runtime instrumentation during exercised flows.
-
-  - VA/PT: assess weaknesses and validate exploitability; specific engagement scope varies.
-
-- **Java-facing checks:** parameterized SQL, authorization, validation, safe parsing, dependency hygiene, and failure responses without sensitive internals.
-
-### Defects, TDD, BDD, and CI/CD
-
-- **Error → defect → failure:** human mistake → flaw in an artifact → observed incorrect behavior during execution.
-
-- **Severity:** impact; priority: urgency/order of fixing. Ownership depends on the team's process.
-
-- **Defect lifecycle:** reported → triaged → assigned → fixed → verified → closed; alternatives include reopened, duplicate, rejected, or deferred.
-
-- **TDD:** failing test → minimal implementation → refactor while preserving passing tests.
-
-- **BDD:** collaborative discovery of behavior through concrete examples; Given/When/Then is a useful expression format.
-
-  - Cucumber/Gherkin can automate examples; BDD does not require that tool.
-
-- **CI:** integrate changes frequently with automated build and checks.
-
-- **Continuous delivery:** keep changes deployable; production release may require a decision.
-
-- **Continuous deployment:** qualifying changes are released automatically under the pipeline's policy.
-
-```text
-change → build → unit checks → integration/security checks → artifact
-                                                          │
-              runtime feedback ← rollout/health checks ← deploy
-```
-
-- **Reproducible checks:** controlled dependencies, isolated test data, deterministic time/randomness where appropriate, and bounded waits.
-
-- **Concurrency tests:** one successful schedule does not prove correctness; use coordination and explicit invariants instead of arbitrary sleeps.
-
 ### Testing mastery and practice
 
-- Turn a requirement into examples before choosing a test framework.
+- Turn a requirement into examples before choosing a framework.
 
-- Explain what the fee tests establish and which production concerns they do not exercise.
+- Explain which fee checks detect rounding and validation mistakes, and which production concerns they do not exercise.
 
 - Choose a real integration boundary for persistence, transactions, authorization, or broker behavior.
+
+- Describe a false positive from a mocked dependency and a risk that line coverage cannot establish.
+
+- Distinguish Scrum accountabilities from team-specific job titles and defect-triage ownership.
+
+- **References:** [The Scrum Guide](https://scrumguides.org/scrum-guide.html) · [ISTQB foundation syllabus](https://istqb.org/wp-content/uploads/2024/11/ISTQB_CTFL_Syllabus_v4.0.1.pdf) · [BDD discovery, formulation, and automation](https://cucumber.io/docs/bdd/) · [security assessment techniques](https://csrc.nist.gov/pubs/sp/800/115/final).
 
 - **Depth:** [production testing](../spring-boot/spring-boot-testing-deep.md) · [observability](../spring-boot/spring-boot-observability.md) · [resilience](../spring-boot/spring-boot-resilience.md).
 
 ---
 
-## Precision card
+## §13 Precision card
 
 | Prompt | Precise answer |
 |---|---|
@@ -2723,7 +4043,7 @@ change → build → unit checks → integration/security checks → artifact
 
 ---
 
-## Integrated practice
+## §14 Integrated practice
 
 ### Build one transaction report
 
@@ -2731,7 +4051,8 @@ change → build → unit checks → integration/security checks → artifact
 
 - **Input boundary:** parse a file with defined text encoding and resource ownership.
 
-- **Type boundary:** represent identifiers, states, currency, and exact amounts deliberately.
+- **Type boundary:** represent tenant/account/transaction identifiers, credit/debit kind,
+  exact amounts, and instants deliberately.
 
 - **Collection boundary:** define equality, duplicate policy, grouping, ordering, and snapshots.
 

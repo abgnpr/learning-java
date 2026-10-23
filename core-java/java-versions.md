@@ -6,7 +6,7 @@
   of code for questions such as "which Java version?" and "what's new in Java 8?"
 
 - **Study links:** [java-8.md](java-8.md) covers Java 8 in depth;
-  [core-java.md §4](core-java.md#4-java-8-know-it-cold) provides rapid-fire answers.
+  [core-java.md §7](core-java.md#7-java-8-know-it-cold) provides rapid-fire answers.
 
 - **LTS line:** **8, 11, 17, 21, 25** — memorize those five.
 

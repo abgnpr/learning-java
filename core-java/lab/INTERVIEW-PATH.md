@@ -33,19 +33,19 @@ rules, business priorities, and order-preserving report output to the core rep.
 
 | Reading | Practical coverage |
 |---|---|
-| Core §1 and §6: bedrock and traps | Language Semantics, Compiler Contracts, Payment Routing, Immutable Snapshot |
-| Core generics and type safety | Variance and PECS, Erasure and Safe Varargs |
-| Core §2: collections | Hash Keys, Equality and Ordering, Views and Iteration, Map Updates, collection-choice/LRU/navigation exercises |
-| Core numbers and money | Money Contracts, BigDecimal Ordering, BigInteger Arithmetic |
-| Core §3: exceptions | Compiler Contracts, Exception Boundary, Resource Ownership |
-| Core I/O and resource ownership | Streaming Text Analytics, Buffered Binary Codec, Resource Ownership |
-| Core §4; Java 8 §A–C | Functional Composition, Compiler Contracts, Lambda Predicates, comparator composition |
+| Core §1 and §9: bedrock and traps | Language Semantics, Compiler Contracts, Payment Routing, Immutable Snapshot |
+| Core §2: generics and type safety | Variance and PECS, Erasure and Safe Varargs |
+| Core §3: collections | Hash Keys, Equality and Ordering, Views and Iteration, Map Updates, collection-choice/LRU/navigation exercises |
+| Core §4: numbers and money | Money Contracts, BigDecimal Ordering, BigInteger Arithmetic |
+| Core §5: exceptions | Compiler Contracts, Exception Boundary, Resource Ownership |
+| Core §6: I/O and resource ownership | Streaming Text Analytics, Buffered Binary Codec, Resource Ownership |
+| Core §7; Java 8 §A–C | Functional Composition, Compiler Contracts, Lambda Predicates, comparator composition |
 | Java 8 §D–E | Stream section; custom collector and parallel word frequency for deeper follow-ups |
 | Java 8 §F–H | Optional Workflow, Default Resolution, Clock and DST |
 | Java 8 §I | Both CompletableFuture labs and Cooperative Cancellation |
 | Java 8 §J | Map Updates and Concurrent Metrics; short spoken/command reps for Base64, parameter names, and utility APIs |
-| Core §5 and Java 8 JVM notes | Thread stations, practical concurrency; JVM memory/GC/loading recall in [threads-jvm.md](../threads-jvm.md) and command drills in [java-versions.md](../java-versions.md) |
-| Core §7–9 | Separate [Spring](../../spring-boot/spring-boot-basics.md), [Kafka](../../kafka/kafka-basics-exercise.md), and [testing](../../spring-boot/spring-boot-testing-deep.md) tracks; SDLC vocabulary is spoken practice |
+| Core §8 and Java 8 JVM notes | Thread stations, practical concurrency; JVM memory/GC/loading recall in [threads-jvm.md](../threads-jvm.md) and command drills in [java-versions.md](../java-versions.md) |
+| Core §10–12 | Separate [Spring](../../spring-boot/spring-boot-basics.md), [Kafka](../../kafka/kafka-basics-exercise.md), and [testing](../../spring-boot/spring-boot-testing-deep.md) tracks; SDLC vocabulary is spoken practice |
 
 ## Optional depth
 
