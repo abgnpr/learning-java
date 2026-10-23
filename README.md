@@ -23,7 +23,7 @@ earns it.
 
 | File | What it is |
 |---|---|
-| [core-java.md](core-java/core-java.md) | Rapid-fire Q&A across OOP, collections, exceptions, Java 8+, traps, Spring/JDBC/REST, Kafka and SDLC/testing. Answers sized for **speaking**, not writing. |
+| [core-java.md](core-java/core-java.md) | Core Java foundations and spoken recall: OOP, generics, collections, money, exceptions, I/O, Java 8+, concurrency, hidden-answer predictions, and enterprise/testing bridges. |
 | [java-versions.md](core-java/java-versions.md) | Java 7 → 25 timeline with complete permanent-JEP coverage for 17/21/25, code contrasts, status traps, and labs. |
 | [java-8.md](core-java/java-8.md) | The Tier-1 "Java 8 from zero" study block (§A–§I) — functional interfaces, lambdas, streams, `Optional`, `java.time`. |
 | [Comparator patterns](core-java/comparator-patterns.md) | Application sorting recipes: mixed directions, natural tie-breakers, nulls, business ranks, ranked maps, and focused labs. |
@@ -156,9 +156,9 @@ Notes are marked 🟢 drilled aloud · 🟡 racked (exists, not drilled) ·
 🔴 not built. **Reading is not loading** — a kit only earns 🟢 after a
 blind rep out loud.
 
-**The rep scorecard at the foot of each kit is authoritative**;
-[CLAUDE.md](CLAUDE.md) summarises them. `core-java/core-java.md` and
-`core-java/threads-jvm.md` are through rep 1 in full; `kafka/kafka-basics.md` is
+**For kits with a rep scorecard, that scorecard is authoritative**;
+[CLAUDE.md](CLAUDE.md) summarises readiness. `core-java/threads-jvm.md`
+is through rep 1 in full; `kafka/kafka-basics.md` is
 half-way; the runnable Java challenge track is in progress. The Kafka exercise
 and Spring senior reference and Boot/Security/JPA/Transactions/Resilience/
 Observability/Testing/Container kits are racked and unrepped/unsolved, as are

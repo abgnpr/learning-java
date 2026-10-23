@@ -34,8 +34,11 @@ rules, business priorities, and order-preserving report output to the core rep.
 | Reading | Practical coverage |
 |---|---|
 | Core §1 and §6: bedrock and traps | Language Semantics, Compiler Contracts, Payment Routing, Immutable Snapshot |
+| Core generics and type safety | Variance and PECS, Erasure and Safe Varargs |
 | Core §2: collections | Hash Keys, Equality and Ordering, Views and Iteration, Map Updates, collection-choice/LRU/navigation exercises |
+| Core numbers and money | Money Contracts, BigDecimal Ordering, BigInteger Arithmetic |
 | Core §3: exceptions | Compiler Contracts, Exception Boundary, Resource Ownership |
+| Core I/O and resource ownership | Streaming Text Analytics, Buffered Binary Codec, Resource Ownership |
 | Core §4; Java 8 §A–C | Functional Composition, Compiler Contracts, Lambda Predicates, comparator composition |
 | Java 8 §D–E | Stream section; custom collector and parallel word frequency for deeper follow-ups |
 | Java 8 §F–H | Optional Workflow, Default Resolution, Clock and DST |

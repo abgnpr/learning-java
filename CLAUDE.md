@@ -50,7 +50,7 @@ Pareto core path + Extensions list). Readiness: 🟢 drilled aloud ·
 
 | Kit | Covers | Core path | Status |
 |---|---|---|---|
-| `core-java/core-java.md` | OOP · collections · exceptions · Java 8+ · traps · Spring/JDBC/REST · SDLC/testing — **rapid-fire, answers sized for speaking**. §5 and §8 are pointers (`core-java/threads-jvm.md`, `kafka/kafka-basics.md`), one-liner each | §4→§2→§3→§1 | 🟢 **9/9 sections at rep 1** — whole kit drilled aloud once; rep 2 not started (scorecard at the doc's foot is authoritative) |
+| `core-java/core-java.md` | OOP · generics · collections · money · exceptions · I/O · Java 8+ · concurrency · hidden-answer predictions · enterprise/testing bridges; compact bullets, mastery prompts, and focused labs | §1→Generics→§2→Numbers→§3→I/O→§4→§6 | 🟡 racked — foundations, spoken recall, and linked practice |
 | `kafka/kafka-basics.md` | **the Kafka answer sheet, self-contained** (§1–§12): log-vs-queue · partitions/ordering · cluster/ISR/`acks` · producer · groups & offsets · **delivery guarantees** · rebalancing & liveness knobs · retention/compaction/DLQ · Spring Kafka · why-fast · **⚓ IMPS anchor** · traps. Defines every term it uses; no outbound depth pointers | §2→§5→§6→§11, then §7→§3→§8 | 🟡 **6/12 sections at rep 1** — §1, §2, §5, §6, §10, §11 done; §3, §4, §7, §8, §9, §12 unrepped (scorecard at the doc's foot is authoritative) |
 | `core-java/java-versions.md` | Java 7→25 timeline, headline feature + snippet each · LTS line 8/11/17/21/25 | Java 7→25 in order | 🟡 racked |
 | `core-java/comparator-patterns.md` | Application ordering patterns: mixed keys · reversal · nulls · case/locale · business ranks · ranked maps · selection | inventory lab → comparator policies → ranked results | 🟡 racked |
