@@ -4,7 +4,8 @@
  * Task: Keep Profile deeply immutable even when constructed from a mutable
  * roles list. Apply sealed change values by returning new profiles. A Profile
  * used as a hash key must remain findable after the caller mutates its source.
- * Complete: Profile compact constructor, Profile.apply(Change)
+ * All Profile components and role elements are required: reject null with
+ * NullPointerException. Complete: Profile compact constructor, Profile.apply(Change)
  * Run: java ImmutableRecordSnapshot.java
  */
 import java.util.ArrayList;
@@ -57,6 +58,14 @@ public class ImmutableRecordSnapshot {
         replacement.add("owner");
         check("change payload is also snapshotted", replacement,
                 List.of("writer"), rerolled.roles());
+        check("id is required", "null id", "NullPointerException",
+                thrownType(() -> new Profile(null, "Asha", List.of())));
+        check("name is required", "null name", "NullPointerException",
+                thrownType(() -> new Profile("u-1", null, List.of())));
+        check("roles are required", "null list", "NullPointerException",
+                thrownType(() -> new Profile("u-1", "Asha", null)));
+        check("role elements are required", "list containing null", "NullPointerException",
+                thrownType(() -> new Profile("u-1", "Asha", java.util.Arrays.asList("reader", null))));
         report("Challenge 86");
     }
 
@@ -70,6 +79,11 @@ public class ImmutableRecordSnapshot {
     }
 
     // ---- test harness (identical in every challenge; not part of the exercise) ----
+
+    private static String thrownType(Runnable action) {
+        try { action.run(); return "nothing thrown"; }
+        catch (RuntimeException failure) { return failure.getClass().getSimpleName(); }
+    }
 
     private static int passes = 0;
     private static int failures = 0;

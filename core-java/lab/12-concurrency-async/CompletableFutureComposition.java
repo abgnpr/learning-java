@@ -3,13 +3,19 @@
  *
  * Task: Compose dependent asynchronous stages, combine independent futures
  * without blocking worker stages, recover individual fan-out failures with
- * zero, and cancel all unfinished operations on request.
- * Complete: lookupThenPrice(...), sumSuccessful(...), cancelUnfinished(...)
+ * zero, and cancel all unfinished futures on request. Cancelling a future does
+ * not establish that its underlying operation stopped.
+ * All composition methods must return before pending inputs complete. Blocking
+ * inside these methods fails the contract. sumSuccessful waits for every input,
+ * treating individual failures as zero; an empty input produces zero.
+ * Complete: lookupThenPrice, combineIndependent, sumSuccessful, cancelUnfinished.
  * Run: java CompletableFutureComposition.java
  */
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class CompletableFutureComposition {
     static CompletableFuture<Integer> lookupThenPrice(
@@ -26,12 +32,18 @@ public class CompletableFutureComposition {
         throw new UnsupportedOperationException("TODO: implement fan-out/fan-in");
     }
 
+    static CompletableFuture<Integer> combineIndependent(
+            CompletableFuture<Integer> subtotal, CompletableFuture<Integer> delivery) {
+        // TODO: Combine independent results without blocking or serializing their work.
+        throw new UnsupportedOperationException("TODO: combine independent stages");
+    }
+
     static long cancelUnfinished(List<? extends CompletableFuture<?>> futures) {
         // TODO: Cancel unfinished operations and return how many accepted cancellation.
         throw new UnsupportedOperationException("TODO: cancel outstanding futures");
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         CompletableFuture<Integer> price = lookupThenPrice(
                 "sku-7",
                 sku -> CompletableFuture.completedFuture("product-for-" + sku),
@@ -53,10 +65,95 @@ public class CompletableFutureComposition {
                 2L, cancelUnfinished(List.of(first, alreadyDone, second)));
         check("pending futures are cancelled", "first and second",
                 true, first.isCancelled() && second.isCancelled());
+
+        ExecutorService caller = Executors.newSingleThreadExecutor(
+                Thread.ofPlatform().daemon(true).name("composition-caller").factory());
+        CompletableFuture<String> product = new CompletableFuture<>();
+        CompletableFuture<Integer> pendingPrice = new CompletableFuture<>();
+        CompletableFuture<Integer> left = new CompletableFuture<>();
+        CompletableFuture<Integer> right = new CompletableFuture<>();
+        CompletableFuture<Integer> goodA = new CompletableFuture<>();
+        CompletableFuture<Integer> goodB = new CompletableFuture<>();
+        CompletableFuture<Integer> bad = new CompletableFuture<>();
+        try {
+            AtomicInteger priceCalls = new AtomicInteger();
+            CompletableFuture<String> requestedProduct = new CompletableFuture<>();
+            CompletableFuture<Integer> dependent = returnsPromptly(caller, () -> lookupThenPrice(
+                    "sku-delayed", sku -> product, name -> {
+                        priceCalls.incrementAndGet(); requestedProduct.complete(name); return pendingPrice;
+                    }));
+            check("dependent call returns with lookup still pending", "incomplete lookup", false, dependent.isDone());
+            check("price stage has not started early", "before lookup completion", 0, priceCalls.get());
+            product.complete("resolved-product");
+            check("resolved value reaches next stage", "lookup completes", "resolved-product",
+                    requestedProduct.get(2, TimeUnit.SECONDS));
+            check("dependent output waits for price", "price still pending", false, dependent.isDone());
+            pendingPrice.complete(23);
+            check("delayed dependent result", "price completes", 23, dependent.get(2, TimeUnit.SECONDS));
+            check("dependent stage ran once", "completed chain", 1, priceCalls.get());
+
+            CompletableFuture<Integer> combined = returnsPromptly(caller, () -> combineIndependent(left, right));
+            right.complete(3);
+            check("independent combination waits for both", "right completed first", false, combined.isDone());
+            left.complete(20);
+            check("independent combination", "both complete", 23, combined.get(2, TimeUnit.SECONDS));
+
+            CompletableFuture<Integer> total = returnsPromptly(caller,
+                    () -> sumSuccessful(List.of(goodA, bad, goodB)));
+            goodB.complete(7); bad.completeExceptionally(new IllegalStateException("down"));
+            check("fan-in waits for unfinished successes", "last-listed input finished first", false, total.isDone());
+            goodA.complete(10);
+            check("out-of-order completion retains all successes", "10 + failure + 7", 17, total.get(2, TimeUnit.SECONDS));
+            check("empty fan-in identity", "[]", 0,
+                    returnsPromptly(caller, () -> sumSuccessful(List.of())).get(2, TimeUnit.SECONDS));
+
+            IllegalArgumentException lookupFailure = new IllegalArgumentException("unknown SKU");
+            CompletableFuture<String> failedLookup = new CompletableFuture<>();
+            failedLookup.completeExceptionally(lookupFailure);
+            AtomicInteger forbiddenCalls = new AtomicInteger();
+            CompletableFuture<Integer> failedChain = returnsPromptly(caller, () -> lookupThenPrice(
+                    "missing", sku -> failedLookup, name -> {
+                        forbiddenCalls.incrementAndGet(); return CompletableFuture.completedFuture(99);
+                    }));
+            check("lookup failure keeps original cause", "failed upstream", lookupFailure, failureOf(failedChain));
+            check("failed lookup never invokes pricing", "failed upstream", 0, forbiddenCalls.get());
+            CompletableFuture<Integer> failedCombined = returnsPromptly(caller,
+                    () -> combineIndependent(CompletableFuture.failedFuture(lookupFailure),
+                            CompletableFuture.completedFuture(1)));
+            check("independent failure propagates", "one input failed", lookupFailure, failureOf(failedCombined));
+        } finally {
+            // Unblock even an incorrect implementation before stopping the harness.
+            product.complete("cleanup"); pendingPrice.complete(0); left.complete(0); right.complete(0);
+            goodA.complete(0); goodB.complete(0); bad.complete(0);
+            caller.shutdownNow();
+            if (!caller.awaitTermination(2, TimeUnit.SECONDS)) {
+                throw new AssertionError("composition caller did not terminate");
+            }
+        }
         report("Challenge 95");
     }
 
     // ---- test harness (identical in every challenge; not part of the exercise) ----
+
+    private static <T> CompletableFuture<T> returnsPromptly(
+            ExecutorService caller, Supplier<CompletableFuture<T>> build) throws Exception {
+        try {
+            return caller.submit(build::get).get(2, TimeUnit.SECONDS);
+        } catch (TimeoutException blocked) {
+            throw new AssertionError("Composition blocked on an incomplete input; return a stage instead", blocked);
+        }
+    }
+
+    private static Throwable failureOf(CompletableFuture<?> stage) throws Exception {
+        try {
+            stage.get(2, TimeUnit.SECONDS);
+            throw new AssertionError("expected exceptional completion");
+        } catch (ExecutionException failed) {
+            Throwable cause = failed.getCause();
+            while (cause instanceof CompletionException && cause.getCause() != null) cause = cause.getCause();
+            return cause;
+        }
+    }
 
     private static int passes = 0;
     private static int failures = 0;

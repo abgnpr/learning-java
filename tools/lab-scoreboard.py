@@ -17,19 +17,20 @@ LAB = pathlib.Path(__file__).resolve().parent.parent / "core-java" / "lab"
 README = LAB / "README.md"
 
 SECTIONS = [
-    ("Introduction", "Introduction", 13),
-    ("Strings", "Strings", 11),
-    ("BigNumber", "BigNumber", 3),
-    ("Data Structures", "Data Structures", 18),
-    ("Object-Oriented Programming", "OOP", 8),
-    ("Exception Handling", "Exceptions", 2),
-    ("Threads and Concurrency", "Threads", 8),
-    ("Advanced", "Advanced", 14),
-    ("Stream API", "Stream API", 19),
-    ("Core Contracts", "Core Contracts", 5),
-    ("I/O and Date/Time", "I/O + Time", 5),
-    ("Concurrency and Async", "Concurrency+Async", 7),
-    ("Version Features", "Version Features", 6),
+    ("Introduction", "Introduction", "01-introduction"),
+    ("Strings", "Strings", "02-strings"),
+    ("BigNumber", "BigNumber", "03-big-numbers"),
+    ("Data Structures", "Data Structures", "04-data-structures"),
+    ("Object-Oriented Programming", "OOP", "05-oop"),
+    ("Exception Handling", "Exceptions", "06-exceptions"),
+    ("Threads and Concurrency", "Threads", "07-threads"),
+    ("Advanced", "Advanced", "08-advanced"),
+    ("Stream API", "Stream API", "09-stream-api"),
+    ("Core Contracts", "Core Contracts", "10-core-contracts"),
+    ("I/O and Date/Time", "I/O + Time", "11-io-time"),
+    ("Concurrency and Async", "Concurrency+Async", "12-concurrency-async"),
+    ("Version Features", "Version Features", "13-version-features"),
+    ("Integration", "Integration", "14-integration"),
 ]
 # Track heading -> Scorecard subdomain, where the two tables disagree.
 HEADING_TO_SUBDOMAIN = {"Advanced": "Advanced", "Introduction": "Introduction"}
@@ -51,7 +52,11 @@ def solved(path):
     """
     text = path.read_text(encoding="utf-8")
     exercise = text.split(HARNESS_MARKER, 1)[0]
-    return "UnsupportedOperationException" not in exercise and "TODO" not in exercise
+    # Referring to an exception in an acceptance check is not an unfinished seam.
+    return not re.search(
+        r"\bTODO\b|\bthrow\s+new\s+(?:java\.lang\.)?UnsupportedOperationException\s*\(",
+        exercise,
+    )
 
 
 def main():
@@ -84,10 +89,28 @@ def main():
     filled = round(total_done / total_all * BAR_WIDTH)
     bar = "█" * filled + "░" * (BAR_WIDTH - filled)
 
-    for heading, _, expected in SECTIONS:
+    for heading, _, folder in SECTIONS:
+        expected = len(list((LAB / folder).glob("*.java")))
         got = counts.get(heading, (0, 0))[1]
         if got != expected:
             print(f"warning: {heading} has {got} rows, expected {expected}", file=sys.stderr)
+
+    # Keep the directory map and introductory totals in step with the Track.
+    for heading, _, folder in SECTIONS:
+        section_number = int(folder.split("-", 1)[0])
+        total = counts.get(heading, (0, 0))[1]
+        text = re.sub(
+            rf"^(\| {section_number:02d} \| [^|]+ \| )\d+( \|)$",
+            lambda match, total=total: f"{match[1]}{total}{match[2]}",
+            text, flags=re.M,
+        )
+    text = re.sub(r"This directory contains \d+ runnable Java labs",
+                  f"This directory contains {total_all} runnable Java labs", text)
+    stations = counts.get("Threads and Concurrency", (0, 0))[1]
+    text = re.sub(r"\d+ self-testing challenge starters and eight concurrency stations",
+                  f"{total_all - stations} self-testing challenge starters and eight concurrency stations", text)
+    text = re.sub(r"^\| \| \*\*Total\*\* \| \*\*\d+\*\* \|$",
+                  f"| | **Total** | **{total_all}** |", text, flags=re.M)
 
     pairs = [(short, counts.get(head, (0, 0))) for head, short, _ in SECTIONS]
     name_w = max(len(s) for s, _ in pairs)

@@ -2,35 +2,40 @@
 
 <div align="center">
 
-## `35 / 119` labs complete
+## `35 / 131` labs complete
 
-`█████████░░░░░░░░░░░░░░░░░░░░░` **29%**
+`████████░░░░░░░░░░░░░░░░░░░░░░` **27%**
 
 </div>
 
 ```text
-Introduction       █████████████████████████             13/13
-Strings            █████████████████████                 11/11
-BigNumber          ░░░░░░                                  0/3
-Data Structures    ████████░░░░░░░░░░░░░░░░░░░░░░░░░░     4/18
-OOP                ░░░░░░░░░░░░░░░                         0/8
-Exceptions         ░░░░                                    0/2
-Threads            ░░░░░░░░░░░░░░░                         0/8
-Advanced           ░░░░░░░░░░░░░░░░░░░░░░░░░░░            0/14
-Stream API         █████████████░░░░░░░░░░░░░░░░░░░░░░░   7/19
-Core Contracts     ░░░░░░░░░                               0/5
+Introduction       ██████████████████████                13/13
+Strings            ███████████████████                   11/11
+BigNumber          ░░░░░░░                                 0/4
+Data Structures    ███████░░░░░░░░░░░░░░░░░░░░░░░░░░░     4/20
+OOP                ░░░░░░░░░░░░░░░                         0/9
+Exceptions         ░░░░░                                   0/3
+Threads            ░░░░░░░░░░░░░░                          0/8
+Advanced           ░░░░░░░░░░░░░░░░░░░░░░░░░░             0/15
+Stream API         ████████████░░░░░░░░░░░░░░░░░░░░░░░░   7/21
+Core Contracts     ░░░░░░░░░░░░                            0/7
 I/O + Time         ░░░░░░░░░                               0/5
-Concurrency+Async  ░░░░░░░░░░░░░                           0/7
-Version Features   ░░░░░░░░░░░                             0/6
+Concurrency+Async  ░░░░░░░░░░░░░░                          0/8
+Version Features   ░░░░░░░░░░                              0/6
+Integration        ░░                                      0/1
 ```
 
 ---
 
-This directory contains 119 runnable Java labs arranged as a learning path:
-111 self-testing challenge starters and eight concurrency stations. Every
+This directory contains 131 runnable Java labs arranged as a learning path:
+123 self-testing challenge starters and eight concurrency stations. Every
 source file states its minimum JDK when it differs from the default Java 21
 baseline. The task descriptions are self-contained, original practice
 contracts; the challenge names and ordering form the curriculum map.
+
+For interview preparation, start with the [interview practice path](INTERVIEW-PATH.md).
+It maps the two Core Java guides to essential drills, optional depth, and blind
+revision criteria. The numbered track remains available for foundational practice.
 
 ## Directory map
 
@@ -38,18 +43,19 @@ contracts; the challenge names and ordering form the curriculum map.
 |---:|---|---:|
 | 01 | Introduction | 13 |
 | 02 | Strings and regular expressions | 11 |
-| 03 | Big numbers | 3 |
-| 04 | Data structures | 18 |
-| 05 | Object-oriented programming | 8 |
-| 06 | Exception handling | 2 |
+| 03 | Big numbers | 4 |
+| 04 | Data structures | 20 |
+| 05 | Object-oriented programming | 9 |
+| 06 | Exception handling | 3 |
 | 07 | Threads and concurrency | 8 |
-| 08 | Advanced Java | 12 |
-| 09 | Stream API | 19 |
-| 10 | Core contracts and language mechanics | 5 |
+| 08 | Advanced Java | 15 |
+| 09 | Stream API | 21 |
+| 10 | Core contracts and language mechanics | 7 |
 | 11 | I/O and date/time | 5 |
-| 12 | Practical concurrency and async | 7 |
+| 12 | Practical concurrency and async | 8 |
 | 13 | Java 17, 21, and 25 version features | 6 |
-| | **Total** | **119** |
+| 14 | Integrated transaction reporting | 1 |
+| | **Total** | **131** |
 
 `Scratchpad.java` is available for experiments and is not counted as a lab.
 
@@ -64,13 +70,14 @@ java 01-introduction/WelcomeToJava.java
 ```
 
 An untouched starter throws `UnsupportedOperationException` or fails a
-structural check. A completed challenge prints its completion line after every
+structural check. The language/compiler drills ask you to fill prediction maps
+before running the supplied scenarios. A completed challenge prints its completion line after every
 embedded check succeeds.
 
 ### Reading the output
 
-Every case prints its input alongside both values, so a failure is diagnosable
-without a debugger or an external judge:
+Checks print expected and actual values with a case label; many also print the
+input, so a failure is diagnosable without a debugger or an external judge:
 
 ```
 FAIL  ordinary address
@@ -239,6 +246,8 @@ Run the three Java 25 source files with JDK 25 as shown in their
 5. **EXTEND** — add one edge case that the supplied checks do not cover.
 6. **EXPLAIN** — name the Java API or language rule that made the solution
    work.
+7. **REVISIT** — later, solve a changed input or requirement without opening
+   the previous implementation. Explain which plausible bug your added case catches.
 
 The source files contain no answer key. Keep each exercise independent so
 it remains runnable through Java's single-file source launcher.
@@ -256,8 +265,8 @@ the reader. A better approach gets described and left for the reader to accept
 or reject. Before the attempt, it gives the smallest hint that unblocks rather
 than the answer.
 
-Planned lab extensions and the payment-ledger capstone are scoped in the
-[Core Java lab roadmap](ROADMAP.md).
+The [transaction report](14-integration/README.md) connects parsing, logical
+keys, exact arithmetic, reporting, error handling, and resource ownership.
 
 ## Track
 
@@ -310,6 +319,7 @@ advanced collection extensions. Section 07 uses station numbers S1–S8 and has 
 | 25 | BigDecimal | Medium | [BigDecimalOrdering.java](03-big-numbers/BigDecimalOrdering.java) | ⬜ |
 | 26 | Primality Test | Easy | [LargeNumberPrimality.java](03-big-numbers/LargeNumberPrimality.java) | ⬜ |
 | 27 | BigInteger | Easy | [BigIntegerArithmetic.java](03-big-numbers/BigIntegerArithmetic.java) | ⬜ |
+| 127 | BigDecimal Money Contracts | Medium | [BigDecimalMoneyContracts.java](03-big-numbers/BigDecimalMoneyContracts.java) | ⬜ |
 
 ### Data Structures
 
@@ -336,6 +346,8 @@ advanced path after the numbered fundamentals.
 | DS-A1 | Access-order LRU Cache | Hard | [AccessOrderLruCache.java](04-data-structures/AccessOrderLruCache.java) | ⬜ |
 | DS-A2 | Navigable Time-series Lookup | Hard | [NavigableTimeSeries.java](04-data-structures/NavigableTimeSeries.java) | ⬜ |
 | DS-A3 | Hash Key Contract | Hard | [HashKeyContract.java](04-data-structures/HashKeyContract.java) | ⬜ |
+| 124 | Collection Views and Iteration | Medium | [CollectionViewsAndIteration.java](04-data-structures/CollectionViewsAndIteration.java) | ⬜ |
+| 125 | Map Update Contracts | Medium | [MapUpdateContracts.java](04-data-structures/MapUpdateContracts.java) | ⬜ |
 
 ### Object-Oriented Programming
 
@@ -349,6 +361,7 @@ advanced path after the numbered fundamentals.
 | 48 | Method Overriding 2 (Super Keyword) | Easy | [SuperKeywordOverride.java](05-oop/SuperKeywordOverride.java) | ⬜ |
 | 49 | Instanceof keyword | Easy | [InstanceofTypeCounter.java](05-oop/InstanceofTypeCounter.java) | ⬜ |
 | 50 | Iterator | Easy | [IteratorAfterMarker.java](05-oop/IteratorAfterMarker.java) | ⬜ |
+| 122 | Payment Routing Contracts | Medium | [PaymentRoutingContracts.java](05-oop/PaymentRoutingContracts.java) | ⬜ |
 
 ### Exception Handling
 
@@ -356,6 +369,7 @@ advanced path after the numbered fundamentals.
 |---:|---|---|---|:---:|
 | 51 | Exception Handling (Try-catch) | Easy | [TryCatchDivision.java](06-exceptions/TryCatchDivision.java) | ⬜ |
 | 52 | Exception Handling | Easy | [PowerExceptionRules.java](06-exceptions/PowerExceptionRules.java) | ⬜ |
+| 126 | Exception Boundary Contracts | Medium | [ExceptionBoundaryContracts.java](06-exceptions/ExceptionBoundaryContracts.java) | ⬜ |
 
 ### Threads and Concurrency
 
@@ -392,6 +406,7 @@ hang; guard them with `timeout 6` or stop them with `Ctrl-C`.
 | 64 | SHA-256 | Medium | [Sha256Digest.java](08-advanced/Sha256Digest.java) | ⬜ |
 | 112 | Default-Method Resolution | Medium | [DefaultMethodResolution.java](08-advanced/DefaultMethodResolution.java) | ⬜ |
 | 113 | Optional Account Workflow | Medium | [OptionalAccountWorkflow.java](08-advanced/OptionalAccountWorkflow.java) | ⬜ |
+| 123 | Functional Composition Contracts | Medium | [FunctionalCompositionContracts.java](08-advanced/FunctionalCompositionContracts.java) | ⬜ |
 
 ### Stream API
 
@@ -419,6 +434,8 @@ learning order, and review checkpoints.
 | 81 | Infinite Stream Sources | Medium | [InfiniteStreamBounds.java](09-stream-api/InfiniteStreamBounds.java) | ⬜ |
 | 82 | Parallel Collection Without Shared Mutation | Hard | [ParallelWordFrequency.java](09-stream-api/ParallelWordFrequency.java) | ⬜ |
 | 111 | Multi-Field Comparator Sorting | Medium | [MultiFieldInventorySort.java](09-stream-api/MultiFieldInventorySort.java) | ⬜ |
+| 130 | Comparator Policy Catalog | Medium | [ComparatorPolicyCatalog.java](09-stream-api/ComparatorPolicyCatalog.java) | ⬜ |
+| 131 | Ranked Results and Ordered Maps | Medium | [RankedResults.java](09-stream-api/RankedResults.java) | ⬜ |
 
 ### Core Contracts
 
@@ -432,6 +449,8 @@ language or collection contract it proves.
 | 85 | Equality and Ordering Contract | Hard | [EqualityOrderingContract.java](10-core-contracts/EqualityOrderingContract.java) | ⬜ |
 | 86 | Immutable Record Snapshot | Hard | [ImmutableRecordSnapshot.java](10-core-contracts/ImmutableRecordSnapshot.java) | ⬜ |
 | 87 | Collection Choice Contracts | Medium | [CollectionChoiceContracts.java](10-core-contracts/CollectionChoiceContracts.java) | ⬜ |
+| 120 | Language Semantics Predictions | Medium | [LanguageSemantics.java](10-core-contracts/LanguageSemantics.java) | ⬜ |
+| 121 | Compiler Contracts Predictions | Medium | [CompilerContracts.java](10-core-contracts/CompilerContracts.java) | ⬜ |
 
 ### I/O and Date/Time
 
@@ -460,6 +479,7 @@ predict-run-explain stations with deterministic TODO-based implementations.
 | 97 | Condition-based Bounded Buffer | Hard | [ConditionBoundedBuffer.java](12-concurrency-async/ConditionBoundedBuffer.java) | ⬜ |
 | 98 | Semaphore Concurrency Gate | Hard | [SemaphoreConcurrencyGate.java](12-concurrency-async/SemaphoreConcurrencyGate.java) | ⬜ |
 | 99 | Virtual-thread Blocking Fan-out | Hard | [VirtualThreadFanout.java](12-concurrency-async/VirtualThreadFanout.java) | ⬜ |
+| 128 | CompletableFuture Execution and Failure | Hard | [CompletableFutureExecution.java](12-concurrency-async/CompletableFutureExecution.java) | ⬜ |
 
 ### Version Features
 
@@ -476,6 +496,15 @@ as command drills in the version guide.
 | 118 | Flexible Constructor Validation | Medium | [FlexibleConstructorValidation.java](13-version-features/FlexibleConstructorValidation.java) | ⬜ |
 | 119 | Compact Source and Module Import | Easy | [CompactModuleCatalog.java](13-version-features/CompactModuleCatalog.java) | ⬜ |
 
+### Integration
+
+Use this exercise after the essential concepts in the [practice path](INTERVIEW-PATH.md).
+Its [section guide](14-integration/README.md) suggests follow-up variants.
+
+| # | Challenge | Difficulty | Starter | Done |
+|---:|---|---|---|:---:|
+| 129 | Transaction Report | Hard | [TransactionReport.java](14-integration/TransactionReport.java) | ⬜ |
+
 ## Scorecard
 
 Mark a challenge only after its checks pass and you can explain the core
@@ -489,23 +518,26 @@ scoreboard, the `Done` marks and this table from the starters themselves: a lab
 is outstanding while it still carries its `UnsupportedOperationException` or
 `TODO` seam. The eight concurrency stations have no such seam, so their marks
 are hand-kept and the script preserves them. Exit 1 means the README changed.
+The script records implementation progress; passing checks and a later blind
+explanation remain the learner's responsibility.
 
 | Subdomain | Labs | Complete |
 |---|---:|---:|
 | Introduction | 13 | 13/13 |
 | Strings | 11 | 11/11 |
-| BigNumber | 3 | 0/3 |
-| Data Structures | 18 | 4/18 |
-| Object-Oriented Programming | 8 | 0/8 |
-| Exception Handling | 2 | 0/2 |
+| BigNumber | 4 | 0/4 |
+| Data Structures | 20 | 4/20 |
+| Object-Oriented Programming | 9 | 0/9 |
+| Exception Handling | 3 | 0/3 |
 | Threads and Concurrency | 8 | 0/8 |
-| Advanced | 14 | 0/14 |
-| Stream API | 19 | 7/19 |
-| Core Contracts | 5 | 0/5 |
+| Advanced | 15 | 0/15 |
+| Stream API | 21 | 7/21 |
+| Core Contracts | 7 | 0/7 |
 | I/O and Date/Time | 5 | 0/5 |
-| Concurrency and Async | 7 | 0/7 |
+| Concurrency and Async | 8 | 0/8 |
 | Version Features | 6 | 0/6 |
-| **Total** | **119** | **35/119** |
+| Integration | 1 | 0/1 |
+| **Total** | **131** | **35/131** |
 
 ## Revision references
 

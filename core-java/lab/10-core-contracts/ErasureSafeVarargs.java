@@ -31,6 +31,13 @@ public class ErasureSafeVarargs {
                         new java.util.ArrayList<String>(),
                         new java.util.ArrayList<Integer>()));
         checkThat("result is unmodifiable", joined, isUnmodifiable(joined));
+        List<Number> source = new java.util.ArrayList<>(List.of(1, 2));
+        List<Number> snapshot = immutableConcat(source, List.of(3L));
+        check("concatenation does not modify its input", source, List.of(1, 2), source);
+        source.add(99);
+        check("result is detached from input mutations", source, List.of(1, 2, 3L), snapshot);
+        check("erasure does not erase the concrete implementation class", "ArrayList versus LinkedList", false,
+                sameRuntimeListClass(new java.util.ArrayList<>(), new java.util.LinkedList<>()));
         report("Challenge 84");
     }
 

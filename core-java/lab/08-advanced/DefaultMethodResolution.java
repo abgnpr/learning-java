@@ -4,7 +4,8 @@
  * Task: Resolve two unrelated interface defaults explicitly. Preserve both
  * behaviors in the result, and use the interface-qualified super syntax.
  *
- * Complete: ResolvedLabel.label().
+ * Complete: ResolvedLabel.label() and DetailedNamed.label(). Explain all three
+ * resolution cases: inherited class method, more specific interface, conflict.
  * Java baseline: Java 8.
  * Run: javac DefaultMethodResolution.java && java DefaultMethodResolution
  */
@@ -24,6 +25,16 @@ public final class DefaultMethodResolution {
             return "audited";
         }
     }
+
+    interface DetailedNamed extends Named {
+        @Override
+        default String label() {
+            // TODO: Prefix Named.super.label() with "detailed:".
+            throw new UnsupportedOperationException("TODO: specialize an inherited default");
+        }
+    }
+
+    static final class SpecificWins implements Named, DetailedNamed { }
 
     static class ParentLabel {
         public String label() {
@@ -49,6 +60,10 @@ public final class DefaultMethodResolution {
     public static void main(String[] args) {
         check("class beats interface default", "new ClassWins().label()",
                 "class", new ClassWins().label());
+
+        Named specific = new SpecificWins();
+        check("most specific interface default wins", "Named reference to SpecificWins",
+                "detailed:named", specific.label());
 
         check("unrelated defaults are resolved explicitly",
                 "new ResolvedLabel().label()",

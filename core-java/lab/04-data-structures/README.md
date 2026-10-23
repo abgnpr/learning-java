@@ -23,3 +23,15 @@ After each implementation, be ready to explain:
 These are Java collection exercises, not a second algorithms tracker. Problems
 such as LFU cache, top-k frequency, trie design, and graph traversal remain in
 the dedicated NeetCode practice repository.
+
+## Mutation and callback contracts
+
+- [Collection Views and Iteration](CollectionViewsAndIteration.java): fixed-size
+  array views, live unmodifiable wrappers, detached nested snapshots, iterator
+  removal, copy-on-write snapshots, and map key views.
+- [Map Update Contracts](MapUpdateContracts.java): absent versus null mappings,
+  conditional loading, remapping, zero-removal policies, and callback failures.
+
+Predict both the returned result and the caller's collection after each call.
+Distinguish snapshot iteration from weak consistency. Fail-fast detection is
+best effort and cannot make unsynchronized concurrent modification safe.

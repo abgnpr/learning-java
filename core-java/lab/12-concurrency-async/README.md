@@ -13,7 +13,18 @@ timing guesses.
 | 97 | [Condition-based Bounded Buffer](ConditionBoundedBuffer.java) | locks, conditions, interruptible waiting |
 | 98 | [Semaphore Concurrency Gate](SemaphoreConcurrencyGate.java) | permits, limits, exception-safe release |
 | 99 | [Virtual-thread Blocking Fan-out](VirtualThreadFanout.java) | thread-per-task blocking, deterministic coordination |
+| 128 | [CompletableFuture Execution and Failure](CompletableFutureExecution.java) | explicit executor, observation versus recovery, cancellation versus interruption |
 
 Every test must terminate. Keep blocking operations interruptible, restore or
 propagate interruption where the contract requires it, and never replace a
 coordination primitive with arbitrary sleeps.
+
+The composition checks keep upstream futures pending and complete inputs in a
+different order from their list positions. Returning a stage must not wait for
+those inputs. The execution checks use a controlled executor to distinguish
+scheduling from immediate evaluation, and a latch-controlled supplier to show
+that cancelling a CompletableFuture does not interrupt its running work.
+
+Metrics snapshots publish a complete immutable map atomically. Sampling active
+LongAdders across keys is not a globally atomic point in time; exact totals
+require a quiescent point, as established by joining writers in the checks.

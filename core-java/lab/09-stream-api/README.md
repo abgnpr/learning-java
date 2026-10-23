@@ -1,6 +1,6 @@
 # Stream API labs
 
-This section contains 19 self-testing challenges for the Java Stream API. Work
+This section contains 21 self-testing challenges for streams and comparator-driven reports. Work
 through them in order: each group adds a new part of the stream mental model,
 from building a lazy pipeline to designing reductions that remain correct in
 parallel.
@@ -15,7 +15,8 @@ java 09-stream-api/FilterMapPipeline.java
 Replace only the marked `TODO` seam. The acceptance checks describe observable
 behavior, while each file's `Required focus` identifies the API you should
 practice. A loop may produce the same answer, but it does not complete a Stream
-API drill.
+API drill. Comparator Policy Catalog focuses on constructing reusable comparator
+objects; its harness sorts copies of the supplied test data.
 
 ## Mental model
 
@@ -57,6 +58,14 @@ source -> lazy intermediate operations -> terminal operation -> result
 | 81 | [Infinite Stream Bounds](InfiniteStreamBounds.java) | `iterate`, `generate`, `limit` |
 | 82 | [Parallel Word Frequency](ParallelWordFrequency.java) | parallel streams, concurrent collection |
 | 111 | [Multi-Field Comparator Sorting](MultiFieldInventorySort.java) | comparator composition, mixed sort directions |
+| 130 | [Comparator Policy Catalog](ComparatorPolicyCatalog.java) | text/null/direction policies, explicit business order, timestamps |
+| 131 | [Ranked Results](RankedResults.java) | value DESC/key ASC, top N, selection, ordered maps |
+
+For sorting practice, read [application comparator patterns](../../comparator-patterns.md),
+then complete 111 → 130 → 131. Follow with
+[Equality and Ordering](../10-core-contracts/EqualityOrderingContract.java) for
+sorted-set identity and [Student Priority Queue](../04-data-structures/StudentPriorityQueue.java)
+for service order. These are different uses of the same comparator contract.
 
 ## Review checkpoints
 
@@ -72,6 +81,9 @@ After completing the section, be able to explain:
 8. What makes a collector or reduction safe for parallel execution.
 9. Why `parallelStream()` is not automatically faster.
 10. How comparator order establishes tie-breakers, and how to reverse only one key.
+11. Why nulls can stay last in both directions and an ascending ID can remain fixed.
+12. Why a best-first comparator selects its best item with min, and why a ranked
+    map needs an explicit iteration-order contract.
 
 Compile this section without writing class files into the repository:
 

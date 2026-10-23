@@ -14,16 +14,17 @@ interview is live, what a given panel asked, what's due when: all of
 that belongs to `interview-hq/campaigns/`. Kits must read as useful
 for *any* Java interview, not one of them.
 
+## Practical curriculum
+
+- Core Java essential practice, coverage, and blind revision:
+  `core-java/lab/INTERVIEW-PATH.md`. Runnable starters cover contracts/generics,
+  language/compiler behavior, object design, I/O/time, money, and async work.
+- Transaction reporting integration: `core-java/lab/14-integration/README.md`.
+  Durable payment-ledger concerns (transactional persistence, idempotency,
+  reliable events, operational proof) belong to Spring/Kafka practice.
+
 ## Still to land
 
-- ⬜ Core Java micro-labs — contracts/generics followed by I/O and date/time;
-  scope lives in `core-java/lab/ROADMAP.md`.
-- ⬜ Practical concurrency challenges — interruption, cancellation, executor
-  lifecycle, concurrent collections and `CompletableFuture`; scope lives in
-  `core-java/lab/ROADMAP.md`.
-- ⬜ Payment-ledger capstone — domain invariants first, then transactional
-  persistence, idempotency, reliable events and operational proof; scope lives
-  in `core-java/lab/ROADMAP.md`.
 - ⬜ `interview-hq/campaigns/track-a/lld-drills.md` — the 9-problem
   machine-coding curriculum. Graduates here on its HQ trigger.
 
@@ -52,10 +53,11 @@ Pareto core path + Extensions list). Readiness: 🟢 drilled aloud ·
 | `core-java/core-java.md` | OOP · collections · exceptions · Java 8+ · traps · Spring/JDBC/REST · SDLC/testing — **rapid-fire, answers sized for speaking**. §5 and §8 are pointers (`core-java/threads-jvm.md`, `kafka/kafka-basics.md`), one-liner each | §4→§2→§3→§1 | 🟢 **9/9 sections at rep 1** — whole kit drilled aloud once; rep 2 not started (scorecard at the doc's foot is authoritative) |
 | `kafka/kafka-basics.md` | **the Kafka answer sheet, self-contained** (§1–§12): log-vs-queue · partitions/ordering · cluster/ISR/`acks` · producer · groups & offsets · **delivery guarantees** · rebalancing & liveness knobs · retention/compaction/DLQ · Spring Kafka · why-fast · **⚓ IMPS anchor** · traps. Defines every term it uses; no outbound depth pointers | §2→§5→§6→§11, then §7→§3→§8 | 🟡 **6/12 sections at rep 1** — §1, §2, §5, §6, §10, §11 done; §3, §4, §7, §8, §9, §12 unrepped (scorecard at the doc's foot is authoritative) |
 | `core-java/java-versions.md` | Java 7→25 timeline, headline feature + snippet each · LTS line 8/11/17/21/25 | Java 7→25 in order | 🟡 racked |
+| `core-java/comparator-patterns.md` | Application ordering patterns: mixed keys · reversal · nulls · case/locale · business ranks · ranked maps · selection | inventory lab → comparator policies → ranked results | 🟡 racked |
 | `core-java/java-8.md` | **Tier-1 "Java 8 from zero" study block** (§A–§I): functional interface · lambda · method reference · streams · collectors · `Optional` · default/static methods · `java.time` · LTS list · analogy card | §A→§I in order | 🟡 racked |
 | `core-java/threads-jvm.md` | thread · **the two problems** (race/atomicity, visibility/happens-before) · critical section · monitor + `synchronized` + **thread states** (§3 owns all six) · wait/notify + producer-consumer · **ReentrantLock/Condition** · volatile/atomics · liveness · executors + virtual threads · concurrent collections · JVM/GC — ordered so no answer depends on one below it | §1→§10 in order | 🟢 **10/10 blocks at rep 1** — whole kit drilled aloud once; rep 2 not started (scorecard at the doc's foot is authoritative) |
 | `core-java/lab/07-threads/README.md` + `core-java/lab/07-threads/` | 8 runnable predict→run→explain stations: start/run · lost update · volatile · wait/sleep · deadlock · pools · producer-consumer · virtual threads | S1→S8 in order | 🟡 racked 2026-07-21, **0/8 stations repped** |
-| `core-java/lab/README.md` + `core-java/lab/` | Unified index for 82 self-testing Java starters plus 8 concurrency stations: introduction · strings/regex · BigNumber · data structures · OOP · exceptions · threads · advanced Java · Stream API | challenges 01→82; stations S1→S8 | 🟡 racked — count is generated; see the lab README scoreboard |
+| `core-java/lab/README.md` + `core-java/lab/` | Standalone Java starters and 8 concurrency stations; language/compiler rules · collections · object design · functional Java · contracts · I/O/time · concurrency · integration | Essential order in `core-java/lab/INTERVIEW-PATH.md` | 🟡 racked — count is generated; see the lab README scoreboard |
 | `spring-boot/spring-boot-basics.md` | DI/IoC · beans/scopes · config · **auto-config** · web MVC · validation · data/JPA · **transactions & proxies** · testing · actuator | §1→§4→§3→§5→§7→§8 | 🟡 racked 2026-07-21 |
 | `spring-boot/spring-senior-core.md` | **Complete senior Spring answer book**: runtime/container · Boot/auto-config · AOP · MVC · Security · JPA/performance · transactions/distributed consistency · resilience · observability · production testing · banking scenarios | §5→§6→§8→§10→§11→§13→§14→§15→§16→§17 | 🟡 racked 2026-09-01 |
 | `spring-boot/spring-security-basics.md` | **Senior Security anti-fumble kit**: filter-chain architecture · authN/passwords · route authZ · method security/**SpEL** · sessions/context · JWT resource server · CSRF/CORS · 401/403 boundary · testing · production scenarios | §0→§1→§2→§3→§4→§6→§7→§8→§9→§10 | 🟡 racked 2026-08-27 |
@@ -110,7 +112,7 @@ has a home when it lands.
 ## Layout
 
 Study material is grouped by subject, one folder per subject, with no `notes/`
-wrapper. `core-java/` holds its four study kits and the runnable `lab/`;
+wrapper. `core-java/` holds its study kits, comparator pattern guide, and runnable `lab/`;
 `kafka/` holds `kafka-basics.md` and `kafka-basics-exercise.md`; `redis/` holds
 `redis-basics.md`, `redis-basics-exercise.md` and its own runnable `lab/`
 (groups 01–05, plus `compose.yaml` and `get-deps.sh`); `spring-boot/`
@@ -121,7 +123,9 @@ Only `README.md` and this charter sit at the root, plus `tools/` for repo
 upkeep scripts. Inside
 `core-java/lab/`, folders 01–06 hold the foundational challenge groups, 07
 holds the eight concurrency stations, 08 holds the advanced challenge group,
-and 09 holds the Stream API challenges. `core-java/lab/Scratchpad.java` is the try-things-out file
+09 holds Stream API challenges, 10 holds core/language contracts, 11 holds I/O/time,
+12 holds practical concurrency, 13 holds version features, and 14 holds the
+transaction-report integration exercise. `core-java/lab/Scratchpad.java` is the try-things-out file
 (Skipper's, 2026-07-22).
 
 ## Working practice

@@ -2,8 +2,11 @@
  * Challenge 96 — Concurrent Metrics Publication (Hard)
  *
  * Task: Accumulate named counters concurrently without a global lock. Publish
- * an immutable point-in-time snapshot through an atomic reference so readers
- * see either the previous complete snapshot or the next complete snapshot.
+ * an immutable sampled snapshot through an atomic reference so readers see
+ * either the previous complete map or the next complete map. Sampling concurrent
+ * counters is NOT a globally atomic instant across keys. Exact counts below
+ * are checked after writers join. Atomic publication does not change LongAdder
+ * sum into a synchronization mechanism.
  * Complete: Metrics.increment(...), publish(), snapshot()
  * Run: java ConcurrentMetricsPublication.java
  */
@@ -60,6 +63,15 @@ public class ConcurrentMetricsPublication {
                 4L, metrics.snapshot().get("workers"));
         checkThat("published snapshot is immutable", metrics.snapshot(),
                 isUnmodifiable(metrics.snapshot()));
+        Map<String, Long> previous = metrics.snapshot();
+        metrics.increment("requests");
+        check("new increments remain unpublished", "after another increment",
+                4_000L, metrics.snapshot().get("requests"));
+        metrics.publish();
+        check("next publication includes new work", "after republish",
+                4_001L, metrics.snapshot().get("requests"));
+        check("retained old snapshot stays detached", "previous map after republish",
+                4_000L, previous.get("requests"));
         report("Challenge 96");
     }
 

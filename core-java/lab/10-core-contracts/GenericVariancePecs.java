@@ -11,6 +11,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class GenericVariancePecs {
+    static class Employee implements Comparable<Employee> {
+        private final int rank;
+        Employee(int rank) { this.rank = rank; }
+        @Override public int compareTo(Employee other) { return Integer.compare(rank, other.rank); }
+    }
+
+    static final class Manager extends Employee {
+        Manager(int rank) { super(rank); }
+    }
+
     static <T> void copy(List<? extends T> source, List<? super T> destination) {
         // TODO: Copy every source element into the destination.
         throw new UnsupportedOperationException("TODO: apply PECS");
@@ -37,6 +47,19 @@ public class GenericVariancePecs {
                 max(List.of(3, 1, 7, 2)));
         check("maximum strings", "[beta, alpha, gamma]", "gamma",
                 max(List.of("beta", "alpha", "gamma")));
+        Manager junior = new Manager(1), senior = new Manager(9);
+        Manager greatest = max(List.of(junior, senior));
+        check("Comparable may be declared on a supertype", "Manager implements Comparable<Employee>",
+                senior, greatest);
+        List<Object> objects = new ArrayList<>(List.of("existing"));
+        List<Integer> source = new ArrayList<>(List.of(4, 5));
+        copy(source, objects);
+        check("Object consumer accepts Integer producer", "copy [4,5] after existing",
+                List.of("existing", 4, 5), objects);
+        check("copy leaves producer untouched", source, List.of(4, 5), source);
+        copy(List.<Integer>of(), objects);
+        check("empty producer leaves destination untouched", objects, List.of("existing", 4, 5), objects);
+        check("empty numeric sum", "[]", 0.0, sum(List.of()));
         report("Challenge 83");
     }
 

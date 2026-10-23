@@ -25,6 +25,11 @@ then stop talking. Explain-level depth; if pressed deeper, anchor to
 IMPS code; never bluff. 🟢 per section only after a blind aloud rep
 — reading is not loading.
 
+**Practical companion:** follow the [Core Java interview practice path](lab/INTERVIEW-PATH.md)
+for language predictions, collection contracts, object design, functional Java,
+exceptions, async work, and a transaction-report exercise. Its coverage map
+distinguishes Java labs from the separate Spring/Kafka/testing tracks.
+
 **⚓ The verified IMPS stack (from build files):** Spring Boot
 **2.7.10** receivers · Kafka clients **3.x** · Oracle via
 **ojdbc8** · Redis via **Jedis 3.7** · **Gradle** multi-project
@@ -309,7 +314,7 @@ version?" is a certainty).
   Integer a = 100, b = 100;
   System.out.println(a == b);   // true  — both hit the cache
   Integer x = 200, y = 200;
-  System.out.println(x == y);   // false — outside −128..127, new objects
+  System.out.println(x == y);   // do not rely on identity outside the required cache
 
   Integer n = null;
   int m = n;                    // NPE — unboxing null
@@ -558,10 +563,11 @@ version?" is a certainty).
   plus `removeEldestEntry` it's a ready-made LRU cache.
 
 - **Fail-fast vs fail-safe iterators?**
-  - fail-fast: throws `ConcurrentModificationException` if the
-    collection changes mid-iteration (ArrayList, HashMap)
-  - fail-safe: iterates a snapshot/weakly-consistent view
-    (CopyOnWriteArrayList, ConcurrentHashMap)
+  - fail-fast: detects structural modification on a best-effort basis and may
+    throw `ConcurrentModificationException` (ArrayList, HashMap); this is a bug
+    detector, not a concurrency guarantee
+  - "fail-safe" is informal: CopyOnWriteArrayList iterators traverse a snapshot;
+    ConcurrentHashMap iterators are weakly consistent and may see some updates
   - mechanism: collection keeps a `modCount`; iterator remembers
     it at creation, checks every `next()` — mismatch → throw
   - follow-up — *so how DO you remove while iterating?*
@@ -578,8 +584,10 @@ version?" is a certainty).
   - `Collections.unmodifiableList(list)` — wrapper; writes throw
     `UnsupportedOperationException`, but the *backing* list can
     still change underneath
-  - `List.of(...)` / `Map.of(...)` (Java 9) — truly immutable
-    from birth, no nulls allowed
+  - `List.of(...)` / `Map.of(...)` (Java 9) — unmodifiable collections,
+    no nulls allowed; mutable elements/values can still change
+  - `List.copyOf(...)` — an unmodifiable snapshot of collection structure;
+    deep immutability also requires immutable or defensively copied elements
 
 - **Comparable vs Comparator?** — Comparable: the class's own
   natural order (`compareTo`); Comparator: external strategy,
@@ -967,7 +975,9 @@ bullet links its deep dive. Drill here, study there.*
   - nothing runs until the terminal
   - single-use  *(MCQ staple: reusing a consumed stream →
   IllegalStateException)*
-  - never mutates the source
+  - ordinary transformations leave source structure unchanged; callbacks can
+    still mutate objects, and modifying a non-concurrent source during traversal
+    violates the non-interference requirement
 
   ```text
   txns.stream() → filter → map → sorted   [all lazy — nothing runs]
@@ -978,7 +988,8 @@ bullet links its deep dive. Drill here, study there.*
 
 - **Stream vs Collection?** *(X-vs-Y staple)* — a Collection
   stores elements; a Stream computes over them: no storage, lazy,
-  single-use, never mutates its source.
+  single-use. Behavioral parameters must respect non-interference; a stream
+  does not make mutable source elements immutable.
 
 - **Intermediate vs terminal?**
   - intermediates — return a Stream, lazy
@@ -1078,8 +1089,8 @@ up generationally, young and often.
 
 - `"a" == "a"` → true (same pooled literal); `new String("a") ==
   "a"` → false. Content: always `equals`.
-- `Integer a=127, b=127; a==b` → true (cache −128…127);
-  `a=128, b=128` → false. `Integer == int` unboxes → value compare.
+- `Integer a=127, b=127; a==b` → true (required cache −128…127);
+  identity outside that range is not guaranteed. `Integer == int` unboxes → value compare.
 - Unboxing a null wrapper (`int x = (Integer) null`, or a
   mixed-type ternary) → NullPointerException.
 - `5 / 0` → ArithmeticException; `5.0 / 0` → Infinity (IEEE double).

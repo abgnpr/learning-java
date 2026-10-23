@@ -50,6 +50,21 @@ public final class CustomBracketCollector {
                         .stream()
                         .collect(bracketedJoining()));
 
+        Collector<String, StringJoiner, String> collector = bracketedJoining();
+        check("characteristics match ordered non-concurrent finishing", "collector metadata",
+                Collections.emptySet(), collector.characteristics());
+        StringJoiner left = collector.supplier().get();
+        StringJoiner right = collector.supplier().get();
+        collector.accumulator().accept(left, "a");
+        collector.accumulator().accept(right, "b");
+        check("combiner preserves left then right encounter order", "two partial accumulators",
+                "<a | b>", collector.finisher().apply(collector.combiner().apply(left, right)));
+        StringJoiner empty = collector.supplier().get();
+        StringJoiner single = collector.supplier().get();
+        collector.accumulator().accept(single, "x");
+        check("empty partial accumulator is a valid identity", "empty left plus x",
+                "<x>", collector.finisher().apply(collector.combiner().apply(empty, single)));
+
         report("Challenge 80");
     }
 

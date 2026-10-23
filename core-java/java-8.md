@@ -29,6 +29,8 @@ default interface methods, `java.time`, and `CompletableFuture`.
 
 - [§D Streams](#d-stream-api--the-payoff)
 
+- [Parallel streams, pool types, and blocking I/O](#parallel-streams)
+
 - [§E Collectors](#e-collectors--what-collect-uses)
 
 - [§F Optional](#f-optional--maybe-absent-made-explicit)
@@ -53,6 +55,11 @@ default interface methods, `java.time`, and `CompletableFuture`.
 
 - **Active recall:** answer each section's mastery check without looking back.
 
+- **Interview practice:** use the [coverage and practice path](lab/INTERVIEW-PATH.md)
+  to connect these concepts with collection contracts, language rules, and an
+  integrated report. Most drills use a JDK 21 harness; the six exercises in the
+  next list retain their Java 8 compilation baseline.
+
 - **Practice:** complete each TODO or rewrite each solved exercise from memory in
   this order:
 
@@ -63,13 +70,17 @@ default interface methods, `java.time`, and `CompletableFuture`.
   5. [OptionalAccountWorkflow.java](lab/08-advanced/OptionalAccountWorkflow.java)
   6. [DefaultMethodResolution.java](lab/08-advanced/DefaultMethodResolution.java)
 
-- **Then reinforce the remaining concepts:** these existing labs use a JDK 21
-  harness, while the APIs being practiced originated in Java 8:
+- **Then reinforce the remaining concepts:** these labs use a full JDK 21+
+  and connect Java 8 behavior with broader language and library contracts:
 
   1. [MultiFieldInventorySort.java](lab/09-stream-api/MultiFieldInventorySort.java)
   2. [ClockDrivenTime.java](lab/11-io-time/ClockDrivenTime.java)
   3. [ZonedDstScheduling.java](lab/11-io-time/ZonedDstScheduling.java)
   4. [CompletableFutureComposition.java](lab/12-concurrency-async/CompletableFutureComposition.java)
+  5. [FunctionalCompositionContracts.java](lab/08-advanced/FunctionalCompositionContracts.java)
+  6. [CompilerContracts.java](lab/10-core-contracts/CompilerContracts.java)
+  7. [MapUpdateContracts.java](lab/04-data-structures/MapUpdateContracts.java)
+  8. [CompletableFutureExecution.java](lab/12-concurrency-async/CompletableFutureExecution.java)
 
 - **Run an exercise on JDK 8:** compile it first, then run the class:
 
@@ -180,47 +191,65 @@ ToIntFunction<String> lengthAsInt = String::length;
 
 ### Compose small operations
 
-- `Predicate.and` and `Predicate.or` short-circuit from left to right.
-
-- `Predicate.negate` reverses the result.
-
-- `Function.andThen` runs the current function first.
-
-- `Function.compose` runs its argument first.
+**Predicates:** `and` requires both conditions; `or` requires either;
+`negate` reverses the result. Evaluation is left to right: `and` skips the
+second predicate after `false`, while `or` skips it after `true`.
 
 ```java
-Predicate<String> notNull = Objects::nonNull;
-Predicate<String> notEmpty = text -> !text.isEmpty();
-Predicate<String> usable = notNull.and(notEmpty);
+Predicate<Integer> positive = n -> n > 0;
+Predicate<Integer> even = n -> n % 2 == 0;
 
-Function<String, String> trim = String::trim;
-Function<String, Integer> cleanLength = trim.andThen(String::length);
-
-cleanLength.apply("  Java  "); // 4
+positive.and(even).test(4);  // true — both pass
+positive.and(even).test(-2); // false — positive fails; even is skipped
+positive.or(even).test(3);   // true — positive passes; even is skipped
+positive.negate().test(-2); // true — not positive
 ```
+
+**Functions:** `f.andThen(g)` runs `f` then `g`; `f.compose(g)` runs `g` then
+`f`. The same functions and input can therefore produce different answers:
+
+```java
+Function<Integer, Integer> addOne = n -> n + 1;
+Function<Integer, Integer> doubleIt = n -> n * 2;
+
+addOne.andThen(doubleIt).apply(3); // 8 — doubleIt(addOne(3)): 3 → 4 → 8
+addOne.compose(doubleIt).apply(3); // 7 — addOne(doubleIt(3)): 3 → 6 → 7
+```
+
+Composition returns new behavior; `test` or `apply` executes it. Each step's
+output type must fit the next step's input type.
 
 ### Comparator composition
 
-- Java 8 made multi-field sorting declarative through static and default methods
-  on `Comparator`.
+Later keys break ties only when earlier keys compare equal. Assume Employee
+exposes department, salary, and name getters. Natural String order is
+case-sensitive lexicographical order.
 
 ```java
-Comparator<Person> byDepartmentThenName =
-    Comparator.comparing(Person::getDepartment)
-              .thenComparing(Person::getName);
+// Department ASC, salary ASC, name ASC.
+Comparator<Employee> allAscending = Comparator.comparing(Employee::getDepartment)
+    .thenComparingInt(Employee::getSalary)
+    .thenComparing(Employee::getName);
 
-people.sort(byDepartmentThenName);
-people.sort(byDepartmentThenName.reversed());
+// Department ASC, salary DESC, then natural name ASC when both earlier keys tie.
+Comparator<Employee> mixedOrder = Comparator.comparing(Employee::getDepartment)
+    .thenComparing(Comparator.comparingInt(Employee::getSalary).reversed())
+    .thenComparing(Employee::getName);
+
+employees.sort(mixedOrder);
+// Within Tech at salary 120: Ana before Ben; lower salaries follow both.
 ```
 
-- Reverse only one key by reversing that key's comparator:
+- Reverse a key **before** attaching it to change only that field's direction.
+  `mixedOrder.reversed()` reverses the entire chain, including department/name.
+- Append an immutable ID for repeatable complete ties. List sorting otherwise
+  preserves the original order of rows that compare as zero.
+- Use primitive key helpers rather than subtraction, which can overflow.
 
-```java
-Comparator<Person> byDepartmentThenSalaryDesc =
-    Comparator.comparing(Person::getDepartment)
-              .thenComparing(
-                  Comparator.comparingInt(Person::getSalary).reversed());
-```
+The [application comparator patterns](comparator-patterns.md) guide covers all
+field-direction combinations, nulls, case/locale rules, business ranks, ranked
+maps, sort menus, and selection, with worked datasets and a practice route.
+Start the hands-on reps with [MultiFieldInventorySort.java](lab/09-stream-api/MultiFieldInventorySort.java).
 
 ### Mastery check
 
@@ -337,6 +366,20 @@ Function<Integer, Integer> addTax =
 
 - Inside an anonymous class, `this` refers to the anonymous object.
 
+```java
+class Scope {
+    int value = 1;
+    Supplier<Integer> lambda = () -> this.value;
+    Supplier<Integer> anonymous = new Supplier<Integer>() {
+        int value = 2;
+        public Integer get() { return this.value; }
+    };
+}
+Scope scope = new Scope();
+scope.lambda.get();    // 1 — enclosing Scope's this
+scope.anonymous.get(); // 2 — anonymous object's this
+```
+
 - A lambda cannot introduce a checked exception that the target SAM does not
   permit.
 
@@ -387,9 +430,9 @@ BiFunction<String, String, Integer> expanded =
   clearer.
 
 ```java
-Function<String, Integer> clear = text -> parse(text.trim());
+Function<String, Integer> clear = text -> Integer.parseInt(text.trim());
 
-// This cannot become only parse::... because it performs an extra trim step.
+// Integer::parseInt alone would omit the trim step.
 ```
 
 - Overloaded methods still rely on the target functional interface to choose a
@@ -567,6 +610,9 @@ List<List<Integer>> nested = Arrays.asList(
     Arrays.asList(1, 2),
     Arrays.asList(3, 4));
 
+Stream<Stream<Integer>> mapped = nested.stream().map(List::stream);
+// Each element is itself a Stream<Integer>; the nesting remains.
+
 List<Integer> flat = nested.stream()
     .flatMap(List::stream)
     .collect(Collectors.toList());
@@ -630,6 +676,17 @@ List<Integer> flat = nested.stream()
 
 - `limit`, matching operations, and finding operations can stop traversal early.
 
+- Empty input matters: `allMatch` and `noneMatch` are true because there is no
+  counterexample; `anyMatch` is false because there is no matching element.
+
+```java
+Stream.<Integer>empty().allMatch(n -> n > 0); // true
+Stream.<Integer>empty().anyMatch(n -> n > 0); // false
+Stream.<Integer>empty().noneMatch(n -> n > 0); // true
+Stream.<Integer>empty().reduce(0, Integer::sum); // 0 — supplied identity
+Stream.<Integer>empty().reduce(Integer::sum); // Optional.empty()
+```
+
 - An infinite stream needs a short-circuiting path before it can produce a
   finite result.
 
@@ -676,17 +733,353 @@ OptionalDouble averageAge = people.stream()
 - Do not make program correctness depend on `peek` executing for every source
   element; short-circuiting may stop before later elements are requested.
 
+- On Java 9+, `count()` may use a known source size and skip traversal through
+  `map`/`peek` entirely. A terminal operation does not guarantee every callback
+  runs. See the [count API note](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/stream/Stream.html#count()).
+
 ### Parallel streams
 
-- Parallel execution is useful only when the work is large enough, CPU-bound,
-  splittable, and expressed with associative operations.
+- `words.stream()` is sequential. Request parallel execution with
+  `words.parallelStream()` or `words.stream().parallel()`.
 
-- It often performs worse for small inputs, blocking I/O, ordered work, or
-  pipelines with shared mutable state.
+- The last `parallel()` or `sequential()` setting applies to the whole pipeline;
+  these calls do not assign separate execution modes to individual stages.
+  See [BaseStream](https://docs.oracle.com/javase/8/docs/api/java/util/stream/BaseStream.html).
 
-- The common `ForkJoinPool` is used by default.
+- A parallel terminal operation such as `collect()` waits for its result.
+  Parallel execution does not make the call asynchronous.
 
-- Benchmark the real workload before keeping `parallelStream()`.
+- Parallel execution is most promising for substantial, independent CPU work
+  over a source that splits efficiently, with associative reductions.
+
+#### How fork/join runs the work
+
+- The JDK stream implementation splits the input into partitions, processes
+  partitions as tasks, and combines partial results when needed.
+
+- A task can process many elements. There is no new thread per element.
+
+- `ForkJoinPool` uses **work-stealing**: an available worker can take queued
+  work from another worker. The caller may also participate in stream work.
+
+- Work-stealing balances runnable tasks; it cannot free a worker that is
+  waiting inside an ordinary blocking network call.
+
+- Implementation references: [OpenJDK stream tasks](https://github.com/openjdk/jdk8u/blob/master/jdk/src/share/classes/java/util/stream/AbstractTask.java)
+  and [ForkJoinTask](https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ForkJoinTask.html).
+
+#### Caveat 1: the common pool is shared
+
+- In the usual OpenJDK implementation, a parallel stream started from an
+  ordinary application thread uses `ForkJoinPool.commonPool()` for forked
+  work. A new stream does not receive a dedicated pool.
+
+- Other parallel streams in the same JVM compete for those workers.
+
+- `CompletableFuture.supplyAsync()` and `runAsync()` without an executor
+  normally use the same pool. In Java 8, if common-pool parallelism is below
+  two, those async methods create a new thread per task instead.
+  See [CompletableFuture execution policies](https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/CompletableFuture.html).
+
+```text
+request A: parallelStream() ---------+
+request B: parallelStream() ---------+--> common ForkJoinPool workers
+supplyAsync(...), no executor ------+
+```
+
+- **Practical consequence:** a slow parallel operation in request A can delay
+  unrelated stream or future work in request B. Multiple requests can also
+  compete for CPU even when each request looks fast in isolation.
+
+- In OpenJDK 8, the default common-pool target is generally
+  `max(1, availableProcessors() - 1)`. It is configurable; this is a
+  parallelism target, not an absolute limit on all participating threads.
+  A separately constructed `new ForkJoinPool()` defaults to
+  `availableProcessors()` instead.
+  See the [OpenJDK 8 common-pool implementation](https://github.com/openjdk/jdk8u/blob/master/jdk/src/share/classes/java/util/concurrent/ForkJoinPool.java).
+
+```java
+System.out.println(Runtime.getRuntime().availableProcessors());
+System.out.println(ForkJoinPool.getCommonPoolParallelism());
+```
+
+#### Caveat 2: blocking I/O can occupy the workers
+
+```java
+List<String> responses = ids.parallelStream()
+    .map(id -> fetchRemote(id)) // blocking HTTP, JDBC, or another remote call
+    .collect(Collectors.toList());
+```
+
+- A worker waiting for a response remains occupied even though it does little
+  CPU work. Queued tasks still need an available worker or participating caller.
+
+- If many common-pool workers block, unrelated work using that pool may make
+  little progress. This is a starvation risk; blocking I/O alone does not
+  automatically mean deadlock.
+
+- Fork/join can compensate for some supported waits, but **replacement workers
+  are not guaranteed for arbitrary blocking I/O or unmanaged synchronization**.
+  See [ForkJoinPool](https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ForkJoinPool.html).
+
+- A JDBC connection pool can make the problem worse: fork/join workers may
+  wait just to obtain a connection before the database call even starts.
+
+- **The design question:** how many calls may run, how many may queue, how
+  long may they wait, and what happens when capacity is exhausted?
+
+#### How many types of pools are there?
+
+- There is no single official count. Distinguish executor interfaces,
+  implementation classes, and factory configurations.
+
+- `Executor` accepts tasks. `ExecutorService` adds futures and lifecycle
+  operations. `ScheduledExecutorService` adds delayed and periodic execution.
+  These interfaces are not three pool implementations.
+  See [ExecutorService](https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ExecutorService.html).
+
+- The main Java 8 implementations to recognize are `ThreadPoolExecutor`,
+  `ScheduledThreadPoolExecutor` (a subclass of `ThreadPoolExecutor`), and
+  `ForkJoinPool`. Factories expose common configurations:
+
+|Configuration|Creation API|Behavior and main caveat|
+|---|---|---|
+|Single worker|`Executors.newSingleThreadExecutor()`|one task at a time; unbounded queue|
+|Fixed workers|`Executors.newFixedThreadPool(n)`|at most `n` active workers; unbounded queue|
+|Cached workers|`Executors.newCachedThreadPool()`|reuses idle workers and creates more as needed; effectively unbounded thread growth|
+|Scheduled workers|`Executors.newScheduledThreadPool(n)` / `newSingleThreadScheduledExecutor()`|delayed or periodic work; long tasks can delay other scheduled work|
+|Work-stealing / fork/join|`new ForkJoinPool(n)` / `Executors.newWorkStealingPool(n)`|tasks can create subtasks; workers steal work; suited to fork/join computation|
+|Virtual thread per task — **Java 21+**|`Executors.newVirtualThreadPerTaskExecutor()`|new virtual thread per task; does not pool virtual threads or bound downstream concurrency|
+
+- Java 8 factory reference: [Executors](https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/Executors.html).
+  Scheduling reference: [ScheduledThreadPoolExecutor](https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ScheduledThreadPoolExecutor.html).
+  Java 21+ factory reference: [Executors](https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/util/concurrent/Executors.html).
+
+- `ForkJoinPool.commonPool()` returns a shared instance of `ForkJoinPool`.
+  It is not another implementation class.
+
+- The OpenJDK `newWorkStealingPool` factory creates a separate `ForkJoinPool`;
+  it does not return the common pool. Work-stealing alone does not make
+  blocking I/O safe for that pool's capacity.
+
+- **Fixed thread count does not mean bounded memory use.** An unbounded task
+  queue can keep growing when arrivals outpace completion.
+
+#### Fix blocking I/O in Java 8: use an explicit executor
+
+- A dedicated executor keeps blocking calls off the common pool and gives the
+  application control over worker count, queue capacity, and overload behavior.
+
+- For a small, finite batch, submit independent calls first, then collect their
+  results. The sequential stream arranges submissions; the executor runs them
+  concurrently.
+
+- Assume `fetchRemote(id)` is an application method with configured connection
+  and response timeouts. The values `20` and `100` illustrate capacity choices;
+  they are not universal defaults.
+
+```java
+ExecutorService ioExecutor = new ThreadPoolExecutor(
+    20, 20,
+    0L, TimeUnit.MILLISECONDS,
+    new ArrayBlockingQueue<Runnable>(100),
+    new ThreadPoolExecutor.AbortPolicy());
+
+try {
+    List<CompletableFuture<String>> pending = ids.stream()
+        .map(id -> CompletableFuture.supplyAsync(
+            () -> fetchRemote(id), ioExecutor))
+        .collect(Collectors.toList());
+
+    // Wait at the caller boundary, after submitting the batch.
+    List<String> responses = pending.stream()
+        .map(CompletableFuture::join)
+        .collect(Collectors.toList());
+} finally {
+    ioExecutor.shutdown();
+}
+```
+
+- This executor permits up to 20 active tasks and 100 queued tasks. When both
+  are full, `AbortPolicy` throws `RejectedExecutionException` during submission.
+  The application must handle overload, for example by rejecting a request
+  or admitting work in bounded batches.
+
+- A dedicated worker still blocks during I/O. The benefit is **controlled
+  capacity and workload isolation**, rather than making the call nonblocking.
+
+- `newFixedThreadPool(20)` also isolates workers, but its unbounded queue does
+  not provide the same overload limit.
+
+- `CallerRunsPolicy` can slow submission by running work on the submitting
+  thread. Use it deliberately: if the submitter is a common-pool worker or an
+  event-loop thread, the blocking call would run there.
+  See [ThreadPoolExecutor queue and rejection policies](https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ThreadPoolExecutor.html).
+
+- Do not use silent discard policies for tasks whose futures callers will
+  await; a discarded task can leave its future incomplete indefinitely.
+
+- The example owns its executor for one batch. A service should usually reuse
+  an application-owned I/O executor and shut it down at service shutdown.
+  `shutdown()` lets accepted work finish; it does not wait or cancel that work.
+
+- Failed submission or a failed future does not automatically cancel other
+  accepted calls. Choose the batch's failure and cleanup policy explicitly.
+
+- Supply the executor to every `*Async` stage that needs it. A following
+  `thenApplyAsync(...)` without an executor does not inherit `ioExecutor`.
+  Merely replacing `parallelStream()` with default `supplyAsync()` moves the
+  blocking work back onto the usual common-pool path.
+
+- Avoid submitting child tasks to a bounded executor and then waiting for
+  them from all of that executor's workers. The children can be queued behind
+  the waiting parents. Compose dependent futures or wait outside those workers.
+
+#### Size and protect the I/O workload
+
+- Start CPU worker sizing near the available processor count, then measure.
+  More CPU workers do not create more processor capacity.
+
+- Blocking I/O can benefit from more workers because calls spend time waiting.
+  Measure throughput, wait time, queue growth, and downstream capacity rather
+  than copying a fixed multiplier of CPU count.
+
+- Match admission to the actual dependency: a database with 10 usable
+  connections cannot execute 100 queries at once because 100 threads exist.
+
+- Set connection, read/query, and overall request deadlines as appropriate.
+  A timeout on `Future.get(timeout, unit)` bounds the caller's wait; it does
+  not itself stop the underlying call. See [§I](#get-versus-join).
+
+- Separate executors isolate worker availability; they still share CPU,
+  memory, network, and downstream services.
+
+#### A custom ForkJoinPool: isolate CPU work
+
+- OpenJDK normally runs a parallel stream's forked tasks in the `ForkJoinPool`
+  of the worker executing its terminal operation. A common isolation pattern
+  submits the entire terminal computation to a dedicated pool:
+
+```java
+ForkJoinPool cpuPool = new ForkJoinPool(4);
+try {
+    long total = cpuPool.submit(() -> numbers.parallelStream()
+        .mapToLong(number -> expensiveCpuCalculation(number))
+        .sum()).get();
+} finally {
+    cpuPool.shutdown();
+}
+```
+
+- The enclosing method must handle or declare `InterruptedException` and
+  `ExecutionException` from `get()`. `expensiveCpuCalculation` represents
+  independent CPU work.
+
+- Keep the terminal operation inside the submitted lambda. Streams are lazy;
+  creating a stream inside a pool and collecting it outside does not attach
+  that stream to the pool.
+
+- **Portability boundary:** the Stream API has no executor parameter. This
+  pattern relies on OpenJDK execution behavior; verify it on the deployed JDK
+  when pool selection is a requirement. See [ForkJoinTask.fork](https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ForkJoinTask.html#fork--).
+
+- Wrapping `parallelStream()` in a normal `ThreadPoolExecutor` task does not
+  redirect its forked work into that executor's workers.
+
+- A custom fork/join pool isolates workers from the common pool. It does not
+  fix blocking calls occupying its own workers. Reuse owned pools in a service
+  rather than creating one per incoming request.
+
+- Increasing `java.util.concurrent.ForkJoinPool.common.parallelism` is a global
+  tuning choice, not workload isolation or downstream admission control.
+
+#### ManagedBlocker: an advanced fork/join option
+
+- When blocking must occur inside fork/join work, code can cooperate with the
+  pool through `ForkJoinPool.managedBlock(ManagedBlocker)`.
+
+- `isReleasable()` checks whether blocking is unnecessary; `block()` performs
+  the wait if needed. The pool can attempt to compensate with additional
+  workers within its limits.
+
+- Ordinary HTTP/JDBC lambdas are not automatically wrapped in a
+  `ManagedBlocker`. It also does not provide remote-call timeouts, database
+  connections, or protection from excess downstream requests.
+
+- Prefer an explicit I/O executor for application blocking work unless there
+  is a specific reason to integrate that work with fork/join scheduling.
+  See [ManagedBlocker](https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ForkJoinPool.ManagedBlocker.html).
+
+#### Java 21+: virtual threads for blocking work
+
+- `Executors.newVirtualThreadPerTaskExecutor()` creates one virtual thread per
+  submitted task. It is a per-task executor, not a pool of reusable virtual
+  threads.
+
+- Supported blocking I/O can suspend a virtual thread and free its carrier
+  platform thread. This helps scale waiting tasks; it does not make CPU work
+  or the remote service run faster.
+
+- Limit concurrent calls with a semaphore or the dependency's own capacity
+  controls. Virtual threads do not make connection limits, deadlines, or
+  admission limits unnecessary.
+
+- Running `parallelStream()` from a virtual thread does not turn the stream's
+  fork/join tasks into virtual threads.
+
+- Virtual-thread executors are **not available in Java 8**. Their lifecycle can
+  use try-with-resources on Java 21+. See the [virtual-thread guide](https://docs.oracle.com/en/java/javase/21/core/virtual-threads.html).
+
+#### Other parallel-stream interview traps
+
+- **Cheap work:** `String::length` is inexpensive. Scheduling and combining
+  costs may exceed the work saved, even when the pipeline is correct.
+
+- **Source splitting:** arrays and array-backed lists generally split more
+  easily than sources that require traversal or produce uneven partitions.
+
+- **Shared mutation:** `parallelStream().forEach(results::add)` is unsafe when
+  `results` is an ordinary shared `ArrayList`. Prefer a collector.
+
+- **Ordering:** `forEach` does not preserve encounter order; `forEachOrdered`
+  does, with coordination costs. Ordered `limit`, `distinct`, and sorting can
+  require coordination or buffering.
+
+- **Nested parallel streams:** inner streams usually share the current pool;
+  nesting adds tasks and coordination without adding CPU capacity. Prefer one
+  useful level of parallelism unless measurement supports more.
+
+- **Thread-bound context:** ordinary `ThreadLocal` values belong to the current
+  thread. Do not assume request context is available on stream workers; pass
+  needed values explicitly. See [ThreadLocal](https://docs.oracle.com/javase/8/docs/api/java/lang/ThreadLocal.html).
+
+- **Measurement:** compare sequential and parallel execution with realistic
+  input and competing requests. A single-request timing does not establish
+  better server throughput. See [stream parallelism and side effects](https://docs.oracle.com/javase/8/docs/api/java/util/stream/package-summary.html).
+
+#### Choose the execution model
+
+|Workload|Reasonable starting point|
+|---|---|
+|Small in-memory transformation or grouping|sequential stream or loop|
+|Large, independent CPU computation|measured parallel stream; custom fork/join pool if isolation matters|
+|Blocking calls on Java 8|dedicated executor with bounded workers, queue, and overload handling|
+|Many blocking calls on Java 21+|virtual thread per task with downstream concurrency limits|
+|Client already exposes genuinely asynchronous I/O|compose its completion stages; keep blocking work off its completion/event-loop threads|
+
+#### Interview answer to practise aloud
+
+- **Why be careful?** Parallel streams usually share the common fork/join pool
+  with other streams and default async `CompletableFuture` work. Blocking I/O
+  can occupy its workers and delay unrelated tasks.
+
+- **How would you fix it?** Use a dedicated, capacity-controlled executor for
+  blocking work in Java 8, or consider virtual threads in Java 21+ while
+  limiting downstream concurrency. Set timeouts and define overload behavior.
+
+- **Would a custom ForkJoinPool solve everything?** It isolates worker usage
+  but does not remove blocking or create more CPU capacity. Pool selection,
+  workload type, and measured performance are separate decisions.
 
 ### Close resource-backed streams
 
@@ -724,6 +1117,12 @@ try (Stream<String> lines =
 - Can you choose between `map`, `flatMap`, and a primitive mapping operation?
 
 - Can you explain encounter order and the danger of shared mutation?
+
+- Can you explain how a blocking parallel stream can delay unrelated futures?
+
+- Can you distinguish pool implementations from factory configurations?
+
+- Can you choose an executor, queue bound, and overload policy for blocking I/O?
 
 - Can you name which table entries arrived after Java 8?
 
@@ -773,6 +1172,68 @@ Map<Boolean, List<String>> longAndShort = words.stream()
   partition when no element belongs to one side.
 
 - A downstream collector reduces the values inside each group.
+
+```java
+Map<Integer, List<String>> upperByLength = words.stream().collect(
+    Collectors.groupingBy(String::length,
+        Collectors.mapping(word -> word.toUpperCase(Locale.ROOT), Collectors.toList())));
+// For ["a", "bb", "c"]: length 1 -> ["A", "C"], length 2 -> ["BB"].
+```
+
+### `groupingBy` with parallel streams
+
+- The word-count example using `words.stream()` is sequential. Switching to
+  `parallelStream()` is valid without replacing `groupingBy`:
+
+```java
+Map<Integer, Long> countByLength = words.parallelStream()
+    .collect(Collectors.groupingBy(
+        String::length,
+        Collectors.counting()));
+```
+
+- `groupingBy` is a **non-concurrent collector**, but parallel collection is
+  safe. Each partition accumulates into an isolated result container, then the
+  combiner merges partial results. A container is not mutated concurrently by
+  multiple workers during accumulation.
+  See the [Collector isolation contract](https://docs.oracle.com/javase/8/docs/api/java/util/stream/Collector.html).
+
+```text
+partition ["a", "bb"] -> {1=1, 2=1}
+partition ["c", "dd"] -> {1=1, 2=1}
+combine counts       -> {1=2, 2=2}
+```
+
+- Safe collection does not make the returned map thread-safe for subsequent
+  shared mutation. Its concrete map type and iteration order are not promised.
+
+- Map merging can be expensive. If encounter order is unnecessary,
+  `groupingByConcurrent` permits concurrent accumulation into a shared map:
+
+```java
+ConcurrentMap<Integer, Long> countByLength = words.parallelStream()
+    .collect(Collectors.groupingByConcurrent(
+        String::length,
+        Collectors.counting()));
+```
+
+- This collector is concurrent and unordered. Counting does not depend on
+  encounter order. Using it with `words.stream()` alone does not request
+  parallel execution.
+
+- **Concurrent does not guarantee faster.** With a non-concurrent downstream
+  collector such as `counting()`, OpenJDK's implementation synchronizes updates
+  to each group's accumulator. Many words mapping to the same lengths can
+  contend on those groups.
+  See the [OpenJDK groupingByConcurrent implementation](https://github.com/openjdk/jdk8u/blob/master/jdk/src/share/classes/java/util/stream/Collectors.java).
+
+- Supplying `ConcurrentHashMap::new` to ordinary `groupingBy` changes the map
+  implementation; it does not give that collector the `CONCURRENT`
+  characteristic.
+
+- For cheap `String::length` plus counting, start sequentially and measure
+  before changing the execution mode or collector.
+  See [Collectors grouping API notes](https://docs.oracle.com/javase/8/docs/api/java/util/stream/Collectors.html).
 
 ### Build maps and choose a duplicate policy
 
@@ -836,9 +1297,11 @@ List<Integer> positives = numbers.stream()
     .collect(Collectors.toList());
 ```
 
-- The identity must be neutral.
+- The identity must be neutral: `0` for addition. A non-neutral identity can
+  contaminate every partial result in a parallel reduction.
 
-- The reduction operation must be associative by contract.
+- The operation must be associative. Subtraction fails: `(10 - 3) - 2` is `5`,
+  while `10 - (3 - 2)` is `9`; regrouping work changes the answer.
 
 - Sequential execution may hide a broken reduction; parallel execution often
   exposes it.
@@ -885,6 +1348,10 @@ String result = words.stream().collect(bracketed);
 
 - Can you choose between `reduce` and `collect`?
 
+- Can you explain why parallel `groupingBy` works without a concurrent map?
+
+- Can you compare merging partial maps with concurrent grouping and key contention?
+
 - Can you name the supplier, accumulator, combiner, and finisher in a custom
   collector?
 
@@ -927,7 +1394,7 @@ Optional<Account> none = Optional.empty();
 Optional<String> activeBranch = findAccount(id)
     .filter(Account::isActive)
     .map(Account::getBranch)
-    .map(String::toUpperCase);
+    .map(branch -> branch.toUpperCase(Locale.ROOT));
 ```
 
 - `filter` keeps the present value only when the predicate passes.
@@ -935,6 +1402,7 @@ Optional<String> activeBranch = findAccount(id)
 - `map` transforms a present value. A null mapper result becomes empty.
 
 - `flatMap` is for a mapping function that already returns an `Optional`.
+  Unlike `map`, a null result from its mapper throws `NullPointerException`.
 
 ```java
 Optional<Card> card = findAccount(id)
@@ -960,16 +1428,18 @@ findAccount(id).ifPresent(this::audit);
 
 ### `orElse` versus `orElseGet`
 
-- Java evaluates method arguments before the method call.
+- `orElse` evaluates its argument before the call; `orElseGet` invokes its
+  supplier only when empty. Use the former for a cheap available value, the
+  latter for work that should be lazy.
 
-- `orElse(loadGuest())` therefore calls `loadGuest()` even when the Optional is
-  present.
+```java
+Optional<String> found = Optional.of("Ada");
+Supplier<String> fallback = () -> { System.out.println("loading"); return "guest"; };
 
-- `orElseGet(this::loadGuest)` invokes the supplier only when empty.
-
-- Use `orElse` for an already available cheap value.
-
-- Use `orElseGet` for work that should be lazy.
+found.orElse(fallback.get());                 // prints loading; returns Ada
+found.orElseGet(fallback);                    // no print; returns Ada
+Optional.<String>empty().orElseGet(fallback); // prints loading; returns guest
+```
 
 ### `isPresent` and `get`
 
@@ -984,6 +1454,7 @@ findAccount(id).ifPresent(this::audit);
 ### Design rules
 
 - Prefer `Optional` as a return type when absence is a normal outcome.
+  Return `Optional.empty()` for absence, never a null Optional reference.
 
 - Avoid using it mechanically for every field or parameter; ordinary fields and
   explicit validation are usually clearer.
@@ -1074,24 +1545,24 @@ String name = Greeter.normalize("  Ada  ");
   with the same signature must be resolved explicitly.
 
 ```java
-interface Left {
-    default String label() {
-        return "left";
-    }
+interface ParentLabel { default String label() { return "parent"; } }
+interface ChildLabel extends ParentLabel {
+    default String label() { return "child"; }
 }
+class Base { public String label() { return "class"; } }
+class ClassWins extends Base implements ChildLabel { }
+class SpecificWins implements ParentLabel, ChildLabel { }
 
-interface Right {
-    default String label() {
-        return "right";
-    }
-}
-
-class Both implements Left, Right {
-    @Override
+interface OtherLabel { default String label() { return "other"; } }
+class Resolved implements ParentLabel, OtherLabel {
     public String label() {
-        return Left.super.label();
+        return ParentLabel.super.label() + "+" + OtherLabel.super.label();
     }
 }
+
+new ClassWins().label();    // class — inherited class method wins
+new SpecificWins().label(); // child — more specific interface wins
+new Resolved().label();     // parent+other — conflict resolved explicitly
 ```
 
 ### Mastery check
@@ -1146,11 +1617,15 @@ LocalDate expiry = today.plusDays(30);
 Period age = Period.between(dateOfBirth, today);
 
 DateTimeFormatter formatter =
-    DateTimeFormatter.ofPattern("dd-MM-yyyy");
+    DateTimeFormatter.ofPattern("dd-MM-uuuu")
+        .withResolverStyle(ResolverStyle.STRICT);
 
-String rendered = LocalDate.of(2025, 9, 16)
-    .format(formatter); // 16-09-2025
+LocalDate parsed = LocalDate.parse("16-09-2025", formatter);
+String rendered = parsed.format(formatter); // 16-09-2025
+// LocalDate.parse("31-02-2025", formatter); // DateTimeParseException
 ```
+
+- Strict parsing rejects impossible dates. `uuuu` is year; `yyyy` is year-of-era.
 
 - Every apparent change returns a new value.
 
@@ -1289,7 +1764,12 @@ userFuture.thenCompose(this::loadOrdersAsync);
 userFuture.thenCombine(limitFuture, this::createQuote);
 
 userFuture.thenAccept(this::display);
+
+userFuture.thenRun(() -> System.out.println("user stage finished"));
 ```
+
+These `then*` callbacks run after normal completion; upstream failures propagate
+past them until handled.
 
 ### `thenApply` versus `thenCompose`
 
@@ -1326,7 +1806,8 @@ CompletableFuture<String> observed = emailFuture
 ```
 
 - `whenComplete` normally preserves the prior value or failure. It is suitable
-  for logging and cleanup rather than recovery.
+  for logging and cleanup rather than recovery. If its callback throws, a prior
+  success becomes a failure; a prior failure retains priority.
 
 - Exceptions in a stage complete dependent stages exceptionally until a later
   stage handles the failure.
@@ -1340,7 +1821,8 @@ CompletableFuture<String> observed = emailFuture
   `ForkJoinPool`.
 
 - Pass an explicit executor for blocking I/O, workload isolation, or controlled
-  capacity.
+  capacity. See [parallel streams and shared pools](#parallel-streams) for pool
+  types, bounded queues, and the blocking-I/O example.
 
 ```java
 CompletableFuture<User> userFuture = CompletableFuture
@@ -1358,10 +1840,12 @@ CompletableFuture<View> viewFuture = userFuture
 - `join()` throws unchecked `CompletionException` for exceptional completion.
 
 - Both wait if the result is not ready, so join only at a deliberate boundary.
+  `get(timeout, unit)` bounds the wait; a timeout does not cancel the task.
 
 ### Combining many stages
 
-- `allOf` completes when all supplied futures complete.
+- `allOf` waits for all supplied futures, including when one fails early. If any
+  fails, the combined future fails and a following `thenApply` does not run.
 
 - Its result is `CompletableFuture<Void>`; read the typed results from the
   original futures after it completes.
@@ -1372,6 +1856,14 @@ CompletableFuture<Void> all =
 
 CompletableFuture<Quote> quote = all.thenApply(ignored ->
     createQuote(userFuture.join(), limitFuture.join()));
+```
+
+- `anyOf` races completion, including exceptional completion; it does not select
+  only successful results. Neither method automatically cancels other inputs.
+
+```java
+CompletableFuture<Object> firstFinished =
+    CompletableFuture.anyOf(primaryFuture, backupFuture);
 ```
 
 ### Cancellation caveat
@@ -1410,7 +1902,10 @@ names.removeIf(String::isEmpty);
 names.replaceAll(String::trim);
 names.sort(String.CASE_INSENSITIVE_ORDER);
 
-counts.merge(word, 1, Integer::sum);
+Map<String, Integer> counts = new HashMap<>();
+counts.merge("java", 1, Integer::sum);          // 1 — absent: insert
+counts.merge("java", 1, Integer::sum);          // 2 — present: combine
+counts.merge("java", 1, (old, added) -> null);  // null — remove the mapping
 usersById.computeIfAbsent(id, this::loadUser);
 usersById.computeIfPresent(id, (key, user) -> refresh(user));
 usersById.forEach((id, user) -> audit(id, user));
@@ -1418,7 +1913,9 @@ usersById.forEach((id, user) -> audit(id, user));
 
 - `computeIfAbsent` also computes when a key currently maps to `null`.
 
-- A null result from its mapping function creates no mapping.
+- A null result from its mapping function inserts nothing; an existing null
+  mapping remains. `computeIfPresent` invokes its callback only for a non-null
+  existing value; returning null from that callback removes the mapping.
 
 - `merge` requires a non-null supplied value. It inserts that value when no
   non-null value exists; otherwise it invokes the remapping function.
@@ -1445,6 +1942,7 @@ byte[] decoded = Base64.getUrlDecoder().decode(token);
 
 - Type-use annotations can appear anywhere a type is used, such as
   `List<@NonNull String>`, for frameworks and static analysis tools.
+  The annotation alone does not add runtime null checks.
 
 ### Parameter-name reflection
 
@@ -1522,6 +2020,9 @@ byte[] decoded = Base64.getUrlDecoder().decode(token);
 |Can a stream be reused?|No|
 |`map` or `flatMap`?|Plain result → `map`; stream/Optional result → `flatMap`|
 |`reduce` or `collect`?|Immutable value → `reduce`; mutable container → `collect`|
+|Why avoid blocking I/O in parallel streams?|It can occupy shared common-pool workers and delay unrelated work|
+|Does fixed pool size bound queued work?|No; `newFixedThreadPool` uses an unbounded queue|
+|Is parallel `groupingBy` safe?|Yes; isolated partial accumulators are combined|
 |Does `Collectors.toList()` guarantee mutability?|No|
 |`orElse` or `orElseGet`?|Eager value → `orElse`; lazy supplier → `orElseGet`|
 |`thenApply` or `thenCompose`?|Plain result → apply; future result → compose|
@@ -1545,6 +2046,11 @@ prepared answer:
 - Choose among `map`, `flatMap`, primitive streams, `reduce`, and `collect`.
 
 - Build grouped, partitioned, and duplicate-safe map results.
+
+- Explain shared-pool contention and choose a capacity-controlled executor for
+  blocking I/O.
+
+- Explain why parallel collection can be safe without a concurrent result map.
 
 - Explain every function in a custom collector and why its combiner is correct.
 

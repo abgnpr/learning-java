@@ -26,10 +26,12 @@ earns it.
 | [core-java.md](core-java/core-java.md) | Rapid-fire Q&A across OOP, collections, exceptions, Java 8+, traps, Spring/JDBC/REST, Kafka and SDLC/testing. Answers sized for **speaking**, not writing. |
 | [java-versions.md](core-java/java-versions.md) | Java 7 → 25 timeline with complete permanent-JEP coverage for 17/21/25, code contrasts, status traps, and labs. |
 | [java-8.md](core-java/java-8.md) | The Tier-1 "Java 8 from zero" study block (§A–§I) — functional interfaces, lambdas, streams, `Optional`, `java.time`. |
+| [Comparator patterns](core-java/comparator-patterns.md) | Application sorting recipes: mixed directions, natural tie-breakers, nulls, business ranks, ranked maps, and focused labs. |
+| [Static factory methods](core-java/static-factory-methods.md) | Illustrated guide to collection factories, views versus snapshots, date/time, wrapper caching, and `Optional`; traps and a quick choice table. |
 | [threads-jvm.md](core-java/threads-jvm.md) | Threads, locks, the memory model, executors and JVM internals — ordered so that no answer depends on one below it. |
 | [Threads lab index](core-java/lab/07-threads/README.md) | Eight runnable stations for the concurrency section — races, visibility, deadlock, pools, virtual threads. |
-| [Core Java lab index](core-java/lab/README.md) | 82 self-testing challenges plus eight concurrency stations, organized as one numbered learning path. |
-| [Core Java lab roadmap](core-java/lab/ROADMAP.md) | Planned core-contract, I/O/time and practical-concurrency labs, followed by a payment-ledger capstone. |
+| [Core Java lab index](core-java/lab/README.md) | Standalone self-testing challenges and eight concurrency stations; the generated scoreboard tracks implementation progress. |
+| [Core Java interview practice](core-java/lab/INTERVIEW-PATH.md) | Essential drills, guide coverage, optional depth, and blind revision criteria; includes an integrated transaction report. |
 | [spring-boot-basics.md](spring-boot/spring-boot-basics.md) | DI/IoC, beans and scopes, auto-config, web MVC, validation, data/JPA, transactions and proxies, testing, actuator. |
 | [spring-senior-core.md](spring-boot/spring-senior-core.md) | Complete senior Spring reference: container/runtime flows, Boot, MVC, security, JPA, transactions, cross-system consistency, resilience, observability, testing and banking scenarios. |
 | [Simple Spring project scaffold](spring-boot/scaffold/spring-simple-project-scaffold.md) | Small feature-oriented todo application using the standard controller, service, Spring Data repository and JPA entity structure. |
@@ -55,6 +57,7 @@ index live alongside the Core Java notes:
 core-java/
 ├── core-java.md
 ├── java-8.md
+├── static-factory-methods.md
 ├── java-versions.md
 ├── threads-jvm.md
 └── lab/
@@ -68,7 +71,12 @@ core-java/
     ├── 07-threads/
     ├── 08-advanced/
     ├── 09-stream-api/
-    ├── ROADMAP.md
+    ├── 10-core-contracts/
+    ├── 11-io-time/
+    ├── 12-concurrency-async/
+    ├── 13-version-features/
+    ├── 14-integration/
+    ├── INTERVIEW-PATH.md
     └── Scratchpad.java
 
 kafka/
