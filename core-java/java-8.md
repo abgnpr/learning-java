@@ -14,8 +14,8 @@ default interface methods, `java.time`, and `CompletableFuture`.
   and syntax example in this guide is available in Java 8.
 
 - **Official release context:** use [java-versions.md](java-versions.md) for the
-  chronological view and [core-java.md §7](core-java.md#7-java-8-know-it-cold)
-  for rapid interview review.
+  chronological view and the [Core Java kit](core-java.md) for the broader
+  interview study path.
 
 ---
 
@@ -28,7 +28,6 @@ default interface methods, `java.time`, and `CompletableFuture`.
 - [§C Method references](#c-method-reference--shorthand-for-a-one-call-lambda)
 
 - [§D Streams](#d-stream-api--the-payoff)
-
 
 - [§E Collectors](#e-collectors--what-collect-uses)
 
@@ -130,6 +129,9 @@ Official reference: [JLS §9.8, Functional Interfaces](https://docs.oracle.com/j
 
 - Abstract methods matching public methods of `Object` do not count toward the
   SAM.
+
+- The abstract operation can be inherited; compatible inherited declarations
+  can represent one effective method.
 
 - `default` and `static` methods do not count because they already have bodies.
 
@@ -347,6 +349,8 @@ process((Predicate<String>) text -> !text.isEmpty());
 
 - The captured value may be an object reference. The object itself can still be
   mutable, although shared mutation is usually a poor stream design.
+
+- Capture does not make that object thread-safe.
 
 - Instance fields and static fields are not captured local variables, so the
   effectively-final rule does not apply to them.
@@ -585,8 +589,9 @@ public class StreamWalkthrough {
   ```
 
 - **Non-interfering and usually stateless:** behavioral parameters must not
-  modify the source, and their results should not depend on changing shared
-  state.
+  modify a non-concurrent source during traversal, and their results should not
+  depend on changing shared state. A stream does not make mutable source
+  elements immutable.
 
   ```java
   // Avoid this shared mutation.
@@ -673,6 +678,9 @@ List<Integer> flat = nested.stream()
 
 - A non-stream result or side effect generally marks a terminal operation.
 
+- Know the operation's contract: `isParallel()` returns `boolean` but does not
+  consume the stream; it only queries the execution mode.
+
 - `limit`, matching operations, and finding operations can stop traversal early.
 
 - Empty input matters: `allMatch` and `noneMatch` are true because there is no
@@ -697,6 +705,9 @@ Stream.<Integer>empty().reduce(Integer::sum); // Optional.empty()
 - They provide numeric terminals such as `sum`, `average`, `min`, `max`, and
   `summaryStatistics`.
 
+- **Empty inputs:** `sum` has a zero identity; `average`, `min`, and `max` can
+  return empty optional results.
+
 ```java
 int totalAge = people.stream()
     .mapToInt(Person::getAge)
@@ -720,6 +731,8 @@ OptionalDouble averageAge = people.stream()
 - `forEach` does not promise encounter order in parallel.
 
 - `forEachOrdered` preserves encounter order, which can reduce parallelism.
+
+- `unordered()` removes an ordering requirement; it does not shuffle the source.
 
 ### Side effects and `peek`
 
@@ -1125,6 +1138,8 @@ try (Stream<String> lines =
 
 - Can you name which table entries arrived after Java 8?
 
+- **Practice:** [LazyFirstMatch.java](lab/09-stream-api/LazyFirstMatch.java).
+
 ---
 
 ## §E Collectors — what `collect` uses
@@ -1256,7 +1271,8 @@ Map<String, Integer> votesByCandidate = votes.stream()
         Integer::sum));
 ```
 
-- A fourth argument chooses the map implementation.
+- A fourth argument chooses the map implementation. Supply a suitable map
+  factory when encounter or sorted iteration order is required.
 
 ```java
 Map<String, Integer> sortedVotes = votes.stream()
@@ -1266,6 +1282,9 @@ Map<String, Integer> sortedVotes = votes.stream()
         Integer::sum,
         TreeMap::new));
 ```
+
+- **Nulls:** define an input/null policy; collector behavior is not simply the
+  backing map's null policy.
 
 ### Do not assume collector result mutability
 
@@ -1280,6 +1299,9 @@ Map<String, Integer> sortedVotes = votes.stream()
 ArrayList<String> mutable = words.stream()
     .collect(Collectors.toCollection(ArrayList::new));
 ```
+
+- For protected structural ownership, choose an appropriate copy and wrapper;
+  mutable elements need their own ownership policy.
 
 ### `reduce` versus `collect`
 
@@ -1301,6 +1323,10 @@ List<Integer> positives = numbers.stream()
 
 - The operation must be associative. Subtraction fails: `(10 - 3) - 2` is `5`,
   while `10 - (3 - 2)` is `9`; regrouping work changes the answer.
+
+- With the three-argument `reduce`, the accumulator and combiner must agree:
+  `combiner.apply(u, accumulator.apply(identity, t))` must equal
+  `accumulator.apply(u, t)`.
 
 - Sequential execution may hide a broken reduction; parallel execution often
   exposes it.
@@ -1356,6 +1382,10 @@ String result = words.stream().collect(bracketed);
 
 - Can you explain why the combiner matters even when a sequential run appears
   correct?
+
+- **Practice:** [GroupingSales.java](lab/09-stream-api/GroupingSales.java) ·
+  [MergingVotes.java](lab/09-stream-api/MergingVotes.java) ·
+  [ReduceTransactions.java](lab/09-stream-api/ReduceTransactions.java).
 
 ---
 
@@ -1583,7 +1613,8 @@ Official reference: [Java 8 `java.time` package](https://docs.oracle.com/javase/
 
 ### Why it replaced common legacy usage
 
-- `Date` and `Calendar` are mutable.
+- `Date` and `Calendar` are mutable; sharing them across threads requires
+  suitable coordination.
 
 - `Calendar` exposes confusing conventions such as zero-based month constants.
 
@@ -1644,6 +1675,9 @@ date = date.plusDays(30); // retained
 - A `ZoneId` contains historical and daylight-saving rules.
 
 - A `ZoneOffset` is only a fixed offset such as `+05:30`.
+
+- **DST:** a local time can be invalid or ambiguous in a region; define the
+  gap/overlap policy.
 
 ```java
 Instant event = Instant.parse("2025-09-16T12:00:00Z");
@@ -1775,6 +1809,9 @@ past them until handled.
 - Use `thenApply` when the mapping function returns a plain value.
 
 - Use `thenCompose` when the mapping function returns another stage.
+
+- Composing stages on already-completed values does not itself launch
+  background work; non-`Async` continuations can run immediately.
 
 ```java
 CompletableFuture<CompletableFuture<List<Order>>> nested =
@@ -1977,7 +2014,8 @@ byte[] decoded = Base64.getUrlDecoder().decode(token);
 
 ### JVM and tooling changes
 
-- Permanent Generation was removed. Class metadata moved to native Metaspace.
+- In HotSpot Java 8, Permanent Generation was removed. Class metadata moved to
+  native Metaspace, which can still be exhausted.
 
 - `-XX:MaxMetaspaceSize` can place an upper bound on Metaspace when required.
 
@@ -2003,6 +2041,23 @@ byte[] decoded = Base64.getUrlDecoder().decode(token);
 - Their release years are **2014, 2018, 2021, 2023, and 2025**.
 
 - Since Java 17, the LTS cadence has been two years: 17 → 21 → 25.
+
+### Nearby version traps
+
+| Convenience or feature | First permanent release |
+|---|---:|
+| String `switch` | 7 |
+| `List.of`, `Map.of`, private interface helpers | 9 |
+| `List.copyOf`, local-variable `var` | 10 |
+| `Optional.isEmpty` | 11 |
+| Switch expressions | 14 |
+| Records (shallowly immutable data carriers), `Stream.toList` | 16 |
+| Sealed classes | 17 |
+| Virtual threads, record patterns, pattern switch, sequenced collections | 21 |
+| Flexible constructor bodies, compact files/instance main | 25 |
+
+- **`Stream.toList()` — Java 16+:** returns an unmodifiable list; its contract
+  differs from `Collectors.toList()`.
 
 - Keep release chronology in [java-versions.md](java-versions.md); it does not
   change the Java 8 API contracts taught here.

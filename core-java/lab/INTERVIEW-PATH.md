@@ -39,7 +39,7 @@ rules, business priorities, and order-preserving report output to the core rep.
 | Core §4: numbers and money | Money Contracts, BigDecimal Ordering, BigInteger Arithmetic |
 | Core §5: exceptions | Compiler Contracts, Exception Boundary, Resource Ownership |
 | Core §6: I/O and resource ownership | Streaming Text Analytics, Buffered Binary Codec, Resource Ownership |
-| Core §7; Java 8 §A–C | Functional Composition, Compiler Contracts, Lambda Predicates, comparator composition |
+| Java 8 §A–C | Functional Composition, Compiler Contracts, Lambda Predicates, comparator composition |
 | Java 8 §D–E | Stream section; custom collector and parallel word frequency for deeper follow-ups |
 | Java 8 §F–H | Optional Workflow, Default Resolution, Clock and DST |
 | Java 8 §I | Both CompletableFuture labs and Cooperative Cancellation |
