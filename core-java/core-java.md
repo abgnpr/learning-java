@@ -30,8 +30,6 @@
 
 - [§14 Integrated practice](#14-integrated-practice)
 
-- [Honesty guardrails](#honesty-guardrails-truth-law)
-
 **Why this exists:** core Java is where a technical round opens —
 theory, code-output, Java 8+, threads/JVM, enterprise, plus
 SDLC/testing.
@@ -137,7 +135,9 @@ distinguishes Java labs from the separate Spring/Kafka/testing tracks.
     not change the other, and leaving a local scope need not end the
     object's lifetime
 
-- **Access modifiers, narrow → wide?** — `private` → default
+- **Access modifiers**
+
+  narrow → wide? — `private` → default
   (package) → `protected` (package + subclasses) → `public`.
 
   Two independent axes decide access: **same package or not**, and
@@ -3125,9 +3125,12 @@ data layer → integration architecture → tooling → patterns)*
 ## §11 Kafka ⚓
 
 → **[kafka-basics.md](../kafka/kafka-basics.md)** — the log model ·
-partitions and ordering · producers · consumer groups and offsets ·
-delivery guarantees · rebalancing · retention and DLQ · Spring
-Kafka · the IMPS anchor. Self-contained, answers sized for speaking.
+partitions and ordering · producer durability · consumer groups and offsets ·
+delivery guarantees and idempotency · transaction boundaries · rebalancing ·
+retention and DLQ · Spring Kafka · the IMPS anchor, with mastery checks.
+
+- **Practice:** [Kafka exercises](../kafka/kafka-basics-exercise.md) ·
+  [mastery checks](../kafka/kafka-basics.md#kafka-mastery).
 
 *One-liner for the section:* Kafka is a replayable append-only log
 split into ordered partitions, where the partition is both the unit
@@ -3135,42 +3138,6 @@ of ordering and the unit of parallelism, and **commit timing** is a
 knob that controls consumer loss/duplicate exposure — IMPS uses it to ACK NPCI
 fast and let the CBS leg run at its own pace, with the DB journal,
 not Kafka, as the truth for dedupe and recovery.
-
-### The compact model
-
-- **Topic:** a named stream divided into partitions.
-
-- **Partition:** an ordered append-only log; offsets identify positions within that partition.
-
-- **Consumer group:** cooperating consumers divide partition ownership; independent groups maintain independent progress.
-
-- **Ordering:** reason within a partition, then account for producer and application-processing behavior.
-
-- **Replay:** seek/read earlier retained records; committing an offset does not delete a record.
-
-### Delivery is a chain of guarantees
-
-- **Producer durability:** acknowledgements, replication/ISR policy, retries, and idempotent-producer configuration influence what reaches and survives in the log.
-
-- **Consumer progress:** committing before or after processing changes loss/duplicate exposure around failure.
-
-- **Business side effects:** a DB write and an offset commit are separate operations unless a specific coordination design joins the required scope.
-
-- **Deduplication:** a stable logical identifier plus atomic state transitions can make redelivery safe.
-
-- **Exactly-once boundary:** Kafka transactions can coordinate supported Kafka reads/writes and offsets; arbitrary external effects need their own design.
-
-### Kafka mastery
-
-- If processing succeeds and the consumer crashes before committing, what happens on redelivery?
-
-- If the offset commits and the DB operation then fails, what recovery path exists?
-
-- What is the ordering key, and can worker concurrency reorder processing after polling?
-
-- What happens when retries exceed the operating budget: pause, retry later, dead-letter, or manual repair?
-
-- **Depth:** use the answer sheet for the configuration and failure details behind each scenario.
 
 ---
 

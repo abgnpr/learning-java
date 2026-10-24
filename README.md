@@ -21,97 +21,66 @@ earns it.
 
 ## What's in here
 
-| File | What it is |
+Start with the foundations for each subject, then use the deeper guides,
+exercises, and labs to practise.
+
+### Core Java
+
+| Resource | Use it for |
 |---|---|
-| [core-java.md](core-java/core-java.md) | Core Java foundations and spoken recall: OOP, generics, collections, money, exceptions, I/O, Java 8+, concurrency, hidden-answer predictions, and enterprise/testing bridges. |
-| [java-versions.md](core-java/java-versions.md) | Java 7 → 25 timeline with complete permanent-JEP coverage for 17/21/25, code contrasts, status traps, and labs. |
-| [java-8.md](core-java/java-8.md) | The Tier-1 "Java 8 from zero" study block (§A–§I) — functional interfaces, lambdas, streams, `Optional`, `java.time`. |
-| [Comparator patterns](core-java/comparator-patterns.md) | Application sorting recipes: mixed directions, natural tie-breakers, nulls, business ranks, ranked maps, and focused labs. |
-| [Static factory methods](core-java/static-factory-methods.md) | Illustrated guide to collection factories, views versus snapshots, date/time, wrapper caching, and `Optional`; traps and a quick choice table. |
-| [threads-jvm.md](core-java/threads-jvm.md) | Threads, locks, the memory model, executors and JVM internals — ordered so that no answer depends on one below it. |
-| [Threads lab index](core-java/lab/07-threads/README.md) | Eight runnable stations for the concurrency section — races, visibility, deadlock, pools, virtual threads. |
-| [Core Java lab index](core-java/lab/README.md) | Standalone self-testing challenges and eight concurrency stations; the generated scoreboard tracks implementation progress. |
-| [Core Java interview practice](core-java/lab/INTERVIEW-PATH.md) | Essential drills, guide coverage, optional depth, and blind revision criteria; includes an integrated transaction report. |
-| [spring-boot-basics.md](spring-boot/spring-boot-basics.md) | DI/IoC, beans and scopes, auto-config, web MVC, validation, data/JPA, transactions and proxies, testing, actuator. |
-| [spring-senior-core.md](spring-boot/spring-senior-core.md) | Complete senior Spring reference: container/runtime flows, Boot, MVC, security, JPA, transactions, cross-system consistency, resilience, observability, testing and banking scenarios. |
-| [Simple Spring project scaffold](spring-boot/scaffold/spring-simple-project-scaffold.md) | Small feature-oriented todo application using the standard controller, service, Spring Data repository and JPA entity structure. |
-| [Domain-oriented Spring project scaffold](spring-boot/scaffold/spring-domain-oriented-project-scaffold.md) | Compile-oriented order feature showing a plain-Java domain, transactional use cases, explicit Spring wiring, JPA adapter, HTTP adapter and tests. |
-| [Spring senior-core checklist](spring-boot/senior-core-checklist.md) | Completed build tracker and acceptance scope for the senior Spring interview core. |
-| [spring-security-basics.md](spring-boot/spring-security-basics.md) | Senior anti-fumble kit: filter-chain architecture, authentication, route/method authorization, SpEL, JWT, sessions, CSRF/CORS, error boundaries, tests and production scenarios. |
-| [spring-data-jpa-performance.md](spring-boot/spring-data-jpa-performance.md) | Senior persistence kit: entity states, mappings, fetch plans/N+1, projections, pagination, JDBC batching, bulk DML, locking, caches, OSIV, diagnostics and production scenarios. |
-| [spring-boot-transactions-deep.md](spring-boot/spring-boot-transactions-deep.md) | Senior transaction kit: logical/physical scopes, propagation costs, rollback-only state, isolation/deadlocks, remote calls, idempotency, DB/Kafka coordination, outbox and saga. |
-| [spring-boot-resilience.md](spring-boot/spring-boot-resilience.md) | Senior resilience kit: deadline budgets, retry/idempotency, circuit breakers, bulkheads, rate limits, saturation, safe degradation and graceful shutdown. |
-| [spring-boot-observability.md](spring-boot/spring-boot-observability.md) | Senior observability kit: structured logs/redaction, Micrometer metrics/cardinality, tracing/context, Actuator security, probes, SLOs, dashboards and diagnosis. |
-| [spring-boot-testing-deep.md](spring-boot/spring-boot-testing-deep.md) | Senior production-testing kit: scope selection, slices, Testcontainers, transaction traps, security/stubs, query budgets, concurrency, idempotency and isolation. |
-| [spring-container-internals.md](spring-boot/spring-container-internals.md) | Senior container kit: definitions/registry, factory/context, refresh and bean lifecycle, post-processors, AOP proxies, `FactoryBean` and configuration modes. |
-| [kafka-basics-exercise.md](kafka/kafka-basics-exercise.md) | Log and partitions, ordering, producers, consumer groups, offsets and commit semantics, delivery guarantees, rebalancing, ISR, retention, DLQ. |
-| [kafka-basics.md](kafka/kafka-basics.md) | The self-contained Kafka answer sheet (§1–§12) — every term defined in place, sized for speaking. |
-| [redis-basics.md](redis/redis-basics.md) | The self-contained Redis answer sheet (§1–§13) — the data-structure model, expiry and eviction, atomicity, persistence, Sentinel and Cluster, caching patterns, locks and Java clients. |
-| [redis-basics-exercise.md](redis/redis-basics-exercise.md) | The exercise face of the same ground: predict, build, fix and explain drills with solutions folded away. |
-| [Redis lab index](redis/lab/README.md) | 15 self-testing Java labs against a real Redis — types, transactions, Lua, pipelines, streams, Sentinel failover, Cluster slots, JSON and vector search. |
+| [Core Java foundations](core-java/core-java.md) | Review language fundamentals and practise interview answers. |
+| [Java 8 essentials](core-java/java-8.md) | Learn lambdas, streams, functional interfaces, and common APIs. |
+| [Java version guide](core-java/java-versions.md) | Compare Java 7–25 releases and understand feature changes. |
+| [Comparator patterns](core-java/comparator-patterns.md) | Build sorting rules with multiple keys, nulls, and business ranks. |
+| [Static factory methods](core-java/static-factory-methods.md) | Choose factories and understand views, snapshots, and caching. |
+| [Threads and JVM](core-java/threads-jvm.md) | Study concurrency, the memory model, executors, and JVM internals. |
+| [Interview practice path](core-java/lab/INTERVIEW-PATH.md) | Follow focused drills through to an integrated transaction report. |
+| [Core Java labs](core-java/lab/README.md) | Find self-testing challenges and track implementation progress. |
+| [Threads labs](core-java/lab/07-threads/README.md) | Predict, run, and explain eight concurrency demonstrations. |
 
-Study notes are grouped by subject, one folder each. The Core Java lab and its
-index live alongside the Core Java notes:
+### Spring Boot
 
-```
-core-java/
-├── core-java.md
-├── java-8.md
-├── static-factory-methods.md
-├── java-versions.md
-├── threads-jvm.md
-└── lab/
-    ├── README.md
-    ├── 01-introduction/
-    ├── 02-strings/
-    ├── 03-big-numbers/
-    ├── 04-data-structures/
-    ├── 05-oop/
-    ├── 06-exceptions/
-    ├── 07-threads/
-    ├── 08-advanced/
-    ├── 09-stream-api/
-    ├── 10-core-contracts/
-    ├── 11-io-time/
-    ├── 12-concurrency-async/
-    ├── 13-version-features/
-    ├── 14-integration/
-    ├── INTERVIEW-PATH.md
-    └── Scratchpad.java
+**Foundations and reference**
 
-kafka/
-├── kafka-basics-exercise.md
-└── kafka-basics.md
+| Resource | Use it for |
+|---|---|
+| [Spring Boot foundations](spring-boot/spring-boot-basics.md) | Learn beans, auto-configuration, web APIs, persistence, and testing. |
+| [Senior Spring reference](spring-boot/spring-senior-core.md) | Prepare broader senior-level answers and work through production scenarios. |
 
-redis/
-├── redis-basics.md
-├── redis-basics-exercise.md
-└── lab/
-    ├── README.md
-    ├── compose.yaml
-    ├── get-deps.sh
-    ├── 01-data-types/
-    ├── 02-atomicity/
-    ├── 03-messaging/
-    ├── 04-operations/
-    └── 05-modules/
+**Deeper guides**
 
-spring-boot/
-├── scaffold/
-│   ├── spring-domain-oriented-project-scaffold.md
-│   └── spring-simple-project-scaffold.md
-├── spring-boot-basics.md
-├── spring-boot-observability.md
-├── spring-boot-resilience.md
-├── spring-boot-testing-deep.md
-├── spring-boot-transactions-deep.md
-├── spring-container-internals.md
-├── senior-core-checklist.md
-├── spring-senior-core.md
-├── spring-security-basics.md
-├── spring-data-jpa-performance.md
-└── spring-boot-basics.ESTIMATE.md
-```
+| Resource | Use it for |
+|---|---|
+| [Container internals](spring-boot/spring-container-internals.md) | Understand bean lifecycle, configuration, post-processors, and proxies. |
+| [Security](spring-boot/spring-security-basics.md) | Work through authentication, authorization, JWT, and web security. |
+| [JPA performance](spring-boot/spring-data-jpa-performance.md) | Diagnose fetching, query, batching, locking, and caching problems. |
+| [Transactions](spring-boot/spring-boot-transactions-deep.md) | Reason about propagation, rollback, isolation, and cross-system consistency. |
+| [Resilience](spring-boot/spring-boot-resilience.md) | Design timeouts, retries, circuit breakers, and graceful degradation. |
+| [Observability](spring-boot/spring-boot-observability.md) | Diagnose services using logs, metrics, tracing, and health signals. |
+| [Production testing](spring-boot/spring-boot-testing-deep.md) | Choose test scopes and verify database, security, and concurrency behavior. |
+
+**Project scaffolds and coverage**
+
+| Resource | Use it for |
+|---|---|
+| [Simple project scaffold](spring-boot/scaffold/spring-simple-project-scaffold.md) | Structure a todo application with controllers, services, and JPA repositories. |
+| [Domain-oriented project scaffold](spring-boot/scaffold/spring-domain-oriented-project-scaffold.md) | Structure an order feature around a plain-Java domain and explicit adapters. |
+| [Senior-core checklist](spring-boot/senior-core-checklist.md) | Check the completed build scope of the senior Spring material. |
+
+### Kafka
+
+| Resource | Use it for |
+|---|---|
+| [Kafka fundamentals](kafka/kafka-basics.md) | Rehearse spoken answers on partitions, consumers, delivery guarantees, and operations. |
+| [Kafka exercises](kafka/kafka-basics-exercise.md) | Test understanding with predict, build, fix, and explain drills. |
+
+### Redis
+
+| Resource | Use it for |
+|---|---|
+| [Redis fundamentals](redis/redis-basics.md) | Rehearse answers on data types, atomicity, caching, persistence, and scaling. |
+| [Redis exercises](redis/redis-basics-exercise.md) | Test understanding with drills and hidden solutions. |
+| [Redis labs](redis/lab/README.md) | Run 15 self-testing Java labs against a real Redis server. |
 
 ## The in-repository labs
 

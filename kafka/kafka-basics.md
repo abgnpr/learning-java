@@ -13,6 +13,7 @@
   - [§10 Why Kafka is fast](#10-why-kafka-is-fast)
   - [§11 IMPS — the anchor ⚓](#11-imps--the-anchor-)
   - [§12 Rapid-fire traps](#12-rapid-fire-traps)
+  - [Kafka mastery](#kafka-mastery)
 
 **Why this exists:** Kafka is the flagship line on the profile — the
 IMPS switch runs on it — so a Java round that sees "Kafka" on the CV
@@ -473,8 +474,24 @@ the IMPS switch are marked ⚓; never claim beyond them.
   the decision away from you: the timer fires from inside `poll`,
   committing the batch the previous `poll` returned, regardless of
   where processing had reached.
+- **Does partition order guarantee processing order in a worker pool?**
+  — no. Workers can complete records from the same partition out of
+  order.
+  - when order matters, keep each partition's work sequential, for
+    example by routing its records to one worker queue
+  - coordinate completion per partition and commit only after every
+    earlier record has completed; committing past unfinished work can
+    skip it after a crash
+  - **Reference:** [Kafka consumer threading](https://kafka.apache.org/39/javadoc/org/apache/kafka/clients/consumer/KafkaConsumer.html#multithreaded).
 
 ## §6 Delivery guarantees
+
+**Follow the whole delivery chain:** producer acknowledgements,
+replication, retries and idempotence ([§3](#3-the-cluster--brokers-replication-durability)
+· [§4](#4-the-producer)) → consumer offset commits
+([§5](#5-consumers-groups-and-offsets)) → business side effects.
+A DB write and a Kafka offset commit are separate operations;
+deduplication and transaction scope determine whether replay is safe.
 
 - **Delivery semantics?** *(the trio — say all three)*
   - **at-most-once**: commit *before* processing — never duplicates,
@@ -749,6 +766,22 @@ of ordering and the unit of parallelism, and **commit timing** is the
 knob that sets your delivery guarantee — IMPS uses it to ACK NPCI
 fast and let the CBS leg run at its own pace, with the DB journal,
 not Kafka, as the truth for dedupe and recovery.
+
+## Kafka mastery
+
+- If processing succeeds and the consumer crashes before committing,
+  what happens on redelivery?
+- If the offset commits and the DB operation then fails, what
+  recovery path exists?
+- What is the ordering key, and can worker concurrency reorder
+  processing after polling?
+- What happens when retries exceed the operating budget: pause,
+  retry later, dead-letter, or manual repair?
+
+- **Review:** [partitions and ordering](#2-topic-partition-offset) ·
+  [consumers and offsets](#5-consumers-groups-and-offsets) ·
+  [delivery guarantees](#6-delivery-guarantees) ·
+  [failure handling](#8-retention-compaction-lag-and-failure-handling).
 
 ## Rep scorecard — 🟢 only after a blind aloud rep
 
