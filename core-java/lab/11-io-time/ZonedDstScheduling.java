@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Locale;
 
 public class ZonedDstScheduling {
@@ -49,7 +50,23 @@ public class ZonedDstScheduling {
 
         check("formatter is explicitly English", "05 Dec 2024 09:15",
                 12, schedule("05 Dec 2024 09:15", ZoneId.of("UTC")).getMonthValue());
+        check("valid leap day is accepted", "29 Feb 2024 09:15 UTC",
+                LocalDateTime.of(2024, 2, 29, 9, 15),
+                schedule("29 Feb 2024 09:15", ZoneId.of("UTC")).toLocalDateTime());
+        checkThat("non-leap February 29 is rejected", "29 Feb 2025 09:15 UTC",
+                rejectsInvalidDate("29 Feb 2025 09:15"));
+        checkThat("impossible day is rejected rather than adjusted", "31 Apr 2024 09:15 UTC",
+                rejectsInvalidDate("31 Apr 2024 09:15"));
         report("Challenge 92");
+    }
+
+    private static boolean rejectsInvalidDate(String text) {
+        try {
+            schedule(text, ZoneId.of("UTC"));
+            return false;
+        } catch (DateTimeParseException expected) {
+            return true;
+        }
     }
 
     // ---- test harness (identical in every challenge; not part of the exercise) ----

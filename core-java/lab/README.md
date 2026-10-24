@@ -2,33 +2,33 @@
 
 <div align="center">
 
-## `35 / 131` labs complete
+## `35 / 134` labs complete
 
-`████████░░░░░░░░░░░░░░░░░░░░░░` **27%**
+`████████░░░░░░░░░░░░░░░░░░░░░░` **26%**
 
 </div>
 
 ```text
-Introduction       ██████████████████████                13/13
-Strings            ███████████████████                   11/11
+Introduction       █████████████████████                 13/13
+Strings            ██████████████████                    11/11
 BigNumber          ░░░░░░░                                 0/4
-Data Structures    ███████░░░░░░░░░░░░░░░░░░░░░░░░░░░     4/20
+Data Structures    ███████░░░░░░░░░░░░░░░░░░░░░░░░░░      4/20
 OOP                ░░░░░░░░░░░░░░░                         0/9
 Exceptions         ░░░░░                                   0/3
-Threads            ░░░░░░░░░░░░░░                          0/8
-Advanced           ░░░░░░░░░░░░░░░░░░░░░░░░░░             0/15
-Stream API         ████████████░░░░░░░░░░░░░░░░░░░░░░░░   7/21
-Core Contracts     ░░░░░░░░░░░░                            0/7
-I/O + Time         ░░░░░░░░░                               0/5
-Concurrency+Async  ░░░░░░░░░░░░░░                          0/8
+Threads            ░░░░░░░░░░░░░                           0/8
+Advanced           ░░░░░░░░░░░░░░░░░░░░░░░░░              0/15
+Stream API         ███████████░░░░░░░░░░░░░░░░░░░░░░░░░   7/22
+Core Contracts     ░░░░░░░░░░░░░                           0/8
+I/O + Time         ░░░░░░░░░░                              0/6
+Concurrency+Async  ░░░░░░░░░░░░░                           0/8
 Version Features   ░░░░░░░░░░                              0/6
 Integration        ░░                                      0/1
 ```
 
 ---
 
-This directory contains 131 runnable Java labs arranged as a learning path:
-123 self-testing challenge starters and eight concurrency stations. Every
+This directory contains 134 runnable Java labs arranged as a learning path:
+126 self-testing challenge starters and eight concurrency stations. Every
 source file states its minimum JDK when it differs from the default Java 21
 baseline. The task descriptions are self-contained, original practice
 contracts; the challenge names and ordering form the curriculum map.
@@ -49,13 +49,13 @@ revision criteria. The numbered track remains available for foundational practic
 | 06 | Exception handling | 3 |
 | 07 | Threads and concurrency | 8 |
 | 08 | Advanced Java | 15 |
-| 09 | Stream API | 21 |
-| 10 | Core contracts and language mechanics | 7 |
-| 11 | I/O and date/time | 5 |
+| 09 | Stream API | 22 |
+| 10 | Core contracts and language mechanics | 8 |
+| 11 | I/O and date/time | 6 |
 | 12 | Practical concurrency and async | 8 |
 | 13 | Java 17, 21, and 25 version features | 6 |
 | 14 | Integrated transaction reporting | 1 |
-| | **Total** | **131** |
+| | **Total** | **134** |
 
 `Scratchpad.java` is available for experiments and is not counted as a lab.
 
@@ -436,6 +436,7 @@ learning order, and review checkpoints.
 | 111 | Multi-Field Comparator Sorting | Medium | [MultiFieldInventorySort.java](09-stream-api/MultiFieldInventorySort.java) | ⬜ |
 | 130 | Comparator Policy Catalog | Medium | [ComparatorPolicyCatalog.java](09-stream-api/ComparatorPolicyCatalog.java) | ⬜ |
 | 131 | Ranked Results and Ordered Maps | Medium | [RankedResults.java](09-stream-api/RankedResults.java) | ⬜ |
+| 132 | Employee Stream Queries | Medium | [EmployeeStreamQueries.java](09-stream-api/EmployeeStreamQueries.java) | ⬜ |
 
 ### Core Contracts
 
@@ -451,6 +452,7 @@ language or collection contract it proves.
 | 87 | Collection Choice Contracts | Medium | [CollectionChoiceContracts.java](10-core-contracts/CollectionChoiceContracts.java) | ⬜ |
 | 120 | Language Semantics Predictions | Medium | [LanguageSemantics.java](10-core-contracts/LanguageSemantics.java) | ⬜ |
 | 121 | Compiler Contracts Predictions | Medium | [CompilerContracts.java](10-core-contracts/CompilerContracts.java) | ⬜ |
+| 133 | Functional Behavior Predictions | Medium | [FunctionalBehaviorPredictions.java](10-core-contracts/FunctionalBehaviorPredictions.java) | ⬜ |
 
 ### I/O and Date/Time
 
@@ -464,6 +466,7 @@ resource ownership, deterministic clocks, and named-zone transitions.
 | 90 | Resource Suppression and Ownership | Hard | [ResourceSuppressionOwnership.java](11-io-time/ResourceSuppressionOwnership.java) | ⬜ |
 | 91 | Clock-driven Temporal Snapshot | Medium | [ClockDrivenTime.java](11-io-time/ClockDrivenTime.java) | ⬜ |
 | 92 | Zoned Scheduling Across DST | Hard | [ZonedDstScheduling.java](11-io-time/ZonedDstScheduling.java) | ⬜ |
+| 134 | Date Boundary Contracts | Medium | [DateBoundaryContracts.java](11-io-time/DateBoundaryContracts.java) | ⬜ |
 
 ### Concurrency and Async
 
@@ -531,13 +534,13 @@ explanation remain the learner's responsibility.
 | Exception Handling | 3 | 0/3 |
 | Threads and Concurrency | 8 | 0/8 |
 | Advanced | 15 | 0/15 |
-| Stream API | 21 | 7/21 |
-| Core Contracts | 7 | 0/7 |
-| I/O and Date/Time | 5 | 0/5 |
+| Stream API | 22 | 7/22 |
+| Core Contracts | 8 | 0/8 |
+| I/O and Date/Time | 6 | 0/6 |
 | Concurrency and Async | 8 | 0/8 |
 | Version Features | 6 | 0/6 |
 | Integration | 1 | 0/1 |
-| **Total** | **131** | **35/131** |
+| **Total** | **134** | **35/134** |
 
 ## Revision references
 

@@ -80,6 +80,15 @@ default interface methods, `java.time`, and `CompletableFuture`.
   7. [MapUpdateContracts.java](lab/04-data-structures/MapUpdateContracts.java)
   8. [CompletableFutureExecution.java](lab/12-concurrency-async/CompletableFutureExecution.java)
 
+- **Interview combinations and boundary checks** (JDK 21+):
+
+  1. [EmployeeStreamQueries.java](lab/09-stream-api/EmployeeStreamQueries.java) —
+     per-department maxima/averages, nested grouping, and second distinct salary.
+  2. [FunctionalBehaviorPredictions.java](lab/10-core-contracts/FunctionalBehaviorPredictions.java) —
+     receiver timing, source binding, reduction laws, and future recovery position.
+  3. [DateBoundaryContracts.java](lab/11-io-time/DateBoundaryContracts.java) —
+     strict parsing, year patterns, and monthly anchor-day scheduling.
+
 - **Run an exercise on JDK 8:** compile it first, then run the class:
 
   ```bash

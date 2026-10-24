@@ -1,6 +1,6 @@
 # Stream API labs
 
-This section contains 21 self-testing challenges for streams and comparator-driven reports. Work
+This section contains 22 self-testing challenges for streams and comparator-driven reports. Work
 through them in order: each group adds a new part of the stream mental model,
 from building a lazy pipeline to designing reductions that remain correct in
 parallel.
@@ -60,12 +60,19 @@ source -> lazy intermediate operations -> terminal operation -> result
 | 111 | [Multi-Field Comparator Sorting](MultiFieldInventorySort.java) | comparator composition, mixed sort directions |
 | 130 | [Comparator Policy Catalog](ComparatorPolicyCatalog.java) | text/null/direction policies, explicit business order, timestamps |
 | 131 | [Ranked Results](RankedResults.java) | value DESC/key ASC, top N, selection, ordered maps |
+| 132 | [Employee Stream Queries](EmployeeStreamQueries.java) | maximum/average per group, nested grouping, second distinct salary |
 
 For sorting practice, read [application comparator patterns](../../comparator-patterns.md),
 then complete 111 → 130 → 131. Follow with
 [Equality and Ordering](../10-core-contracts/EqualityOrderingContract.java) for
 sorted-set identity and [Student Priority Queue](../04-data-structures/StudentPriorityQueue.java)
 for service order. These are different uses of the same comparator contract.
+
+For report-query practice, combine grouping, partitioning, and duplicate-key
+drills in Employee Stream Queries. Distinguish the second employee from the
+second distinct salary, and keep salary ties deterministic. Follow with
+[Functional Behavior Predictions](../10-core-contracts/FunctionalBehaviorPredictions.java)
+to practise source binding, reduction laws, and callback timing.
 
 ## Review checkpoints
 
@@ -84,6 +91,8 @@ After completing the section, be able to explain:
 11. Why nulls can stay last in both directions and an ascending ID can remain fixed.
 12. Why a best-first comparator selects its best item with min, and why a ranked
     map needs an explicit iteration-order contract.
+13. How nested grouping separates map-key order from list encounter order, and
+    why duplicate salaries must be removed before selecting the second value.
 
 Compile this section without writing class files into the repository:
 
