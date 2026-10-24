@@ -4,8 +4,6 @@
 
 - [§1 Bedrock — Java identity + OOP](#1-bedrock--java-identity--oop)
 
-  - [Immutable classes and defensive copying](#immutable-classes-and-defensive-copying)
-
 - [§2 Generics and type safety](#2-generics-and-type-safety)
 
 - [§3 Collections](#3-collections)
@@ -36,36 +34,12 @@
 
 **Why this exists:** core Java is where a technical round opens —
 theory, code-output, Java 8+, threads/JVM, enterprise, plus
-SDLC/testing. **The flagship Java answer is the IMPS switch** (solo,
-NPCI-certified) — abstract answers get stronger with "…and in my
-IMPS switch, …". Anchors marked ⚓.
-
-**How to drill:** aloud, blind, one section per sitting (`/drill`
-rapid-fire). Answers are sized for SPEAKING — say the 1–3 lines,
-then stop talking. Explain-level depth; if pressed deeper, anchor to
-IMPS code; never bluff. 🟢 per section only after a blind aloud rep
-— reading is not loading.
+SDLC/testing.
 
 **Practical companion:** follow the [Core Java interview practice path](lab/INTERVIEW-PATH.md)
 for language predictions, collection contracts, object design, functional Java,
 exceptions, async work, and a transaction-report exercise. Its coverage map
 distinguishes Java labs from the separate Spring/Kafka/testing tracks.
-
-**⚓ The verified IMPS stack (from build files):** Spring Boot
-**2.7.10** receivers · Kafka clients **3.x** · Oracle via
-**ojdbc8** · Redis via **Jedis 3.7** · **Gradle** multi-project
-build (NOT Maven) · JAXB + XML digital signatures for NPCI · RMI to
-CBS-interface and RRN-server. ⚠️ JDK version is NOT pinned in
-Gradle — check the deployment JDK before an interview ("which Java
-version?" is a certainty).
-
-**Version baseline:** unlabelled language/API examples use Java 8; later
-features carry release labels. Most runnable labs use JDK 21+; Java 25 labs
-have separate instructions.
-
-**Code examples:** statements, type declarations, and schematic before/after
-fragments are distinguished by context. `...` marks omitted application code;
-complete standalone programs are labelled.
 
 ---
 
