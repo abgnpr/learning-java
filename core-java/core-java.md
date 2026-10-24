@@ -714,6 +714,41 @@ distinguishes Java labs from the separate Spring/Kafka/testing tracks.
 
   - persist a stable business identifier, not `ordinal()`
 
+    ```java
+    // Complete Java 8+ program; save as EnumDemo.java.
+    import java.util.EnumSet;
+
+    public class EnumDemo {
+        enum PaymentStatus {
+            PENDING("P"), PAID("S"), FAILED("F");
+
+            private final String code;
+
+            PaymentStatus(String code) {
+                this.code = code;
+            }
+
+            String code() {
+                return code;
+            }
+        }
+
+        public static void main(String[] args) {
+            PaymentStatus status = PaymentStatus.PAID;
+            EnumSet<PaymentStatus> terminal =
+                EnumSet.of(PaymentStatus.PAID, PaymentStatus.FAILED);
+
+            System.out.println(status + " / " + status.code()); // PAID / S
+            System.out.println(status == PaymentStatus.PAID);  // true
+            System.out.println(terminal.contains(status));     // true
+        }
+    }
+    ```
+
+    Each constant supplies its code through the enum constructor.
+    Inserting `RETRYING("R")` before `PAID` changes `PAID.ordinal()`
+    from 1 to 2; its explicit business code stays `"S"`.
+
   - **annotation:** metadata for compilers, processors, frameworks,
     or reflection. `@Target` controls use sites; `@Retention` controls
     SOURCE / CLASS / RUNTIME lifetime (default: CLASS)
@@ -723,6 +758,43 @@ distinguishes Java labs from the separate Spring/Kafka/testing tracks.
   - **reflection:** inspect types, construct objects, and invoke
     members dynamically; useful for frameworks, with runtime checks
     and tighter coupling to structure
+
+    ```java
+    // Complete Java 8+ program; save as AnnotationReflectionDemo.java.
+    import java.lang.annotation.*;
+    import java.lang.reflect.Method;
+
+    public class AnnotationReflectionDemo {
+        @Retention(RetentionPolicy.RUNTIME)
+        @Target(ElementType.TYPE)
+        @interface Label {
+            String value();
+        }
+
+        @Label("payments")
+        static class PaymentService {
+            public String status() {
+                return "ready";
+            }
+        }
+
+        public static void main(String[] args) throws Exception {
+            Class<?> type = PaymentService.class;
+            Label label = type.getAnnotation(Label.class);
+            System.out.println(label == null ? "missing" : label.value()); // payments
+
+            Method method = type.getDeclaredMethod("status");
+            System.out.println(method.invoke(new PaymentService())); // ready
+        }
+    }
+    ```
+
+    `@Label` supplies metadata; reflection reads it and selects a
+    method by name to invoke. With `RetentionPolicy.CLASS`, the
+    annotation remains in the class file, but `getAnnotation()`
+    returns `null`: the first output becomes `missing`, while the
+    method invocation prints `ready`. `@Target(ElementType.TYPE)` permits
+    the class annotation; placing `@Label` on `status()` is a compile error.
 
   - Java 9+ modules can restrict deep reflection; an access override
     is not a universal escape hatch
@@ -734,6 +806,47 @@ distinguishes Java labs from the separate Spring/Kafka/testing tracks.
   - `serialVersionUID` — guards class-version mismatch
 
   - static fields — not part of default serialized instance state
+
+    ```java
+    // Complete Java 8+ program; save as SerializationDemo.java.
+    import java.io.*;
+
+    public class SerializationDemo {
+        static class Session implements Serializable {
+            private static final long serialVersionUID = 1L;
+            static String environment = "prod";
+            String name = "Ada";
+            transient String token = "session-token";
+        }
+
+        public static void main(String[] args) throws Exception {
+            Session original = new Session();
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            try (ObjectOutputStream out = new ObjectOutputStream(bytes)) {
+                out.writeObject(original);
+            }
+
+            original.name = "Grace";
+            Session.environment = "test";
+
+            try (ObjectInputStream in = new ObjectInputStream(
+                    new ByteArrayInputStream(bytes.toByteArray()))) {
+                Session restored = (Session) in.readObject();
+                System.out.println(restored.name);       // Ada
+                System.out.println(restored.token);      // null
+                System.out.println(Session.environment); // test
+            }
+        }
+    }
+    ```
+
+    `name` is restored from the saved object state. `token` defaults
+    to `null`: default deserialization skips it and does not rerun
+    `Session`'s field initializers. A transient `int` would default to
+    `0`. The static `environment` keeps its current class value,
+    `"test"`, because it was never part of the saved instance state.
+    Removing `transient` includes the token in that state, so its
+    restored value becomes `"session-token"`.
 
   - matching `serialVersionUID` does not make arbitrary schema changes
     compatible; `transient` is not a general secrecy guarantee
