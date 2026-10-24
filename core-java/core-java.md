@@ -177,6 +177,34 @@ distinguishes Java labs from the separate Spring/Kafka/testing tracks.
   - nested-class boundary: classes enclosed by the same top-level
     class can access each other's private members
 
+    ```java
+    // Complete Java 8+ program; save as PrivateAccessDemo.java.
+    public class PrivateAccessDemo {
+        static class Account {
+            private int balance = 100;
+        }
+
+        static class Auditor {
+            private void printBalance(Account account) {
+                // Legal: Account and Auditor share one enclosing top-level class.
+                System.out.println(account.balance);
+            }
+        }
+
+        public static void main(String[] args) {
+            Account account = new Account();
+            Auditor auditor = new Auditor();
+            auditor.printBalance(account); // Legal: outer accesses nested private method.
+        }
+    }
+    // Output: 100
+    ```
+
+    `Auditor` reads its sibling's private field; the enclosing
+    `PrivateAccessDemo` calls `Auditor`'s private method. Both accesses
+    are allowed by the shared top-level enclosure. An unrelated
+    top-level class in the same package cannot read `account.balance`.
+
   - containing types must also be accessible; Java 9+ module exports
     can impose another boundary
 
