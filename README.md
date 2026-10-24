@@ -3,7 +3,7 @@
 Interview preparation notes for Java, Spring Boot, Kafka and Redis —
 rapid-fire answers, study material, and hands-on labs.
 
-Callsign **HOT COFFEE**, base 6 of the interview fleet. Operating
+Callsign **HOT COFFEE**. Operating
 charter lives in [CLAUDE.md](CLAUDE.md); HQ is
 `~/Documents/interview-hq`.
 
@@ -149,17 +149,3 @@ java -cp "lib/*" 01-data-types/OtpCache.java
 
 Two of them need a larger topology — a Sentinel quorum and a six-node
 cluster — and those tiers sit behind compose profiles until asked for.
-
-## Readiness
-
-Notes are marked 🟢 drilled aloud · 🟡 racked (exists, not drilled) ·
-🔴 not built. **Reading is not loading** — a kit only earns 🟢 after a
-blind rep out loud.
-
-**For kits with a rep scorecard, that scorecard is authoritative**;
-[CLAUDE.md](CLAUDE.md) summarises readiness. `core-java/threads-jvm.md`
-is through rep 1 in full; `kafka/kafka-basics.md` is
-half-way; the runnable Java challenge track is in progress. The Kafka exercise
-and Spring senior reference and Boot/Security/JPA/Transactions/Resilience/
-Observability/Testing/Container kits are racked and unrepped/unsolved, as are
-the Redis answer sheet, its exercise kit and its 15-lab track.
