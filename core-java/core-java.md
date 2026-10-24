@@ -4,6 +4,8 @@
 
 - [§1 Bedrock — Java identity + OOP](#1-bedrock--java-identity--oop)
 
+  - [Immutable classes and defensive copying](#immutable-classes-and-defensive-copying)
+
 - [§2 Generics and type safety](#2-generics-and-type-safety)
 
 - [§3 Collections](#3-collections)
@@ -615,6 +617,8 @@ complete standalone programs are labelled.
   int m = n;                    // NPE — unboxing null
   ```
 
+### Immutable classes and defensive copying
+
 - **How do you write an immutable class?** (String is the reference
   example.)
 
@@ -626,9 +630,13 @@ complete standalone programs are labelled.
 
   - initialize in constructor
 
-  - defensive copies of mutable fields — don't store/return the
-    caller's mutable reference; copy in, copy out — else they
-    mutate your "immutable" object from outside
+  - protect ownership of mutable state: copy mutable inputs before storing
+    them, and prevent callers from mutating internal state through accessors
+
+  - validate the state you retain and establish invariants during construction
+
+- **Why copy in and copy out?** — a defensive copy prevents another reference
+  from changing your object's state. Assume `java.util` imports.
 
   ```java
   public final class Range {
@@ -644,19 +652,57 @@ complete standalone programs are labelled.
   }
   ```
 
+  ```java
+  List<Integer> input = new ArrayList<>(Arrays.asList(1, 2));
+  Range range = new Range(input);
+
+  input.add(3);                     // copy IN isolates Range from input
+  List<Integer> returned = range.getValues();
+  returned.clear();                 // copy OUT isolates Range from the result
+
+  System.out.println(range.getValues()); // [1, 2]
+  ```
+
+  - storing `this.values = values` would let `input.add(3)` change the Range;
+    returning `values` would let `returned.clear()` change it through the getter
+
+  - the getter's copy is mutable; callers can edit their result without
+    changing the Range
+
   - the Range example copies list structure; its Integer elements
     are immutable. A list of mutable elements needs an element-level
     ownership policy too
 
-  - an unmodifiable view of a **defensive copy** can avoid copying
-    on every getter; an unmodifiable view of the caller's own list
-    does not establish ownership
+- **Must every getter allocate a copy?** — no. If the constructor stores
+  `this.values = List.copyOf(values)` (Java 10+), `return values` is safe here:
+  the list is an unmodifiable snapshot and Integer elements are immutable.
 
-  - validate inputs and establish invariants during construction
+  - `List.copyOf` rejects a null source or null elements; the ArrayList
+    constructor rejects a null source but permits null elements
 
-  - **records — Java 16+:** generated value methods and final component
-    fields do not make mutable components deeply immutable; copy
-    components when the contract requires a snapshot
+  - Java 8 alternative: store `Collections.unmodifiableList(new ArrayList<>(values))`
+    and return that stored list. Keep the backing copy private and unchanged
+
+  - wrapping the caller's list with `Collections.unmodifiableList(values)`
+    alone still lets the caller change it through the original reference
+
+  - unmodifiable structure does not protect mutable elements. Copy them or
+    expose immutable values; even a private element copy leaks if a getter
+    returns that mutable element directly
+
+- **Arrays?** — for an `int[]`, use `this.samples = samples.clone()` in the
+  constructor and `return samples.clone()` in the getter. An object-array
+  clone copies slots but still shares the referenced objects.
+
+- **Records — Java 16+:** generated value methods and final component fields
+  do not make mutable components deeply immutable. A compact constructor can
+  snapshot a `List<String>` with `values = List.copyOf(values)`; its generated
+  accessor can then safely return that list. An array component needs copying
+  in both the constructor and an explicitly declared accessor.
+
+- **Depth:** [defensive copies at API boundaries](static-factory-methods.md#defensive-copies-at-api-boundaries).
+
+### Enums, annotations, reflection, and serialization
 
 - **Enums, annotations, and reflection — what belongs where?**
 
@@ -1259,18 +1305,38 @@ static <T> void copyInto(List<? extends T> source, List<? super T> target) {
 
 - **Read-only collections?**
 
+  ```java
+  // Java 9+: create unmodifiable containers from supplied values.
+  List<String> stages = List.of("NEW", "PAID");
+  Set<String> terminalStates = Set.of("PAID", "FAILED");
+  Map<String, Integer> retries = Map.of("PAYMENT", 3);
+
+  // Java 10+: capture an unmodifiable snapshot of an existing container.
+  List<String> listSnapshot = List.copyOf(stages);
+  Set<String> setSnapshot = Set.copyOf(terminalStates);
+  Map<String, Integer> mapSnapshot = Map.copyOf(retries);
+  ```
+
   - `Collections.unmodifiableList(list)` — wrapper; writes throw
     `UnsupportedOperationException`, but the *backing* list can
     still change underneath
 
-  - `List.of(...)` / `Map.of(...)` (Java 9) — unmodifiable collections,
-    no nulls allowed; mutable elements/values can still change
+  - `List.of` / `Set.of` / `Map.of` reject null contents; their containers
+    cannot be changed, but mutable elements, keys, or values can still change
 
-  - `List.copyOf(...)` (Java 10) — an unmodifiable snapshot of collection structure;
-    deep immutability also requires immutable or defensively copied elements
+  - `List.copyOf` / `Set.copyOf` / `Map.copyOf` reject a null source and null
+    contents; later source-container changes do not change the snapshot.
+    An eligible existing unmodifiable container can be reused
 
-  - `List.copyOf` also rejects null elements; all these guarantees
-    concern structure, not deep immutability
+  - these methods return a result; they do not freeze a mutable source in
+    place. Deep immutability also requires immutable or protected elements
+
+  - `new ArrayList<>(source)` gives a detached, mutable list. Returning it
+    protects internal list structure while allowing callers to edit their copy
+
+  - **Depth:** [collection factories](static-factory-methods.md#b-create-collections) ·
+    [views and snapshots](static-factory-methods.md#c-views-copies-and-ownership) ·
+    [immutable classes and defensive copying](#immutable-classes-and-defensive-copying).
 
 - **Fixed size vs backed view vs independent copy?**
 

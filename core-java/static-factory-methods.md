@@ -22,6 +22,8 @@
 
 - [§C Views, copies, and ownership](#c-views-copies-and-ownership)
 
+  - [Defensive copies at API boundaries](#defensive-copies-at-api-boundaries)
+
 - [§D Create dates, instants, and durations](#d-create-dates-instants-and-durations)
 
 - [§E Wrappers, numbers, and Optional](#e-wrappers-numbers-and-optional)
@@ -296,6 +298,61 @@ System.out.println(frozenText.get(0)); // PENDING
 - Use immutable elements or copy the mutable state you actually need to own.
   A `final List<T>` only prevents reassignment of the variable.
 
+### Defensive copies at API boundaries
+
+- A defensive copy protects an object's state from changes made through
+  another reference. Constructors accept caller-owned input; getters can
+  expose internally owned state.
+
+```java
+// List.copyOf: Java 10. String elements are immutable.
+final class Permissions {
+    private final List<String> roles;
+
+    Permissions(List<String> roles) {
+        this.roles = List.copyOf(roles); // snapshot on the way IN
+    }
+
+    public List<String> getRoles() {
+        return roles; // safe: owned unmodifiable list of immutable elements
+    }
+}
+```
+
+```java
+List<String> input = new ArrayList<>(List.of("READ"));
+Permissions permissions = new Permissions(input);
+
+input.add("WRITE");
+System.out.println(permissions.getRoles()); // [READ]
+
+// permissions.getRoles().add("ADMIN"); // UnsupportedOperationException
+System.out.println(input);                // [READ, WRITE]
+```
+
+- `List.copyOf` protects list structure from later input changes and blocks
+  writes through the getter's result. It rejects a null input or null elements.
+  It can reuse an eligible unmodifiable input; protection does not require a
+  fresh identity.
+
+- Returning `new ArrayList<>(roles)` instead would give each caller a
+  **mutable defensive copy**. The caller could edit that list without changing
+  this object's roles. Choose the return contract deliberately.
+
+- Storing `Collections.unmodifiableList(input)` alone would expose a live
+  view: the caller could still change this object's roles through `input`.
+  The Java 8 snapshot alternative is
+  `Collections.unmodifiableList(new ArrayList<>(input))`; retain the private
+  backing copy without mutating or exposing it. This alternative permits null
+  elements.
+
+- With mutable elements, copying the list alone is insufficient. Use immutable
+  element values, or copy mutable elements on input and protect them on output.
+  A list of private mutable copies is still exposed if a getter returns those
+  elements directly.
+
+- **Object design:** [immutable classes and copy-in/copy-out examples](core-java.md#immutable-classes-and-defensive-copying).
+
 ### Copy policy: nulls, duplicates, and order
 
 ```java
@@ -402,6 +459,9 @@ System.out.println(editable); // [A, B, C]
 
 - How do you preserve null elements or insertion order while preventing callers
   from modifying a returned container?
+
+- Why does the Permissions getter safely return its stored list? What changes
+  if the constructor only wraps the input, or the list contains mutable elements?
 
 - Why is replacing `collect(toList())` with `toList()` potentially a behavior change?
 
