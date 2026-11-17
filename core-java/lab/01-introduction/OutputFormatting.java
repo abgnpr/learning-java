@@ -32,13 +32,13 @@ public final class OutputFormatting {
         check("no rows", "List.of()", "", formatRows(List.of()));
         check("empty label and zero quantity", "\"\", 0", "            :0000", formatRows(List.of(new Row("", 0))));
         check("short label", "\"apple\", 7", "apple       :0007", formatRows(List.of(new Row("apple", 7))));
-        check("full-width label", "\"twelve-chars\", 42", "twelve-chars:0042", formatRows(List.of(new Row("twelve-chars", 42))));
+        check("full-width label", "\"twelve-chars\", 42", "twelve-chars:0042",
+                formatRows(List.of(new Row("twelve-chars", 42))));
         check("maximum quantity", "\"limit\", 9999", "limit       :9999", formatRows(List.of(new Row("limit", 9999))));
-        check("multiple rows", "\"tea\", 3", "tea         :0003\ncoffee      :0120", formatRows(List.of(new Row("tea", 3), new Row("coffee", 120))));
+        check("multiple rows", "\"tea\", 3", "tea         :0003\ncoffee      :0120",
+                formatRows(List.of(new Row("tea", 3), new Row("coffee", 120))));
         report("Challenge 05");
     }
-
-
 
     /**
      * Renders a value on one line so line breaks and trailing spaces stay visible:

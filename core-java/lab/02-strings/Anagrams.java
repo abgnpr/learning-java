@@ -1,4 +1,3 @@
-
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -76,6 +75,26 @@ public final class Anagrams {
         first.codePoints().forEach(codePoint -> counts[codePoint]++);
         second.codePoints().forEach(codePoint -> counts[codePoint]--);
         return Arrays.stream(counts).allMatch(count -> count == 0);
+        */
+
+        // approach 5: 
+        /* 
+        Map<Integer, Integer> counts = new HashMap<>();
+        first.codePoints().forEach(cp -> counts.merge(cp, 1, Integer::sum));
+        PrimitiveIterator.OfInt it = second.codePoints().iterator();
+        while (it.hasNext()) {
+            int cp = it.nextInt();
+            Integer current = counts.get(cp);
+            if (current == null) {
+                return false; // Extra character found; exit immediately
+            }
+            if (current == 1) {
+                counts.remove(cp);
+            } else {
+                counts.put(cp, current - 1);
+            }
+        }
+        return counts.isEmpty();
         */
     }
 

@@ -17,20 +17,20 @@ public final class StdinStdoutOne {
 
     static String echoIntegers(String input) {
 
-        // classic way
-        /*         
         if (input.isBlank()) {
             return "";
         }
+
+        /*         
+        // classic way
         String[] result = input.strip().split("\\s+");
-        for (int i = 0; i < result.length; i++) {
+        for (int i = 0; i < result.length; i++)
             result[i] = String.valueOf(Integer.parseInt(result[i]));
-        }
         return String.join("\n", result);
         */
 
-        // streams way
         /*   
+        // streams way
         return Arrays.stream(input.strip().split("\\s+"))
                 .filter(s -> !s.isEmpty())
                 .map(Integer::parseInt)
@@ -39,9 +39,6 @@ public final class StdinStdoutOne {
         */
 
         // best way
-        if (input.isBlank()) {
-            return "";
-        }
         return Arrays.stream(input.strip().split("\\s+"))
                 .map(Integer::parseInt)
                 .map(String::valueOf)
@@ -55,8 +52,6 @@ public final class StdinStdoutOne {
         check("empty input", " \n\t ", "", echoIntegers(" \n\t "));
         report("Challenge 02");
     }
-
-
 
     /**
      * Renders a value on one line so line breaks and trailing spaces stay visible:
