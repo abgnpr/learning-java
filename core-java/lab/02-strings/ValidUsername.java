@@ -14,47 +14,90 @@ public final class ValidUsername {
     private ValidUsername() {
     }
 
-    /*
-     * Compiled once as a constant: Pattern.compile parses the syntax into a
-     * matcher program, and repeating that per call is the usual regex cost sink.
-     * A Pattern is immutable and thread-safe; the Matcher it hands out is not,
-     * which is why the Matcher is created per call inside the method.
-     *
-     * [a-zA-Z] and not \p{L}: the contract says ASCII. \p{L} is the Unicode
-     * letter category, so it admits "e-acute" and CJK, while \w without the
-     * UNICODE_CHARACTER_CLASS flag stays ASCII [a-zA-Z0-9_]. Pairing the two
-     * makes the first position Unicode and the rest ASCII, so the same letter
-     * is accepted in "emile_1" but rejected in "cafe_7x".
-     *
-     * A-Z and not A-z: a class range spans code points, not alphabets. A is 65
-     * and z is 122, so A-z also covers 91-96 -- [ \ ] ^ _ ` -- which silently
-     * readmits the leading underscore this rule exists to reject.
-     *
-     * {5,17} and not {6,18}: the leading [a-zA-Z] already consumed one
-     * character, so the quantifier governs the remainder. 1 + 5..17 = 6..18.
-     *
-     * To accept every alphabet instead, make BOTH halves Unicode -- the flag
-     * widens \w to letters, digits and connector punctuation of any script:
-     *
-     * Pattern.compile("\\p{L}\\w{5,17}", Pattern.UNICODE_CHARACTER_CLASS);
-     *
-     * or spell the class out, which needs no flag and is explicit about what
-     * "word character" was meant to include:
-     *
-     * Pattern.compile("\\p{L}[\\p{L}\\p{N}_]{5,17}");
-     *
-     * Both still reject a leading digit or underscore, since \p{L} anchors the
-     * first position to a letter in any script.
-     */
     private static final Pattern VALID_USERNAME = Pattern.compile("[a-zA-Z]\\w{5,17}");
 
     static boolean isValidUsername(String candidate) {
-        // matches() requires the whole input to match, so the pattern needs no
-        // ^ and $. find() would accept "!!!coder_7!!!" by matching a substring.
-        // Anchoring with $ alone would still admit a trailing newline, since $
-        // matches before a final line terminator; matches() does not.
-        return candidate != null && VALID_USERNAME.matcher(candidate).matches();
+        if (candidate == null) {
+            return false;
+        }
+
+        // --- Approach 1: Procedural character scan (O(n), zero regex overhead) ---
+        /*
+        int len = candidate.length();
+        if (len < 6 || len > 18 || !isAsciiLetter(candidate.charAt(0))) {
+            return false;
+        }
+        for (int i = 1; i < len; i++) {
+            char c = candidate.charAt(i);
+            if (!isAsciiLetter(c) && !(c >= '0' && c <= '9') && c != '_') {
+                return false;
+            }
+        }
+        return true;
+        */
+
+        // --- Approach 2: Inline String.matches (recompiles Pattern on every call) ---
+        // return candidate.matches("[a-zA-Z]\\w{5,17}");
+
+        // --- Approach 3: Hoisted Pattern + Matcher.matches (compiles once) ---
+        return VALID_USERNAME.matcher(candidate).matches();
     }
+
+    // private static boolean isAsciiLetter(char c) {
+    //     return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+    // }
+
+    /*
+     * =========================================================================
+     * STUDY NOTES: CHARACTER RANGES, ANCHORING & UNICODE FLAGS
+     * =========================================================================
+     *
+     * 1. ANATOMY OF THE PATTERN: [a-zA-Z]\w{5,17}
+     *    - [a-zA-Z]:  First character must be an ASCII letter (consumes 1 char).
+     *    - \w{5,17}:  Remaining 5 to 17 characters must be word characters
+     *                 ([a-zA-Z0-9_]). Total length: 1 + (5..17) = 6..18.
+     *
+     * 2. THE [A-z] ASCII RANGE TRAP
+     *    Use [a-zA-Z], never [A-z]. Character class ranges span numeric code
+     *    points, not alphabets:
+     *    - 'A' is 65, 'Z' is 90, 'a' is 97, and 'z' is 122.
+     *    - [A-z] includes code points 91..96: [ \ ] ^ _ `
+     *    - Using [A-z] on the first character silently admits "_coder" (95) and
+     *      "[coder" (91). Using [A-z0-9_] on the tail silently admits "coder^7"
+     *      (94) and "coder`7" (96).
+     *
+     * 3. MATCHER.MATCHES() VS. FIND() AND ANCHORS (^ / $ VS. \A / \z)
+     *    - matches() requires the ENTIRE input string to match the pattern
+     *      (implicitly anchored with \A at the start and \z at the absolute end),
+     *      so ^ and $ are unnecessary.
+     *    - find() searches for a matching substring anywhere in the input, so it
+     *      would accept "!!!coder_7!!!".
+     *    - Even with ^ and $, find() on "^[a-zA-Z]\\w{5,17}$" would still accept
+     *      "coder_7\n" because $ matches before a trailing line terminator (\Z).
+     *      matches() rejects trailing newlines automatically.
+     *
+     * 4. ASCII VS. UNICODE (\p{L}, \w, AND UNICODE_CHARACTER_CLASS)
+     *    - Why [a-zA-Z] instead of \p{L}: the contract specifies ASCII. \p{L}
+     *      matches any Unicode letter (e.g., 'é' or CJK characters), whereas \w
+     *      without flags stays strict ASCII [a-zA-Z0-9_].
+     *    - Mixing them (\p{L}\w{5,17}) creates an inconsistent rule where the
+     *      first character allows Unicode ("émile_1" passes) but the rest is
+     *      restricted to ASCII ("café_7x" fails).
+     *    - To support Unicode usernames consistently across all positions, either
+     *      enable UNICODE_CHARACTER_CLASS (or inline (?U)) so \w widens to
+     *      Unicode letters, digits, and connector punctuation:
+     *          Pattern.compile("\\p{L}\\w{5,17}", Pattern.UNICODE_CHARACTER_CLASS)
+     *      or spell out the Unicode categories explicitly without flags:
+     *          Pattern.compile("\\p{L}[\\p{L}\\p{N}_]{5,17}")
+     *
+     * 5. HOISTED PATTERN VS. PER-CALL MATCHER (THREAD SAFETY)
+     *    - Pattern.compile() parses the regex into an immutable, thread-safe
+     *      automaton once at class load. Calling String.matches() recompiles
+     *      that automaton on every invocation.
+     *    - Matcher holds mutable cursor state (start/end indices, groups) and is
+     *      NOT thread-safe, which is why VALID_USERNAME.matcher(candidate) is
+     *      instantiated per call inside the method (a lightweight allocation).
+     */
 
     public static void main(String[] args) {
         check("letters underscore and digit", "coder_7", true, isValidUsername("coder_7"));
@@ -76,6 +119,17 @@ public final class ValidUsername {
         check("trailing newline", "coder_7\n", false, isValidUsername("coder_7\n"));
         check("non-ASCII start letter", "\u00e9mile_1", false, isValidUsername("\u00e9mile_1"));
         check("non-ASCII letter inside", "caf\u00e9_7x", false, isValidUsername("caf\u00e9_7x"));
+
+        // [A-z] ASCII range trap (code points 91..96: [ \ ] ^ _ ` lie between 'Z' and 'a').
+        // Catches [A-z] at index 0 and [A-z0-9_] in positions 1..17:
+        check("[A-z] trap: leading bracket (91)", "[coder", false, isValidUsername("[coder"));
+        check("[A-z] trap: leading caret (94)", "^coder", false, isValidUsername("^coder"));
+        check("[A-z] trap: leading backtick (96)", "`coder", false, isValidUsername("`coder"));
+        check("[A-z] trap: internal bracket (91)", "coder[7", false, isValidUsername("coder[7"));
+        check("[A-z] trap: internal backslash (92)", "coder\\7", false, isValidUsername("coder\\7"));
+        check("[A-z] trap: internal caret (94)", "coder^7", false, isValidUsername("coder^7"));
+        check("[A-z] trap: internal backtick (96)", "coder`7", false, isValidUsername("coder`7"));
+
         check("null", null, false, isValidUsername(null));
         report("Challenge 23");
     }

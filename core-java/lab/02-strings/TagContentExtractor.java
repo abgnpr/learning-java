@@ -10,65 +10,102 @@
  * Complete: static List<String> extractText(String markup)
  * Run: java TagContentExtractor.java
  */
+import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class TagContentExtractor {
     private TagContentExtractor() {
     }
 
-    // `?` means "0 or 1" after a character (colou?r), but after a quantifier it
-    // flips that quantifier from greedy to lazy: `.*` takes everything and hands
-    // characters back until the rest of the pattern fits, `.*?` takes nothing and
-    // accepts one more at a time. On "<a>x</a><a>y</a>", `<(\w+)>(.*)</\1>` spans
-    // both elements; `.*?` stops at the first `</a>`.
-    //
-    // That makes `(.*?)` the tempting content group here, and it is wrong twice:
-    //
-    //     <a></a><a>ok</a>        ->  ["", "ok"]  -- `*` matches zero characters,
-    //                                 so an empty element is still a match
-    //     <p>skip</q><p>keep</p>  ->  ["skip</q><p>keep"]
-    //
-    // The second is the one worth remembering. Lazy stops at the first place the
-    // REST OF THE PATTERN can match, not at the first `<`. Here `</q>` is not the
-    // `</\1>` being sought, so `.` -- which may cross `<` -- keeps extending
-    // through the malformed tag until a real `</p>` turns up, welding two elements
-    // into one match. The contract says ignore mismatches; lazy quietly cannot.
-    //
-    // `[^<>]+` fixes both without a `?`, and the fix is structural rather than a
-    // matter of stopping early: the class cannot step over the `<` that opens
-    // `</q>`, so that match dies there and the scan resumes at `<p>keep</p>`. `+`
-    // then rules out the empty element, so no `.filter(s -> !s.isEmpty())` is
-    // needed downstream. The general lesson -- when a match runs too long, narrow
-    // what the content may contain before reaching for laziness.
-    //
-    // Bounding content by "anything but angle brackets" is only legal because the
-    // contract promises flat markup with no `<`/`>` in text (real markup escapes
-    // them as &lt; / &gt;). Allow raw brackets or nesting and this stops being a
-    // regex problem -- Java patterns cannot count depth -- and wants a parser.
-    // Group numbers count OPENING parens left to right, so group 1 is the tag name
-    // and group 2 the content; `\1` is a backreference demanding the closing tag
-    // repeat whatever group 1 actually captured. `</\w+>` would accept any name and
-    // let `<x>one</y>` through. Note `$1` is replacement syntax (replaceAll) -- in a
-    // pattern it is the literal characters `$` and `1`, matching nothing here.
-    //
-    // `\w` suits the NAME even though it was too narrow for the content: names are
-    // letters and digits, so `<h1>` works, and the surrounding `<` `>` pin both ends
-    // -- which is what makes `<bb>x</b>` fail rather than matching a `b` prefix.
-    private final static Pattern EXTRACTOR_PATTERN = Pattern.compile(
+    private static final Pattern EXTRACTOR_PATTERN = Pattern.compile(
             "<(\\w+)>([^<>]+)</\\1>");
 
     static List<String> extractText(String markup) {
-        // results() (Java 9+) is the stream form of the `while (m.find())` loop: one
-        // MatchResult per match, left to right, non-overlapping. Each carries the
-        // match POSITIONS, so its toString() is an object dump -- group(n) is what
-        // returns text. Scanning resumes after each match, which is what lets a
-        // failed attempt at `<x>one</y>` be abandoned and `<z>two</z>` still be found.
+        if (markup == null) {
+            return List.of();
+        }
+
+        // --- Approach 1: Classic Matcher.find() loop (Java 1.4+) ---
+        /*
+        List<String> extracted = new ArrayList<>();
+        Matcher matcher = EXTRACTOR_PATTERN.matcher(markup);
+        while (matcher.find()) {
+            extracted.add(matcher.group(2));
+        }
+        return extracted;
+        */
+
+        // --- Approach 2: Matcher.results() stream (Java 9+) ---
+        // Emits one non-overlapping MatchResult per match from left to right.
         return EXTRACTOR_PATTERN.matcher(markup)
                 .results()
                 .map(r -> r.group(2))
                 .toList();
     }
+
+    /*
+     * =========================================================================
+     * STUDY NOTES: NEGATED CHARACTER CLASSES, LAZINESS & STREAM EXTRACTION
+     * =========================================================================
+     *
+     * 1. ANATOMY OF THE PATTERN: <(\w+)>([^<>]+)</\1>
+     *    - Group 1 (\w+):  Opening tag name (counted by opening parens left to right).
+     *    - Group 2 ([^<>]+): Enclosed non-empty text containing no angle brackets.
+     *    - \1:             Back-reference demanding the closing tag match Group 1's
+     *                      exact captured text.
+     *
+     * 2. WHY ([^<>]+) BEATS LAZY (.*?)
+     *    `?` means "0 or 1" after a character (colou?r), but after a quantifier it
+     *    flips that quantifier from greedy to lazy:
+     *    - Greedy `.*` grabs everything, then backtracks until the rest fits.
+     *    - Lazy `.*?` starts with nothing, advancing one character at a time until
+     *      the rest of the pattern matches. On "<a>x</a><a>y</a>", `<(\w+)>(.*)</\1>`
+     *      spans both elements, whereas `.*?` stops at the first `</a>`.
+     *
+     *    That makes `(.*?)` tempting here, but it fails in two ways:
+     *      1) `<a></a><a>ok</a>`       -> ["", "ok"]
+     *         `*` allows zero characters, so empty elements match.
+     *      2) `<p>skip</q><p>keep</p>` -> ["skip</q><p>keep"]
+     *         Lazy stops at the first place the REST OF THE PATTERN can match, NOT
+     *         at the first `<`. Because `</q>` is not `</p>`, `.` steps right over
+     *         `</q><p>` until it finds the later `</p>`, welding two elements into
+     *         one match.
+     *
+     *    `[^<>]+` fixes both structurally:
+     *      - It cannot cross `<`, so the match attempt on `<p>skip</q>` dies at the
+     *        `<` of `</q>`, and the engine resumes scanning at `<p>keep</p>`.
+     *      - `+` requires at least one character, ruling out `<a></a>` without a
+     *        downstream `.filter(s -> !s.isEmpty())`.
+     *      - Bonus: unlike `.`, which excludes line breaks unless Pattern.DOTALL is
+     *        set, negated character classes like `[^<>]` match `\n` by default.
+     *    Rule of thumb: when a match runs too far, restrict what the character
+     *    class may contain before reaching for laziness.
+     *
+     * 3. TAG NAMES, DELIMITERS & BACK-REFERENCES
+     *    - Why no `\b` is needed: literal `<` and `>` pin both ends of Group 1 and
+     *      `\1`, so `<bb>x</b>` and `<b>x</bb>` cannot match on a prefix.
+     *    - Why `\1` instead of `</\w+>`: `</\w+>` would accept any closing tag name
+     *      and let `<x>one</y>` pass. (And `$1` is replacement syntax — inside a
+     *      pattern it means end-of-line `$` followed by literal `1`).
+     *    - Note on `\w+`: the task states "ASCII letters", but `\w` is `[a-zA-Z0-9_]`,
+     *      which is what allows numbered HTML-style tags like `<h1>` to match.
+     *
+     * 4. WHEN REGEX STOPS WORKING (FLAT VS. NESTED MARKUP)
+     *    Bounding content by `[^<>]+` relies on the contract that markup is flat and
+     *    raw `<`/`>` never appear in text (real HTML escapes them as `&lt;`/`&gt;`).
+     *    If arbitrary nesting (`<div><div>...</div></div>`) is required to extract
+     *    outer blocks, standard Java regex cannot count nesting depth — use a stack
+     *    or dedicated parser instead.
+     *
+     * 5. MATCHER.RESULTS() (JAVA 9+)
+     *    `results()` is the stream equivalent of `while (m.find())`. Each element is
+     *    a `MatchResult` holding start/end offsets (its `toString()` is an object
+     *    dump; `group(2)` extracts the matched content substring). When a match
+     *    attempt fails (like `<x>one</y>`), the engine advances and continues,
+     *    allowing later valid tags (`<z>two</z>`) to be collected.
+     */
 
     public static void main(String[] args) {
         check("two tags", "<p>alpha</p><b>beta</b>", List.of("alpha", "beta"), extractText("<p>alpha</p><b>beta</b>"));
