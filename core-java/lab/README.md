@@ -70,6 +70,9 @@ From this directory, open the Lanterna menu with JDK 21 or newer:
 ```
 
 The first launch downloads Gradle and Lanterna if they are not already cached.
+Later launches start the menu directly; Gradle runs again only when the launcher
+source changes. That build uses `--no-daemon`, so it does not leave a Gradle
+process in memory.
 The menu lists every lab in challenge order. Press `/` and type a challenge
 number, name, or section to filter the list. Use the arrow keys to select a
 program and Enter to run it. Its output and exit status fill the screen;

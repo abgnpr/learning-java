@@ -2,5 +2,13 @@
 set -eu
 LAB_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 cd "$LAB_ROOT"
-./gradlew --quiet --console=plain installDist
-exec "$LAB_ROOT/build/install/lab-runner/bin/lab-runner" "$LAB_ROOT"
+LAB_RUNNER="$LAB_ROOT/build/install/lab-runner/bin/lab-runner"
+LAB_JAR="$LAB_ROOT/build/install/lab-runner/lib/lab-runner.jar"
+if [ ! -x "$LAB_RUNNER" ] \
+    || [ ! -f "$LAB_JAR" ] \
+    || [ "$LAB_ROOT/build.gradle" -nt "$LAB_JAR" ] \
+    || [ "$LAB_ROOT/settings.gradle" -nt "$LAB_JAR" ] \
+    || [ -n "$(find "$LAB_ROOT/launcher/src/main/java" -type f -newer "$LAB_JAR" -print -quit)" ]; then
+    ./gradlew --no-daemon --quiet --console=plain installDist
+fi
+exec "$LAB_RUNNER" "$LAB_ROOT"

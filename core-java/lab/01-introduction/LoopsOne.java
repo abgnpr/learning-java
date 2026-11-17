@@ -20,6 +20,7 @@ public final class LoopsOne {
         // produces String values and crosses into Stream<T> for joining.
         //     .map(i -> String.format(...))   // int -> String: won't compile
         // rangeClosed includes limit; for limit 0 it is empty, and joining()
+
         // naturally returns "" without a branch.
         return IntStream.rangeClosed(1, limit)
                 .mapToObj(i -> String.format("%d x %d = %d", value, i, value * i))
@@ -32,8 +33,6 @@ public final class LoopsOne {
         check("zero rows", "9, 0", "", multiplicationTable(9, 0));
         report("Challenge 06");
     }
-
-
 
     /**
      * Renders a value on one line so line breaks and trailing spaces stay visible:
