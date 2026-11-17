@@ -1,0 +1,6 @@
+#!/bin/sh
+set -eu
+LAB_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+cd "$LAB_ROOT"
+./gradlew --quiet --console=plain installDist
+exec "$LAB_ROOT/build/install/lab-runner/bin/lab-runner" "$LAB_ROOT"

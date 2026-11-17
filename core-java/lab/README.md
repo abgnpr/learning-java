@@ -61,6 +61,35 @@ revision criteria. The numbered track remains available for foundational practic
 
 ## How to run
 
+### Terminal menu
+
+From this directory, open the Lanterna menu with JDK 21 or newer:
+
+```bash
+./lab
+```
+
+The first launch downloads Gradle and Lanterna if they are not already cached.
+The menu lists every lab in challenge order. Press `/` and type a challenge
+number, name, or section to filter the list. Use the arrow keys to select a
+program and Enter to run it. Its output and exit status fill the screen;
+Page Up and Page Down scroll, `Esc` returns to the list, `r` reruns, and `x`
+stops a long-running program. Press F5 to find newly added files or `q` to
+quit. Most labs have their test inputs embedded in the source and print them
+with their checks. This first menu version has no standard-input editor.
+
+For the three Java 25 labs, point the child process at a JDK 25 executable:
+
+```bash
+LAB_JAVA=/path/to/jdk-25/bin/java ./lab
+```
+
+The menu itself uses JDK 21. Its Gradle build compiles only `launcher/`; it does
+not compile or alter challenge sources. Run `./gradlew test` to check the menu's
+file discovery and child-process behavior.
+
+### Run a source file directly
+
 Open a source file, read its task and acceptance checks, then complete the
 marked `TODO`. Run that file directly from `core-java/lab/`:
 

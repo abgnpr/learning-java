@@ -22,14 +22,16 @@ public final class CurrencyFormatter {
 
     public static void main(String[] args) {
         check("US zero amount", "BigDecimal.ZERO, Locale.US", "$0.00", formatCurrency(BigDecimal.ZERO, Locale.US));
-        check("US amount", "new BigDecimal(\"1234.50\"), Locale.US", "$1,234.50", formatCurrency(new BigDecimal("1234.50"), Locale.US));
-        check("UK amount", "new BigDecimal(\"1234.50\"), Locale.UK", "£1,234.50", formatCurrency(new BigDecimal("1234.50"), Locale.UK));
-        check("German amount", "new BigDecimal(\"1234.50\"), Locale.GERMANY", "1.234,50 €", formatCurrency(new BigDecimal("1234.50"), Locale.GERMANY));
-        check("negative amount", "new BigDecimal(\"-42\"), Locale.US", "-$42.00", formatCurrency(new BigDecimal("-42"), Locale.US));
+        check("US amount", "new BigDecimal(\"1234.50\"), Locale.US", "$1,234.50",
+                formatCurrency(new BigDecimal("1234.50"), Locale.US));
+        check("UK amount", "new BigDecimal(\"1234.50\"), Locale.UK", "£1,234.50",
+                formatCurrency(new BigDecimal("1234.50"), Locale.UK));
+        check("German amount", "new BigDecimal(\"1234.50\"), Locale.GERMANY", "1.234,50 €",
+                formatCurrency(new BigDecimal("1234.50"), Locale.GERMANY));
+        check("negative amount", "new BigDecimal(\"-42\"), Locale.US", "-$42.00",
+                formatCurrency(new BigDecimal("-42"), Locale.US));
         report("Challenge 13");
     }
-
-
 
     /**
      * Renders a value on one line so line breaks and trailing spaces stay visible:

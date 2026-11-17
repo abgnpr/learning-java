@@ -1,0 +1,42 @@
+plugins {
+    id 'application'
+}
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+sourceSets {
+    main.java.srcDirs = ['launcher/src/main/java']
+    test.java.srcDirs = ['launcher/src/test/java']
+}
+
+dependencies {
+    implementation 'com.googlecode.lanterna:lanterna:3.1.5'
+    testImplementation platform('org.junit:junit-bom:6.1.3')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+application {
+    mainClass = 'lab.runner.LabMenu'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.named('run', JavaExec) {
+    standardInput = System.in
+    workingDir = project.projectDir
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+}

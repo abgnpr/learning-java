@@ -48,7 +48,8 @@ public final class EndOfFile {
                 if (i > 0) {
                     sb.append('\n');
                 }
-                sb.append(++i).append(' ').append(line);
+                ++i;
+                sb.append(i).append(' ').append(line);
             }
         } catch (IOException ioe) {
             // StringReader cannot fail here, but readLine() declares IOException;
@@ -59,6 +60,13 @@ public final class EndOfFile {
         return sb.toString();
     }
 
+    /* Point to revise
+     StringReader vs. InputStreamReader: A Java String is already decoded UTF-16 text, 
+     so StringReader adapts it directly to a character stream (Reader). Raw byte 
+     streams like System.in (InputStream) must first be decoded into  characters 
+     via InputStreamReader.
+    */
+
     public static void main(String[] args) {
         check("two lines", "alpha\nbeta", "1 alpha\n2 beta", numberLines("alpha\nbeta"));
         check("blank middle line", "one\n\nthree", "1 one\n2 \n3 three", numberLines("one\n\nthree"));
@@ -68,8 +76,6 @@ public final class EndOfFile {
         check("empty stream", "", "", numberLines(""));
         report("Challenge 09");
     }
-
-
 
     /**
      * Renders a value on one line so line breaks and trailing spaces stay visible:
@@ -97,21 +103,6 @@ public final class EndOfFile {
         }
         System.out.println("      expected: " + show(expected));
         System.out.println("      actual:   " + show(actual));
-    }
-
-    /** Records a case whose contract is a condition rather than a value. */
-    private static void checkThat(String label, Object input, boolean condition) {
-        if (condition) {
-            passes++;
-        } else {
-            failures++;
-        }
-        System.out.println((condition ? "PASS  " : "FAIL  ") + label);
-        if (input != null) {
-            System.out.println("      input:    " + show(input));
-        }
-        System.out.println("      expected: " + "condition holds");
-        System.out.println("      actual:   " + (condition ? "holds" : "does not hold"));
     }
 
     /**
